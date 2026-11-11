@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-[#121314]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Marcante • Control de Tráfico OT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            resolve: {
+              bg: '#141416',
+              surface: '#1b1c1f',
+              panel: '#202125',
+              card: '#27292e',
+              border: '#33353b',
+              accent: '#d97706',      /* Ámbar cálido DaVinci */
+              accentHover: '#b45309',
+              cyan: '#06b6d4',
+              dimText: '#9ca3af',
+              lightText: '#f3f4f6'
+            },
+            stamp: {
+              red: '#dc2626',
+              blue: '#2563eb',
+              green: '#059669',
+              amber: '#d97706'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', '"Courier Prime"', 'monospace'],
+            stamp: ['"Special Elite"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* DaVinci Resolve custom dark scrollbars & subtle grid */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #141416;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #33353b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b4e57;
+    }
+    .bin-active {
+      background-color: #2e3037 !important;
+      border-left: 3px solid #d97706;
+      color: #ffffff !important;
+    }
+    .ink-stamp-box {
+      font-family: 'Special Elite', monospace;
+      letter-spacing: 0.1em;
+      border: 2px dashed currentColor;
+      text-transform: uppercase;
+      transform: rotate(-1.5deg);
+      mix-blend-mode: lighten;
+      user-select: none;
+    }
+    .file-dropzone.dragover {
+      border-color: #d97706 !important;
+      background-color: rgba(217, 119, 6, 0.08) !important;
+    }
+  </style>
+</head>
+<body class="h-full bg-resolve-bg text-resolve-lightText font-sans flex flex-col antialiased select-none overflow-hidden">
+
+  <!-- TOP BAR: Control de Tráfico & Master Actions -->
+  <header class="h-12 bg-resolve-panel border-b border-resolve-border px-3 sm:px-4 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-3">
+      <!-- Toggle para colapsar la barra lateral desde la barra superior -->
+      <button 
+        onclick="toggleSidebar()" 
+        title="Ocultar / Mostrar Bins (Sidebar)" 
+        class="p-1.5 rounded hover:bg-resolve-card text-resolve-dimText hover:text-white transition-colors border border-resolve-border"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+        </svg>
+      </button>
+
+      <div class="flex items-center gap-2.5">
+        <span class="w-3 h-3 rounded-sm bg-resolve-accent inline-block shadow-[0_0_8px_rgba(217,119,6,0.6)]"></span>
+        <span class="font-mono font-black text-sm tracking-widest text-white uppercase">EL MARCANTE</span>
+        <span class="text-stone-600 font-mono text-xs hidden sm:inline">//</span>
+        <span class="font-mono text-xs text-stone-300 hidden sm:inline tracking-wider">CONTROL DE TRÁFICO • OT</span>
+      </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="flex items-center gap-2">
+      <!-- Respaldo / Restauración -->
+      <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="px-2.5 py-1 text-xs font-mono bg-resolve-card hover:bg-resolve-border text-resolve-dimText hover:text-white rounded border border-resolve-border flex items-center gap-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span class="hidden sm:inline">Backup</span>
+      </button>
+      <label title="Restaurar Archivo JSON" class="px-2.5 py-1 text-xs font-mono bg-resolve-card hover:bg-resolve-border text-resolve-dimText hover:text-white rounded border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        <span class="hidden sm:inline">Restaurar</span>
+        <input type="file" id="import-input" accept=".json" onchange="importBackupData(event)" class="hidden">
+      </label>
+
+      <!-- Botón Nueva OT -->
+      <button onclick="openNewOtModal()" class="ml-1 px-3 py-1 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-mono font-bold text-xs rounded border border-amber-400 shadow-sm flex items-center gap-1.5 transition-all active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        <span>NUEVA OT</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CUERPO PRINCIPAL: 2 COLUMNAS (Árbol estilo DaVinci | Mesa de OTs) -->
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- PANEL IZQUIERDO: ÁRBOL DE BINS (Cliente -> Marca -> Año / Carpeta) -->
+    <aside 
+      id="sidebar-bin-tree" 
+      class="w-72 md:w-80 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none transition-all duration-300 ease-in-out relative z-20"
+    >
+      
+      <!-- Encabezado de la barra lateral -->
+      <div class="h-9 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-resolve-dimText font-bold flex items-center gap-1.5 truncate">
+          <svg class="w-3.5 h-3.5 text-resolve-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span class="sidebar-text truncate">Árbol de Bins / Clientes</span>
+        </span>
+        <div class="flex items-center gap-1 sidebar-text">
+          <button onclick="promptCreateClient()" title="Crear Nuevo Cliente" class="p-1 hover:bg-resolve-card text-resolve-dimText hover:text-white rounded text-xs font-mono">
+            + Cliente
+          </button>
+          <button onclick="toggleSidebar()" title="Colapsar panel" class="p-1 hover:bg-resolve-card text-resolve-dimText hover:text-white rounded">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Master Bin (Ver Todas) -->
+      <div class="p-2 border-b border-resolve-border/60 sidebar-text">
+        <button onclick="selectTreeFilter('all', null, null)" id="bin-all" class="bin-item bin-active w-full text-left px-2.5 py-1.5 rounded text-xs font-mono flex items-center justify-between text-stone-300 hover:bg-resolve-panel transition-colors">
+          <div class="flex items-center gap-2 truncate">
+            <svg class="w-4 h-4 text-resolve-accent shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+            <span class="font-bold truncate">Master Bin (Todas las OTs)</span>
+          </div>
+          <span class="text-[10px] font-bold bg-resolve-card px-1.5 py-0.5 rounded text-resolve-dimText" id="badge-count-all">0</span>
+        </button>
+      </div>
+
+      <!-- Contenedor jerárquico del Árbol de Clientes y Marcas -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-1 font-mono text-xs sidebar-text" id="bin-tree-container">
+        <!-- Inyectado dinámicamente con JS -->
+      </div>
+
+      <!-- Resumen en pie de barra -->
+      <div class="p-2 bg-resolve-panel border-t border-resolve-border text-[10px] font-mono text-resolve-dimText flex items-center justify-between sidebar-text">
+        <span id="tree-summary-clients">0 Clientes</span>
+        <span id="tree-summary-brands">0 Marcas</span>
+      </div>
+
+    </aside>
+
+    <!-- Rail delgado cuando está colapsado para volver a desplegar -->
+    <div 
+      id="sidebar-collapsed-rail" 
+      class="hidden w-10 bg-resolve-surface border-r border-resolve-border flex flex-col items-center py-2 shrink-0 select-none z-10 cursor-pointer hover:bg-resolve-panel transition-colors"
+      onclick="toggleSidebar()"
+      title="Clic para expandir árbol de clientes"
+    >
+      <button class="p-1.5 text-resolve-accent hover:text-white mb-4">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <div class="writing-vertical-lr text-[11px] font-mono uppercase tracking-widest text-resolve-dimText transform rotate-180 flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-resolve-accent"></span>
+        <span>BINS / CLIENTES</span>
+      </div>
+    </div>
+
+    <!-- PANEL CENTRAL: MESA DE TRABAJO (Sobres y Órdenes) -->
+    <main class="flex-1 flex flex-col bg-resolve-bg overflow-hidden">
+      
+      <!-- Barra de Filtros, Búsqueda y Migas de Pan (Breadcrumbs) -->
+      <div class="h-11 bg-resolve-surface border-b border-resolve-border px-4 flex items-center justify-between gap-3 shrink-0">
+        <!-- Migas de Pan estilo DaVinci -->
+        <div class="flex items-center gap-1.5 font-mono text-xs text-resolve-dimText truncate">
+          <span class="text-stone-400">Pool:</span>
+          <span class="text-white font-bold" id="current-bin-breadcrumb">Master Bin</span>
+          <span class="text-stone-600">/</span>
+          <span class="text-resolve-accent font-semibold text-[11px]" id="current-bin-count">0 OTs encontradas</span>
+        </div>
+
+        <!-- Filtros Rápidos de Tráfico & Conmutador de Vista (Tarjetas / Lista) -->
+        <div class="flex items-center gap-2">
+          <!-- CONMUTADOR VISTA TARJETAS / VISTA LISTA -->
+          <div class="flex bg-resolve-panel p-0.5 rounded border border-resolve-border">
+            <button 
+              id="view-toggle-grid" 
+              onclick="setMainDeskView('grid')" 
+              title="Vista en Tarjetas / Sobres" 
+              class="px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors bg-resolve-card text-white border border-resolve-border/60 shadow-xs"
+            >
+              <svg class="w-3.5 h-3.5 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+              </svg>
+              <span class="hidden sm:inline">Tarjetas</span>
+            </button>
+            <button 
+              id="view-toggle-list" 
+              onclick="setMainDeskView('list')" 
+              title="Vista Lista / Grilla de Tráfico" 
+              class="px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors text-resolve-dimText hover:text-white"
+            >
+              <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+              <span class="hidden sm:inline">Lista</span>
+            </button>
+          </div>
+
+          <div class="relative w-44 sm:w-60">
+            <input 
+              type="text" 
+              id="search-input" 
+              oninput="renderTrafficDesk()" 
+              placeholder="Buscar OT, cliente, copy..." 
+              class="w-full bg-resolve-panel border border-resolve-border rounded px-2.5 py-1 text-xs font-mono text-white placeholder-stone-500 focus:outline-none focus:border-resolve-accent"
+            />
+          </div>
+
+          <!-- Selector de Estado -->
+          <select id="status-filter" onchange="renderTrafficDesk()" class="bg-resolve-panel border border-resolve-border rounded text-xs font-mono px-2 py-1 text-resolve-dimText focus:outline-none">
+            <option value="all">Todos los Estados</option>
+            <option value="En Tránsito">En Tránsito</option>
+            <option value="En Redacción">En Redacción</option>
+            <option value="En Cuentas">En Cuentas</option>
+            <option value="En Producción">En Producción</option>
+            <option value="Archivada">Archivada</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cuadrícula / Lista de OTs -->
+      <div class="flex-1 overflow-y-auto p-4 md:p-6">
+        <!-- VISTA EN CUADRÍCULA (TARJETAS) -->
+        <div id="envelopes-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Tarjetas de OT se renderizan aquí -->
+        </div>
+
+        <!-- VISTA EN LISTA (TABLA ESTILO DAVINCI RESOLVE EDIT/MEDIA) -->
+        <div id="envelopes-list-container" class="hidden border border-resolve-border rounded bg-resolve-surface overflow-x-auto">
+          <table class="w-full text-left font-mono text-xs border-collapse">
+            <thead>
+              <tr class="bg-resolve-panel border-b border-resolve-border text-[11px] text-resolve-dimText uppercase tracking-wider">
+                <th class="p-2.5 border-r border-resolve-border w-28">N° OT</th>
+                <th class="p-2.5 border-r border-resolve-border w-32">ESTADO</th>
+                <th class="p-2.5 border-r border-resolve-border w-48">CLIENTE / MARCA</th>
+                <th class="p-2.5 border-r border-resolve-border min-w-[240px]">TÍTULO DE LA PIEZA & MEDIO</th>
+                <th class="p-2.5 border-r border-resolve-border w-48">ÚLTIMO RELEVO</th>
+                <th class="p-2.5 border-r border-resolve-border w-32">FECHA ENTREGA</th>
+                <th class="p-2.5 border-r border-resolve-border w-24 text-center">POOL</th>
+                <th class="p-2.5 w-24 text-center">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-stone-300">
+              <!-- Filas de la lista inyectadas con JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Vista Vacía -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center p-12 border-2 border-dashed border-resolve-border rounded-lg text-center my-8">
+          <div class="w-12 h-12 rounded bg-resolve-panel border border-resolve-border flex items-center justify-center text-resolve-accent font-mono text-xl mb-3">
+            OT
+          </div>
+          <h3 class="font-mono text-sm uppercase font-bold text-white">Ninguna OT en esta carpeta</h3>
+          <p class="text-xs font-mono text-resolve-dimText mt-1 max-w-sm">No hay órdenes registradas para este bin o filtro. Pulsa "NUEVA OT" para despachar una orden de trabajo.</p>
+          <button onclick="openNewOtModal()" class="mt-4 px-3 py-1.5 text-xs font-mono font-bold bg-resolve-accent text-stone-950 rounded hover:bg-resolve-accentHover">
+            + Crear Orden para este Bin
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Estado Inferior -->
+      <div class="h-7 bg-resolve-panel border-t border-resolve-border px-3 flex items-center justify-between text-[11px] font-mono text-resolve-dimText shrink-0">
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+            <span>Sistema Local Listo (IndexedDB Persistente)</span>
+          </span>
+          <span id="footer-storage-info" class="hidden sm:inline">Persistencia 100% en tu máquina</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="footer-active-count">0 Activas</span>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: DETALLE DE LA OT (SOBRE MCCANN + HOJA DE RUTA + MEDIA POOL)   -->
+  <!-- ==================================================================== -->
+  <div id="envelope-modal" class="fixed inset-0 bg-black/85 z-50 hidden overflow-y-auto p-2 sm:p-4 backdrop-blur-xs flex items-center justify-center">
+    
+    <div class="w-full max-w-6xl bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl flex flex-col max-h-[94vh] overflow-hidden">
+      
+      <!-- Header de la Ficha Técnica -->
+      <div class="h-12 bg-resolve-panel border-b border-resolve-border px-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-black px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded" id="modal-ot-id">
+            OT-26-001
+          </span>
+          <h2 class="text-sm font-mono font-bold text-white truncate max-w-md" id="modal-ot-title-header">
+            Título de la Pieza
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Pestañas internas del Sobre -->
+          <div class="flex bg-resolve-bg p-0.5 rounded border border-resolve-border text-xs font-mono">
+            <button onclick="switchOtTab('hoja-ruta')" id="tab-btn-hoja-ruta" class="px-3 py-1 rounded bg-resolve-panel text-white font-bold transition-colors">
+              Hoja de Ruta (Relevos)
+            </button>
+            <button onclick="switchOtTab('media-pool')" id="tab-btn-media-pool" class="px-3 py-1 rounded text-resolve-dimText hover:text-white transition-colors flex items-center gap-1.5">
+              <span>Media Pool</span>
+              <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-resolve-card text-resolve-dimText" id="tab-badge-files">0</span>
+            </button>
+            <button onclick="switchOtTab('brief')" id="tab-btn-brief" class="px-3 py-1 rounded text-resolve-dimText hover:text-white transition-colors">
+              Brief & Requisitos
+            </button>
+          </div>
+
+          <button onclick="closeEnvelopeModal()" class="p-1 text-stone-400 hover:text-white rounded ml-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ficha de Encabezado Técnico de la OT -->
+      <div class="bg-resolve-bg border-b border-resolve-border p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono shrink-0">
+        <div>
+          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Cliente / Bin</label>
+          <input type="text" id="modal-ot-client" onchange="updateActiveOtField('client', this.value)" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white font-bold focus:border-resolve-accent focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Marca / Producto</label>
+          <input type="text" id="modal-ot-product" onchange="updateActiveOtField('product', this.value)" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white focus:border-resolve-accent focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Medio / Formato</label>
+          <input type="text" id="modal-ot-media" onchange="updateActiveOtField('media', this.value)" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white focus:border-resolve-accent focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Estado de Tráfico</label>
+          <select id="modal-ot-status" onchange="updateActiveOtField('status', this.value)" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white font-bold focus:border-resolve-accent focus:outline-none">
+            <option value="En Tránsito">En Tránsito</option>
+            <option value="En Redacción">En Redacción / Creativos</option>
+            <option value="En Cuentas">En Cuentas / Esperando Cliente</option>
+            <option value="En Producción">En Producción / Artes Finales</option>
+            <option value="Archivada">Archivada / Facturada</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CUERPO PRINCIPAL DEL MODAL (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        
+        <!-- ============================================== -->
+        <!-- TAB 1: HOJA DE RUTA (Relevos DE -> PARA)       -->
+        <!-- ============================================== -->
+        <div id="ot-tab-hoja-ruta" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-mono font-bold uppercase text-white tracking-wider flex items-center gap-2">
+                <span>Hoja de Ruta de Movimientos</span>
+                <span class="text-[10px] font-normal text-resolve-dimText bg-resolve-card px-2 py-0.5 rounded">Bitácora de Relevos Ininterrumpida</span>
+              </h3>
+              <p class="text-[11px] font-mono text-resolve-dimText mt-0.5">
+                Registra cualquier ida y vuelta entre Cuentas, Creativos, Tráfico o Producción.
+              </p>
+            </div>
+            <button onclick="addNewRouteRow()" class="px-3 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-mono font-bold text-xs rounded flex items-center gap-1.5 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+              <span>+ AGREGAR MOVIMIENTO</span>
+            </button>
+          </div>
+
+          <!-- TABLA EXACTA DE MCCANN CON ESTÉTICA RESOLVE -->
+          <div class="border border-resolve-border rounded overflow-x-auto bg-resolve-panel">
+            <table class="w-full border-collapse text-left font-mono text-xs">
+              <thead>
+                <tr class="bg-resolve-bg border-b border-resolve-border text-[11px] text-resolve-dimText uppercase">
+                  <th class="p-2.5 border-r border-resolve-border w-32">DE</th>
+                  <th class="p-2.5 border-r border-resolve-border w-32">PARA</th>
+                  <th class="p-2.5 border-r border-resolve-border min-w-[320px]">TAREA / DESCRIPCIÓN</th>
+                  <th class="p-2.5 border-r border-resolve-border w-36">FECHA ENTRADA</th>
+                  <th class="p-2.5 border-r border-resolve-border w-36">FECHA ENTREGA</th>
+                  <th class="p-2.5 border-r border-resolve-border w-36 text-center">FIRMA / SELLO</th>
+                  <th class="p-2.5 w-16 text-center">ACCIONES</th>
+                </tr>
+              </thead>
+              <tbody id="route-sheet-rows" class="divide-y divide-resolve-border text-stone-200">
+                <!-- Se inyecta dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 2: MEDIA POOL ESTILO DAVINCI RESOLVE       -->
+        <!-- ============================================== -->
+        <div id="ot-tab-media-pool" class="hidden space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xs font-mono font-bold uppercase text-white tracking-wider flex items-center gap-2">
+                <span>Media Pool de la Orden</span>
+                <span class="text-[10px] text-resolve-accent font-mono bg-resolve-card px-2 py-0.5 rounded border border-resolve-border">DaVinci Bin Inspector</span>
+              </h3>
+              <p class="text-[11px] font-mono text-resolve-dimText mt-0.5">
+                Archivos subidos, bocetos, maquetas, imágenes de referencia, PDFs legales y audios asociados a este sobre.
+              </p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <!-- Alternar Vista Cuadrícula / Lista -->
+              <div class="flex bg-resolve-bg p-0.5 rounded border border-resolve-border">
+                <button onclick="setMediaPoolView('grid')" id="btn-view-grid" title="Vista Cuadrícula" class="p-1 rounded bg-resolve-panel text-white">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                </button>
+                <button onclick="setMediaPoolView('list')" id="btn-view-list" title="Vista Lista Detallada" class="p-1 rounded text-resolve-dimText hover:text-white">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+              </div>
+
+              <!-- Botón Subir Archivo -->
+              <label class="px-3 py-1.5 bg-resolve-card hover:bg-resolve-border text-white text-xs font-mono font-bold rounded border border-resolve-border cursor-pointer flex items-center gap-1.5 transition-colors">
+                <svg class="w-4 h-4 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span>Importar Archivo</span>
+                <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
+              </label>
+
+              <!-- Botón Añadir Link Externo (Figma / Drive) -->
+              <button onclick="promptAddMediaLink()" class="px-3 py-1.5 bg-resolve-card hover:bg-resolve-border text-resolve-dimText hover:text-white text-xs font-mono rounded border border-resolve-border flex items-center gap-1 transition-colors">
+                <span>+ Enlace URL</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- DROPZONE PARA ARRASTRAR ARCHIVOS -->
+          <div 
+            id="file-dropzone" 
+            ondragover="handleDragOver(event)" 
+            ondragleave="handleDragLeave(event)" 
+            ondrop="handleFileDrop(event)"
+            class="file-dropzone border-2 border-dashed border-resolve-border rounded-lg p-5 text-center bg-resolve-bg/50 transition-colors flex flex-col items-center justify-center cursor-pointer"
+            onclick="document.getElementById('pool-upload-hidden').click()"
+          >
+            <input type="file" id="pool-upload-hidden" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
+            <svg class="w-8 h-8 text-resolve-accent mb-2 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-xs font-mono font-bold text-white">Arrastra archivos aquí o haz clic para explorar</p>
+            <p class="text-[10px] font-mono text-resolve-dimText mt-1">Imágenes (PNG, JPG), Documentos PDF, Audios MP3/WAV o enlaces a Drive/Figma</p>
+          </div>
+
+          <!-- CONTENEDOR DEL MEDIA POOL (Cuadrícula o Lista) -->
+          <div id="media-pool-container" class="min-h-[220px]">
+            <!-- Renderizado con JS -->
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 3: BRIEF & REQUISITOS CLAVE                -->
+        <!-- ============================================== -->
+        <div id="ot-tab-brief" class="hidden space-y-4">
+          <div>
+            <h3 class="text-xs font-mono font-bold uppercase text-white tracking-wider flex items-center gap-2">
+              <span>Briefing Esencial & Restricciones Fijas</span>
+            </h3>
+            <p class="text-[11px] font-mono text-resolve-dimText mt-0.5">
+              Directrices de marca que no cambian a lo largo de las iteraciones de la orden.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 space-y-2">
+              <label class="text-[11px] font-mono text-resolve-dimText uppercase block">Instrucción Creativa Madre / Briefing</label>
+              <textarea 
+                id="modal-ot-brief" 
+                rows="8" 
+                onchange="updateActiveOtField('brief', this.value)" 
+                placeholder="Pegar el brief original, claim, tono, target, llamada a la acción y mandatorios..." 
+                class="w-full bg-resolve-panel border border-resolve-border rounded p-3 font-mono text-xs text-white leading-relaxed focus:border-resolve-accent focus:outline-none"
+              ></textarea>
+            </div>
+
+            <div class="space-y-4">
+              <div class="bg-resolve-panel border border-resolve-border p-3 rounded space-y-2">
+                <span class="text-[10px] font-mono uppercase text-resolve-accent font-bold block">Locución Legal / Mandatorio Fijo</span>
+                <textarea 
+                  id="modal-ot-legal" 
+                  rows="4" 
+                  onchange="updateActiveOtField('legalText', this.value)" 
+                  placeholder="Ej: 'Prohibida su venta a menores de edad'..." 
+                  class="w-full bg-resolve-bg border border-resolve-border rounded p-2 font-mono text-xs text-stone-300 focus:outline-none focus:border-resolve-accent"
+                ></textarea>
+              </div>
+
+              <div class="bg-resolve-panel border border-resolve-border p-3 rounded">
+                <span class="text-[10px] font-mono uppercase text-resolve-dimText font-bold block mb-1">Prioridad</span>
+                <label class="flex items-center gap-2 cursor-pointer font-mono text-xs text-white">
+                  <input type="checkbox" id="modal-ot-urgent" onchange="updateActiveOtField('urgent', this.checked)" class="rounded text-red-600">
+                  <span class="text-red-400 font-bold">Marcar como PRIORIDAD URGENTE</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer del Modal -->
+      <div class="h-12 bg-resolve-panel border-t border-resolve-border px-4 flex items-center justify-between shrink-0 font-mono text-xs">
+        <div class="flex items-center gap-2">
+          <button onclick="deleteActiveOt()" class="text-red-400 hover:text-red-300 hover:underline">
+            Eliminar esta OT
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeEnvelopeModal()" class="px-4 py-1.5 bg-resolve-card hover:bg-resolve-border text-white rounded border border-resolve-border">
+            Cerrar Ficha
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: CREAR NUEVA OT                                                -->
+  <!-- ==================================================================== -->
+  <div id="new-ot-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl p-5 font-mono text-xs text-stone-200">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 bg-resolve-accent rounded-sm"></span>
+          <h3 class="font-bold uppercase text-white tracking-wide">Apertura de Orden de Trabajo (OT)</h3>
+        </div>
+        <button onclick="closeNewOtModal()" class="text-stone-400 hover:text-white">✕</button>
+      </div>
+
+      <form onsubmit="handleCreateOt(event)" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">N° de Orden:</label>
+            <input type="text" id="new-id-input" class="w-full bg-resolve-panel border border-resolve-border rounded px-2.5 py-1.5 text-amber-400 font-bold" readonly>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Cliente *</label>
+            <input type="text" id="new-client-input" required list="clients-datalist" placeholder="Seleccionar o escribir..." class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Marca / Producto *</label>
+            <input type="text" id="new-brand-input" required placeholder="Ej: Águila Light" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Medio / Medidas</label>
+            <input type="text" id="new-media-input" placeholder="Ej: TV 20'', Prensa 1 Pag..." class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Título de la Pieza o Campaña *</label>
+          <input type="text" id="new-title-input" required placeholder="Ej: Comercial TV Lanzamiento Nueva Botella" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Primer Pase Inicial (Cuentas -> Creativos):</label>
+          <textarea id="new-first-task-input" rows="3" placeholder="Favor desarrollar diálogos cerrando con Product Shot y locución legal..." class="w-full bg-resolve-bg border border-resolve-border rounded p-2 text-stone-200 focus:border-resolve-accent focus:outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="new-urgent-input" class="rounded text-red-600">
+          <label for="new-urgent-input" class="font-bold text-red-400 cursor-pointer">Marcar como PRIORIDAD URGENTE</label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-resolve-border">
+          <button type="button" onclick="closeNewOtModal()" class="px-3 py-1.5 bg-resolve-panel text-stone-300 rounded border border-resolve-border hover:bg-resolve-card">Cancelar</button>
+          <button type="submit" class="px-4 py-1.5 bg-resolve-accent text-stone-950 font-bold rounded hover:bg-resolve-accentHover">Despachar Orden</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: ESTAMPADOR DE SELLOS                                          -->
+  <!-- ==================================================================== -->
+  <div id="stamp-modal" class="fixed inset-0 bg-black/75 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-resolve-panel border border-resolve-border rounded p-4 max-w-xs w-full font-mono text-xs shadow-2xl">
+      <h4 class="font-bold uppercase text-white text-center pb-2 border-b border-resolve-border mb-3">
+        Estampar Sello de Tinta
+      </h4>
+      <div class="space-y-2">
+        <button onclick="applyStamp('RECIBIDO')" class="w-full py-2 border-2 border-red-500 text-red-400 font-bold uppercase tracking-wider hover:bg-red-950/30 font-stamp">
+          [ RECIBIDO • OK ]
+        </button>
+        <button onclick="applyStamp('ENTREGADO')" class="w-full py-2 border-2 border-blue-500 text-blue-400 font-bold uppercase tracking-wider hover:bg-blue-950/30 font-stamp">
+          [ ENTREGADO A TIEMPO ]
+        </button>
+        <button onclick="applyStamp('APROBADO')" class="w-full py-2 border-2 border-emerald-500 text-emerald-400 font-bold uppercase tracking-wider hover:bg-emerald-950/30 font-stamp">
+          [ APROBADO D.C. ]
+        </button>
+        <button onclick="applyStamp('AJUSTES')" class="w-full py-2 border-2 border-amber-500 text-amber-400 font-bold uppercase tracking-wider hover:bg-amber-950/30 font-stamp">
+          [ DEVUELTO P/ AJUSTES ]
+        </button>
+      </div>
+      <div class="mt-3 pt-2 border-t border-resolve-border flex justify-between">
+        <button onclick="clearCurrentStamp()" class="text-stone-400 hover:text-white underline text-[11px]">Borrar sello</button>
+        <button onclick="closeStampModal()" class="px-2 py-1 bg-resolve-card text-white rounded">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datalist para autocompletar clientes y áreas -->
+  <datalist id="clients-datalist"></datalist>
+  <datalist id="dept-options">
+    <option value="Cuentas"></option>
+    <option value="Creativos"></option>
+    <option value="Redacción / Copy"></option>
+    <option value="Dirección de Arte"></option>
+    <option value="Dirección Creativa"></option>
+    <option value="Control de Tráfico"></option>
+    <option value="Producción Audiovisual"></option>
+    <option value="Artes Finales / Preprensa"></option>
+    <option value="Cliente"></option>
+  </datalist>
+
+  <!-- ==================================================================== -->
+  <!-- JAVASCRIPT: LÓGICA DE ÁRBOL, PERSISTENCIA Y MEDIA POOL               -->
+  <!-- ==================================================================== -->
+  <script>
+    // Configuración y Claves de LocalStorage
+    const STORAGE_KEY = 'resolve_traffic_orders_v2';
+    const CLIENTS_STORAGE_KEY = 'resolve_traffic_clients_v2';
+
+    // Datos semilla
+    const defaultClients = [
+      {
+        id: "c-1",
+        name: "Cervecería Nacional",
+        brands: ["Club Premium", "Pilsener", "Malta Real"]
+      },
+      {
+        id: "c-2",
+        name: "Banco de Comercio",
+        brands: ["Crédito Hipotecario", "Tarjetas Black", "Banca Digital"]
+      },
+      {
+        id: "c-3",
+        name: "Automotores del Valle",
+        brands: ["Línea Camionetas 4x4", "Taller Posventa"]
+      }
+    ];
+
+    const defaultOrders = [
+      {
+        id: "OT-26-001",
+        createdAt: "21/05/2026 09:30",
+        client: "Cervecería Nacional",
+        product: "Club Premium",
+        title: "Comercial TV 20'' Lanzamiento Nueva Botella",
+        media: "Televisión Abierta & Digital 20''",
+        urgent: true,
+        status: "En Redacción",
+        brief: "Campaña de posicionamiento de la nueva botella retornable. Tono sofisticado, noche entre amigos selectos.",
+        legalText: "Prohibida su venta a menores de edad. Tomar bebidas alcohólicas en exceso es perjudicial.",
+        mediaFiles: [
+          {
+            id: "m-1",
+            name: "Boceto_Storyboard_Escena_Final.png",
+            type: "image",
+            size: "1.4 MB",
+            date: "21/05/2026 10:20",
+            url: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&auto=format&fit=crop&q=80"
+          },
+          {
+            id: "m-2",
+            name: "Manual_de_Marca_Botella_2026.pdf",
+            type: "pdf",
+            size: "3.2 MB",
+            date: "21/05/2026 10:25",
+            url: "#"
+          }
+        ],
+        routes: [
+          {
+            from: "Cuentas",
+            to: "Creativos",
+            task: "Favor desarrollar los diálogos para el comercial de TV 20\" cerrando siempre con el Product Shot y el slogan de la marca en OFF. Incluir al final la locución legal: 'Prohibida su venta a menores de edad'.",
+            entryDate: "21/05/2026 10:15",
+            deliveryDate: "23/05/2026 15:00",
+            stamp: "RECIBIDO",
+            completed: false
+          },
+          {
+            from: "Creativos",
+            to: "Cuentas",
+            task: "Se envían 2 guiones dialogados con minutero exacto.",
+            entryDate: "23/05/2026 14:00",
+            deliveryDate: "24/05/2026 10:00",
+            stamp: "ENTREGADO",
+            completed: true
+          }
+        ]
+      },
+      {
+        id: "OT-26-002",
+        createdAt: "18/05/2026 11:00",
+        client: "Banco de Comercio",
+        product: "Crédito Hipotecario",
+        title: "Doble Página Prensa Dominical",
+        media: "Prensa Nacional 2 Páginas",
+        urgent: false,
+        status: "En Producción",
+        brief: "Tasa preferencial vivienda sostenible.",
+        legalText: "Sujeto a estudio de crédito y políticas de la entidad.",
+        mediaFiles: [],
+        routes: [
+          {
+            from: "Cuentas",
+            to: "Creativos",
+            task: "Desarrollo de titulares y copy largo.",
+            entryDate: "18/05/2026 11:30",
+            deliveryDate: "19/05/2026 17:00",
+            stamp: "APROBADO",
+            completed: true
+          }
+        ]
+      }
+    ];
+
+    // Estados de filtrado del Árbol (DaVinci Bins)
+    let selectedTreeFilter = {
+      type: 'all', // 'all', 'client', 'brand'
+      client: null,
+      brand: null
+    };
+
+    let activeOtId = null;
+    let stampingRowIndex = null;
+    let mediaPoolViewMode = 'grid'; // 'grid' | 'list'
+    let mainDeskViewMode = 'grid'; // 'grid' | 'list'
+    let isSidebarCollapsed = false;
+
+    // ==============================================================
+    // CONTROL DE BARRA LATERAL COLAPSABLE (BIN TREE)
+    // ==============================================================
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar-bin-tree');
+      const rail = document.getElementById('sidebar-collapsed-rail');
+
+      isSidebarCollapsed = !isSidebarCollapsed;
+
+      if (isSidebarCollapsed) {
+        sidebar.classList.add('-ml-72', 'md:-ml-80');
+        sidebar.classList.remove('w-72', 'md:w-80');
+        rail.classList.remove('hidden');
+      } else {
+        sidebar.classList.remove('-ml-72', 'md:-ml-80');
+        sidebar.classList.add('w-72', 'md:w-80');
+        rail.classList.add('hidden');
+      }
+    }
+
+    // ==============================================================
+    // CONMUTADOR DE VISTA PRINCIPAL (TARJETAS vs LISTA)
+    // ==============================================================
+    function setMainDeskView(mode) {
+      mainDeskViewMode = mode;
+      const btnGrid = document.getElementById('view-toggle-grid');
+      const btnList = document.getElementById('view-toggle-list');
+      const gridContainer = document.getElementById('envelopes-grid');
+      const listContainer = document.getElementById('envelopes-list-container');
+
+      if (mode === 'grid') {
+        btnGrid.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors bg-resolve-card text-white border border-resolve-border/60 shadow-xs";
+        btnList.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors text-resolve-dimText hover:text-white";
+        gridContainer.classList.remove('hidden');
+        listContainer.classList.add('hidden');
+      } else {
+        btnList.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors bg-resolve-card text-white border border-resolve-border/60 shadow-xs";
+        btnGrid.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors text-resolve-dimText hover:text-white";
+        gridContainer.classList.add('hidden');
+        listContainer.classList.remove('hidden');
+      }
+
+      renderTrafficDesk();
+    }
+
+    // ==============================================================
+    // PERSISTENCIA & STORAGE
+    // ==============================================================
+    function getOrders() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (!data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultOrders));
+        return defaultOrders;
+      }
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        return defaultOrders;
+      }
+    }
+
+    function saveOrders(orders) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+      renderTrafficDesk();
+      renderBinTree();
+    }
+
+    function getClients() {
+      const data = localStorage.getItem(CLIENTS_STORAGE_KEY);
+      if (!data) {
+        localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(defaultClients));
+        return defaultClients;
+      }
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        return defaultClients;
+      }
+    }
+
+    function saveClients(clients) {
+      localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(clients));
+      renderBinTree();
+      updateClientsDatalist();
+    }
+
+    function getNowFormatted() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    }
+
+    // ==============================================================
+    // RENDER: ÁRBOL DE BINS (Estilo DaVinci Resolve)
+    // ==============================================================
+    function renderBinTree() {
+      const clients = getClients();
+      const orders = getOrders();
+      const container = document.getElementById('bin-tree-container');
+
+      // Actualizar contadores generales
+      let totalBrands = 0;
+      clients.forEach(c => totalBrands += (c.brands ? c.brands.length : 0));
+      document.getElementById('badge-count-all').innerText = orders.length;
+      document.getElementById('tree-summary-clients').innerText = `${clients.length} Clientes`;
+      document.getElementById('tree-summary-brands').innerText = `${totalBrands} Marcas`;
+
+      container.innerHTML = clients.map(client => {
+        const clientOrders = orders.filter(o => (o.client || '').toLowerCase() === client.name.toLowerCase());
+        const isClientActive = (selectedTreeFilter.type === 'client' && selectedTreeFilter.client === client.name);
+
+        return `
+          <div class="bin-client-group">
+            <div class="flex items-center justify-between group rounded hover:bg-resolve-panel py-1 px-1.5 cursor-pointer ${isClientActive ? 'bin-active' : ''}">
+              <div class="flex items-center gap-1.5 truncate flex-1" onclick="selectTreeFilter('client', '${escapeHtml(client.name)}', null)">
+                <svg class="w-3.5 h-3.5 text-amber-500/80 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+                <span class="font-bold truncate text-white">${escapeHtml(client.name)}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-resolve-dimText font-mono">${clientOrders.length}</span>
+                <button onclick="promptCreateBrand('${escapeHtml(client.name)}')" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded">
+                  +
+                </button>
+              </div>
+            </div>
+
+            <!-- Sub-marcas / Sub-bins -->
+            <div class="pl-4 ml-1 border-l border-resolve-border/60 space-y-0.5 mt-0.5">
+              ${(client.brands || []).map(brand => {
+                const brandOrders = clientOrders.filter(o => (o.product || '').toLowerCase() === brand.toLowerCase());
+                const isBrandActive = (selectedTreeFilter.type === 'brand' && selectedTreeFilter.client === client.name && selectedTreeFilter.brand === brand);
+
+                return `
+                  <div 
+                    onclick="selectTreeFilter('brand', '${escapeHtml(client.name)}', '${escapeHtml(brand)}')" 
+                    class="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-resolve-panel text-stone-400 hover:text-white transition-colors ${isBrandActive ? 'bin-active' : ''}"
+                  >
+                    <div class="flex items-center gap-1.5 truncate">
+                      <span class="text-stone-600">↳</span>
+                      <span class="truncate">${escapeHtml(brand)}</span>
+                    </div>
+                    <span class="text-[10px] text-stone-500">${brandOrders.length}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectTreeFilter(type, client, brand) {
+      selectedTreeFilter = { type, client, brand };
+
+      // Resaltar Master Bin si corresponde
+      const allBinBtn = document.getElementById('bin-all');
+      if (type === 'all') {
+        allBinBtn.classList.add('bin-active');
+      } else {
+        allBinBtn.classList.remove('bin-active');
+      }
+
+      renderBinTree();
+      renderTrafficDesk();
+    }
+
+    function promptCreateClient() {
+      const name = prompt("Nombre del Nuevo Cliente / Cuenta:");
+      if (!name || !name.trim()) return;
+
+      const clients = getClients();
+      const existing = clients.find(c => c.name.toLowerCase() === name.trim().toLowerCase());
+      if (existing) {
+        alert("Ya existe un cliente con este nombre.");
+        return;
+      }
+
+      clients.push({
+        id: "c-" + Date.now(),
+        name: name.trim(),
+        brands: []
+      });
+      saveClients(clients);
+    }
+
+    function promptCreateBrand(clientName) {
+      const brand = prompt(`Añadir Marca o Producto para ${clientName}:`);
+      if (!brand || !brand.trim()) return;
+
+      const clients = getClients();
+      const client = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+      if (!client) return;
+
+      if (!client.brands) client.brands = [];
+      if (!client.brands.includes(brand.trim())) {
+        client.brands.push(brand.trim());
+        saveClients(clients);
+      }
+    }
+
+    // ==============================================================
+    // RENDER: MESA DE OTs (Tarjetas de Trabajo)
+    // ==============================================================
+    function renderTrafficDesk() {
+      const orders = getOrders();
+      const searchQuery = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+      const statusFilter = document.getElementById('status-filter')?.value || 'all';
+
+      // Actualizar Breadcrumb
+      const breadcrumb = document.getElementById('current-bin-breadcrumb');
+      if (selectedTreeFilter.type === 'all') breadcrumb.innerText = "Master Bin (Todas las OTs)";
+      else if (selectedTreeFilter.type === 'client') breadcrumb.innerText = `${selectedTreeFilter.client}`;
+      else if (selectedTreeFilter.type === 'brand') breadcrumb.innerText = `${selectedTreeFilter.client} > ${selectedTreeFilter.brand}`;
+
+      // Filtrado por Bin Tree
+      let filtered = orders.filter(ot => {
+        if (selectedTreeFilter.type === 'client') {
+          if ((ot.client || '').toLowerCase() !== selectedTreeFilter.client.toLowerCase()) return false;
+        } else if (selectedTreeFilter.type === 'brand') {
+          const matchClient = (ot.client || '').toLowerCase() === selectedTreeFilter.client.toLowerCase();
+          const matchBrand = (ot.product || '').toLowerCase() === selectedTreeFilter.brand.toLowerCase();
+          if (!matchClient || !matchBrand) return false;
+        }
+
+        // Filtro por Estado
+        if (statusFilter !== 'all' && ot.status !== statusFilter) return false;
+
+        // Búsqueda libre
+        if (searchQuery) {
+          const inId = ot.id.toLowerCase().includes(searchQuery);
+          const inTitle = (ot.title || '').toLowerCase().includes(searchQuery);
+          const inClient = (ot.client || '').toLowerCase().includes(searchQuery);
+          const inProduct = (ot.product || '').toLowerCase().includes(searchQuery);
+          const inBrief = (ot.brief || '').toLowerCase().includes(searchQuery);
+          return inId || inTitle || inClient || inProduct || inBrief;
+        }
+
+        return true;
+      });
+
+      document.getElementById('current-bin-count').innerText = `${filtered.length} OTs encontradas`;
+      document.getElementById('footer-active-count').innerText = `${orders.filter(o => o.status !== 'Archivada').length} Activas en Tráfico`;
+
+      const grid = document.getElementById('envelopes-grid');
+      const listContainer = document.getElementById('envelopes-list-container');
+      const listBody = document.getElementById('envelopes-list-body');
+      const emptyState = document.getElementById('empty-state');
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        listBody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      emptyState.classList.remove('flex');
+
+      // 1. RENDER VISTA EN TARJETAS (CUADRÍCULA)
+      grid.innerHTML = filtered.map(ot => {
+        const lastRoute = (ot.routes && ot.routes.length > 0) ? ot.routes[ot.routes.length - 1] : null;
+        const totalFiles = (ot.mediaFiles ? ot.mediaFiles.length : 0);
+
+        let statusClass = "bg-stone-800 text-stone-300 border-stone-700";
+        if (ot.status === 'En Redacción') statusClass = "bg-amber-950/60 text-amber-400 border-amber-800";
+        else if (ot.status === 'En Cuentas') statusClass = "bg-blue-950/60 text-blue-400 border-blue-800";
+        else if (ot.status === 'En Producción') statusClass = "bg-purple-950/60 text-purple-400 border-purple-800";
+        else if (ot.status === 'Archivada') statusClass = "bg-emerald-950/60 text-emerald-400 border-emerald-800";
+
+        return `
+          <div class="bg-resolve-surface border ${ot.urgent ? 'border-red-600/80 shadow-[0_0_12px_rgba(220,38,38,0.2)]' : 'border-resolve-border hover:border-resolve-accent/60'} rounded p-4 flex flex-col justify-between transition-all group">
+            
+            <div>
+              <!-- Cabecera de la Tarjeta OT -->
+              <div class="flex items-center justify-between pb-2 border-b border-resolve-border">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-black text-white px-2 py-0.5 bg-resolve-panel rounded border border-resolve-border">
+                    ${ot.id}
+                  </span>
+                  ${ot.urgent ? `
+                    <span class="text-[9px] font-mono font-bold bg-red-600 text-white px-1.5 py-0.5 rounded tracking-wide">
+                      URGENTE
+                    </span>
+                  ` : ''}
+                </div>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${statusClass}">
+                  ${ot.status}
+                </span>
+              </div>
+
+              <!-- Contenido y Metadatos -->
+              <div class="mt-3 cursor-pointer" onclick="openEnvelopeModal('${ot.id}')">
+                <div class="text-[11px] font-mono text-resolve-dimText uppercase truncate">
+                  ${escapeHtml(ot.client)} ${ot.product ? '• ' + escapeHtml(ot.product) : ''}
+                </div>
+                <h3 class="font-mono font-bold text-sm text-white mt-1 group-hover:text-resolve-accent transition-colors leading-snug">
+                  ${escapeHtml(ot.title)}
+                </h3>
+                <div class="text-[11px] font-mono text-stone-400 mt-1 flex items-center gap-1">
+                  <span>📺 Medio:</span>
+                  <span class="text-stone-300 truncate">${escapeHtml(ot.media || 'No especificado')}</span>
+                </div>
+
+                <!-- Último Relevo -->
+                <div class="mt-3 bg-resolve-panel/80 p-2.5 rounded border border-resolve-border/60 text-xs font-mono">
+                  <div class="flex items-center justify-between text-[10px] text-resolve-dimText mb-1">
+                    <span class="font-bold text-resolve-accent">ÚLTIMO RELEVO</span>
+                    <span>${lastRoute ? (lastRoute.deliveryDate || lastRoute.entryDate) : '--'}</span>
+                  </div>
+                  ${lastRoute ? `
+                    <div class="font-bold text-white text-[11px] flex items-center gap-1.5">
+                      <span class="text-amber-400">${escapeHtml(lastRoute.from)}</span>
+                      <span>→</span>
+                      <span class="text-cyan-400">${escapeHtml(lastRoute.to)}</span>
+                    </div>
+                    <p class="text-[11px] text-stone-400 line-clamp-2 mt-0.5 italic">
+                      "${escapeHtml(lastRoute.task)}"
+                    </p>
+                  ` : `
+                    <span class="text-stone-500 italic">Sin movimientos registrados.</span>
+                  `}
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Tarjeta (Media Pool Preview & Abrir) -->
+            <div class="mt-4 pt-2.5 border-t border-resolve-border/80 flex items-center justify-between text-xs font-mono">
+              <div class="flex items-center gap-1.5 text-resolve-dimText text-[11px]">
+                <svg class="w-3.5 h-3.5 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                <span>${totalFiles} items en Media Pool</span>
+              </div>
+              <button onclick="openEnvelopeModal('${ot.id}')" class="px-2.5 py-1 bg-resolve-panel hover:bg-resolve-card text-white rounded border border-resolve-border font-bold text-xs flex items-center gap-1 transition-colors">
+                <span>Inspeccionar</span>
+                <span class="text-resolve-accent">→</span>
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      // 2. RENDER VISTA EN LISTA (TABLA ESTILO DAVINCI RESOLVE EDIT/MEDIA)
+      listBody.innerHTML = filtered.map(ot => {
+        const lastRoute = (ot.routes && ot.routes.length > 0) ? ot.routes[ot.routes.length - 1] : null;
+        const totalFiles = (ot.mediaFiles ? ot.mediaFiles.length : 0);
+
+        let statusBadge = "bg-stone-800 text-stone-300 border-stone-700";
+        if (ot.status === 'En Redacción') statusBadge = "bg-amber-950/60 text-amber-400 border-amber-800";
+        else if (ot.status === 'En Cuentas') statusBadge = "bg-blue-950/60 text-blue-400 border-blue-800";
+        else if (ot.status === 'En Producción') statusBadge = "bg-purple-950/60 text-purple-400 border-purple-800";
+        else if (ot.status === 'Archivada') statusBadge = "bg-emerald-950/60 text-emerald-400 border-emerald-800";
+
+        return `
+          <tr class="hover:bg-resolve-panel transition-colors cursor-pointer group" onclick="openEnvelopeModal('${ot.id}')">
+            <!-- N° OT -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-white px-2 py-0.5 bg-resolve-bg rounded border border-resolve-border group-hover:border-resolve-accent text-[11px]">
+                  ${ot.id}
+                </span>
+                ${ot.urgent ? `<span class="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente"></span>` : ''}
+              </div>
+            </td>
+
+            <!-- ESTADO -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded border inline-block whitespace-nowrap ${statusBadge}">
+                ${ot.status}
+              </span>
+            </td>
+
+            <!-- CLIENTE / MARCA -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
+              <div class="font-bold text-white truncate max-w-[190px]">${escapeHtml(ot.client)}</div>
+              <div class="text-[10px] text-resolve-dimText truncate max-w-[190px]">${escapeHtml(ot.product || '--')}</div>
+            </td>
+
+            <!-- TÍTULO & MEDIO -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
+              <div class="font-bold text-stone-200 group-hover:text-resolve-accent transition-colors truncate max-w-sm">
+                ${escapeHtml(ot.title)}
+              </div>
+              <div class="text-[10px] text-stone-400 truncate max-w-sm">
+                📺 ${escapeHtml(ot.media || 'Sin especificar')}
+              </div>
+            </td>
+
+            <!-- ÚLTIMO RELEVO -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
+              ${lastRoute ? `
+                <div class="text-[11px] font-bold">
+                  <span class="text-amber-400">${escapeHtml(lastRoute.from)}</span>
+                  <span class="text-stone-500">→</span>
+                  <span class="text-cyan-400">${escapeHtml(lastRoute.to)}</span>
+                </div>
+                <div class="text-[10px] text-stone-400 truncate max-w-[200px] italic">
+                  ${escapeHtml(lastRoute.task || 'Sin comentarios')}
+                </div>
+              ` : `
+                <span class="text-stone-600 text-[10px]">--</span>
+              `}
+            </td>
+
+            <!-- FECHA ENTREGA -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle text-[11px] text-stone-300 whitespace-nowrap">
+              ${lastRoute && lastRoute.deliveryDate ? lastRoute.deliveryDate : (ot.createdAt || '--')}
+            </td>
+
+            <!-- MEDIA POOL -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle text-center">
+              <span class="px-2 py-0.5 bg-resolve-bg text-resolve-dimText group-hover:text-amber-400 rounded text-[10px] border border-resolve-border/50">
+                📎 ${totalFiles}
+              </span>
+            </td>
+
+            <!-- ACCIONES -->
+            <td class="p-2.5 align-middle text-center" onclick="event.stopPropagation()">
+              <button 
+                onclick="openEnvelopeModal('${ot.id}')" 
+                class="px-2 py-1 bg-resolve-panel hover:bg-resolve-card text-white text-[10px] font-bold rounded border border-resolve-border transition-colors inline-flex items-center gap-1"
+              >
+                <span>Abrir</span>
+                <span class="text-resolve-accent">→</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==============================================================
+    // GESTIÓN DEL MODAL DE DETALLE OT
+    // ==============================================================
+    function openEnvelopeModal(otId) {
+      activeOtId = otId;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === otId);
+      if (!ot) return;
+
+      document.getElementById('modal-ot-id').innerText = ot.id;
+      document.getElementById('modal-ot-title-header').innerText = ot.title;
+      document.getElementById('modal-ot-client').value = ot.client || '';
+      document.getElementById('modal-ot-product').value = ot.product || '';
+      document.getElementById('modal-ot-media').value = ot.media || '';
+      document.getElementById('modal-ot-status').value = ot.status || 'En Tránsito';
+      document.getElementById('modal-ot-brief').value = ot.brief || '';
+      document.getElementById('modal-ot-legal').value = ot.legalText || '';
+      document.getElementById('modal-ot-urgent').checked = !!ot.urgent;
+
+      // Actualizar contador del badge
+      document.getElementById('tab-badge-files').innerText = (ot.mediaFiles ? ot.mediaFiles.length : 0);
+
+      renderRouteSheetRows(ot.routes || []);
+      renderMediaPool(ot.mediaFiles || []);
+
+      switchOtTab('hoja-ruta');
+      document.getElementById('envelope-modal').classList.remove('hidden');
+    }
+
+    function closeEnvelopeModal() {
+      document.getElementById('envelope-modal').classList.add('hidden');
+      activeOtId = null;
+      renderTrafficDesk();
+    }
+
+    function switchOtTab(tab) {
+      const tabs = ['hoja-ruta', 'media-pool', 'brief'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`ot-tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tab) {
+          el.classList.remove('hidden');
+          btn.classList.add('bg-resolve-panel', 'text-white', 'font-bold');
+          btn.classList.remove('text-resolve-dimText');
+        } else {
+          el.classList.add('hidden');
+          btn.classList.remove('bg-resolve-panel', 'text-white', 'font-bold');
+          btn.classList.add('text-resolve-dimText');
+        }
+      });
+    }
+
+    function updateActiveOtField(field, value) {
+      if (!activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot) return;
+
+      ot[field] = value;
+      saveOrders(orders);
+    }
+
+    function deleteActiveOt() {
+      if (!activeOtId) return;
+      if (!confirm("¿Deseas eliminar permanentemente esta Orden de Trabajo de la mesa?")) return;
+
+      let orders = getOrders();
+      orders = orders.filter(o => o.id !== activeOtId);
+      saveOrders(orders);
+      closeEnvelopeModal();
+    }
+
+    // ==============================================================
+    // HOJA DE RUTA (BITÁCORA DE RELEVOS MCCANN)
+    // ==============================================================
+    function renderRouteSheetRows(routes) {
+      const tbody = document.getElementById('route-sheet-rows');
+      if (!routes || routes.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-6 text-center text-resolve-dimText font-mono italic">
+              Sin relevos asentados. Pulsa "+ AGREGAR MOVIMIENTO" para registrar un pase.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = routes.map((row, index) => {
+        let stampHtml = '';
+        if (row.stamp) {
+          let stampColor = 'border-red-500 text-red-400';
+          if (row.stamp === 'ENTREGADO') stampColor = 'border-blue-500 text-blue-400';
+          else if (row.stamp === 'APROBADO') stampColor = 'border-emerald-500 text-emerald-400';
+          else if (row.stamp === 'AJUSTES') stampColor = 'border-amber-500 text-amber-400';
+
+          stampHtml = `
+            <span onclick="openStampModal(${index})" class="ink-stamp-box px-2 py-0.5 text-[11px] font-bold cursor-pointer inline-block ${stampColor}">
+              [ ${row.stamp} ]
+            </span>
+          `;
+        } else {
+          stampHtml = `
+            <button onclick="openStampModal(${index})" class="text-[10px] text-resolve-dimText hover:text-white underline">
+              + Sello
+            </button>
+          `;
+        }
+
+        return `
+          <tr class="hover:bg-resolve-card/60 transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
+            <!-- DE -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <input 
+                type="text" 
+                list="dept-options" 
+                value="${escapeHtml(row.from || '')}" 
+                onchange="updateRouteCell(${index}, 'from', this.value)" 
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 font-bold text-amber-400"
+              />
+            </td>
+
+            <!-- PARA -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <input 
+                type="text" 
+                list="dept-options" 
+                value="${escapeHtml(row.to || '')}" 
+                onchange="updateRouteCell(${index}, 'to', this.value)" 
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 font-bold text-cyan-400"
+              />
+            </td>
+
+            <!-- TAREA / DESCRIPCIÓN -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <textarea 
+                rows="2" 
+                onchange="updateRouteCell(${index}, 'task', this.value)" 
+                placeholder="Instrucción del relevo..." 
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 text-xs text-white leading-relaxed resize-y"
+              >${escapeHtml(row.task || '')}</textarea>
+            </td>
+
+            <!-- ENTRADA -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <div class="flex items-center gap-1">
+                <input 
+                  type="text" 
+                  value="${escapeHtml(row.entryDate || '')}" 
+                  onchange="updateRouteCell(${index}, 'entryDate', this.value)" 
+                  class="w-full bg-transparent text-[11px] border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 text-stone-300"
+                />
+                <button title="Hora Actual" onclick="stampCurrentTime(${index}, 'entryDate')" class="p-0.5 hover:text-white text-resolve-dimText">⏱</button>
+              </div>
+            </td>
+
+            <!-- ENTREGA -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <div class="flex items-center gap-1">
+                <input 
+                  type="text" 
+                  value="${escapeHtml(row.deliveryDate || '')}" 
+                  onchange="updateRouteCell(${index}, 'deliveryDate', this.value)" 
+                  class="w-full bg-transparent text-[11px] border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 text-stone-300"
+                />
+                <button title="Hora Actual" onclick="stampCurrentTime(${index}, 'deliveryDate')" class="p-0.5 hover:text-white text-resolve-dimText">⏱</button>
+              </div>
+            </td>
+
+            <!-- FIRMA / SELLO -->
+            <td class="p-2 border-r border-resolve-border align-middle text-center">
+              ${stampHtml}
+            </td>
+
+            <!-- ACCIONES -->
+            <td class="p-2 align-middle text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="toggleRouteDone(${index})" title="${row.completed ? 'Marcar pendiente' : 'Completado'}" class="p-1 ${row.completed ? 'text-emerald-400' : 'text-resolve-dimText hover:text-white'}">
+                  ✓
+                </button>
+                <button onclick="deleteRouteRow(${index})" title="Eliminar fila" class="p-1 text-resolve-dimText hover:text-red-400">
+                  ✕
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function addNewRouteRow() {
+      if (!activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot) return;
+
+      if (!ot.routes) ot.routes = [];
+
+      let defaultFrom = "Cuentas";
+      let defaultTo = "Creativos";
+      if (ot.routes.length > 0) {
+        const last = ot.routes[ot.routes.length - 1];
+        defaultFrom = last.to || "Creativos";
+        defaultTo = last.from || "Cuentas";
+      }
+
+      ot.routes.push({
+        from: defaultFrom,
+        to: defaultTo,
+        task: "",
+        entryDate: getNowFormatted(),
+        deliveryDate: "",
+        stamp: null,
+        completed: false
+      });
+
+      saveOrders(orders);
+      renderRouteSheetRows(ot.routes);
+    }
+
+    function updateRouteCell(index, field, value) {
+      if (!activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot || !ot.routes[index]) return;
+
+      ot.routes[index][field] = value;
+      saveOrders(orders);
+    }
+
+    function stampCurrentTime(index, field) {
+      updateRouteCell(index, field, getNowFormatted());
+      const ot = getOrders().find(o => o.id === activeOtId);
+      if (ot) renderRouteSheetRows(ot.routes);
+    }
+
+    function toggleRouteDone(index) {
+      if (!activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot || !ot.routes[index]) return;
+
+      ot.routes[index].completed = !ot.routes[index].completed;
+      saveOrders(orders);
+      renderRouteSheetRows(ot.routes);
+    }
+
+    function deleteRouteRow(index) {
+      if (!activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot || !ot.routes[index]) return;
+
+      ot.routes.splice(index, 1);
+      saveOrders(orders);
+      renderRouteSheetRows(ot.routes);
+    }
+
+    // SELLOS DE TINTA
+    function openStampModal(index) {
+      stampingRowIndex = index;
+      document.getElementById('stamp-modal').classList.remove('hidden');
+    }
+
+    function closeStampModal() {
+      document.getElementById('stamp-modal').classList.add('hidden');
+      stampingRowIndex = null;
+    }
+
+    function applyStamp(stampText) {
+      if (stampingRowIndex === null || !activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot || !ot.routes[stampingRowIndex]) return;
+
+      ot.routes[stampingRowIndex].stamp = stampText;
+      saveOrders(orders);
+      renderRouteSheetRows(ot.routes);
+      closeStampModal();
+    }
+
+    function clearCurrentStamp() {
+      if (stampingRowIndex === null || !activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot || !ot.routes[stampingRowIndex]) return;
+
+      ot.routes[stampingRowIndex].stamp = null;
+      saveOrders(orders);
+      renderRouteSheetRows(ot.routes);
+      closeStampModal();
+    }
+
+    // ==============================================================
+    // MEDIA POOL (SUBIDA DE ARCHIVOS & ENLACES DAVINCI STYLE)
+    // ==============================================================
+    function setMediaPoolView(mode) {
+      mediaPoolViewMode = mode;
+      const btnGrid = document.getElementById('btn-view-grid');
+      const btnList = document.getElementById('btn-view-list');
+
+      if (mode === 'grid') {
+        btnGrid.classList.add('bg-resolve-panel', 'text-white');
+        btnGrid.classList.remove('text-resolve-dimText');
+        btnList.classList.remove('bg-resolve-panel', 'text-white');
+        btnList.classList.add('text-resolve-dimText');
+      } else {
+        btnList.classList.add('bg-resolve-panel', 'text-white');
+        btnList.classList.remove('text-resolve-dimText');
+        btnGrid.classList.remove('bg-resolve-panel', 'text-white');
+        btnGrid.classList.add('text-resolve-dimText');
+      }
+
+      const ot = getOrders().find(o => o.id === activeOtId);
+      if (ot) renderMediaPool(ot.mediaFiles || []);
+    }
+
+    function renderMediaPool(files) {
+      const container = document.getElementById('media-pool-container');
+      document.getElementById('tab-badge-files').innerText = files.length;
+
+      if (!files || files.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center border border-resolve-border rounded bg-resolve-panel/40 font-mono text-xs text-resolve-dimText">
+            El Media Pool de esta OT está vacío. Arrastra archivos arriba para cargarlos.
+          </div>
+        `;
+        return;
+      }
+
+      if (mediaPoolViewMode === 'grid') {
+        container.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            ${files.map((file, idx) => `
+              <div class="bg-resolve-panel border border-resolve-border hover:border-resolve-accent rounded p-2 flex flex-col justify-between group transition-all">
+                <!-- Thumbnail / Icono -->
+                <div class="h-24 bg-resolve-bg rounded border border-resolve-border/60 flex items-center justify-center overflow-hidden mb-2 relative">
+                  ${file.type === 'image' && file.url ? `
+                    <img src="${file.url}" alt="${escapeHtml(file.name)}" class="w-full h-full object-cover">
+                  ` : file.type === 'pdf' ? `
+                    <div class="flex flex-col items-center text-red-400">
+                      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                      <span class="text-[9px] font-mono font-bold mt-1">PDF</span>
+                    </div>
+                  ` : `
+                    <div class="flex flex-col items-center text-cyan-400">
+                      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                      <span class="text-[9px] font-mono font-bold mt-1">LINK</span>
+                    </div>
+                  `}
+                  
+                  <button onclick="removeMediaItem(${idx})" title="Eliminar del Media Pool" class="absolute top-1 right-1 p-1 bg-black/70 hover:bg-red-900 text-white rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                    ✕
+                  </button>
+                </div>
+
+                <!-- Info -->
+                <div class="font-mono text-[11px]">
+                  <div class="font-bold text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+                  <div class="text-resolve-dimText text-[10px] flex justify-between mt-1">
+                    <span>${file.size || 'Web'}</span>
+                    <span>${file.date ? file.date.split(' ')[0] : ''}</span>
+                  </div>
+                  ${file.url && file.url !== '#' ? `
+                    <a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="mt-2 block text-center py-1 bg-resolve-card hover:bg-resolve-border text-resolve-accent font-bold text-[10px] rounded border border-resolve-border">
+                      Abrir / Bajar
+                    </a>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        // Vista Lista Detallada
+        container.innerHTML = `
+          <div class="border border-resolve-border rounded overflow-hidden">
+            <table class="w-full text-left font-mono text-xs border-collapse">
+              <thead>
+                <tr class="bg-resolve-panel border-b border-resolve-border text-[11px] text-resolve-dimText">
+                  <th class="p-2">NOMBRE DEL ARCHIVO</th>
+                  <th class="p-2 w-24">TIPO</th>
+                  <th class="p-2 w-24">TAMAÑO</th>
+                  <th class="p-2 w-36">FECHA SUBIDA</th>
+                  <th class="p-2 w-28 text-center">ACCIONES</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-resolve-border bg-resolve-bg text-stone-200">
+                ${files.map((file, idx) => `
+                  <tr class="hover:bg-resolve-card transition-colors">
+                    <td class="p-2 font-bold text-white flex items-center gap-2">
+                      <span>${file.type === 'image' ? '🖼' : file.type === 'pdf' ? '📄' : '🔗'}</span>
+                      <span class="truncate">${escapeHtml(file.name)}</span>
+                    </td>
+                    <td class="p-2 text-resolve-dimText uppercase text-[10px]">${file.type}</td>
+                    <td class="p-2 text-resolve-dimText">${file.size || 'N/A'}</td>
+                    <td class="p-2 text-resolve-dimText">${file.date || '--'}</td>
+                    <td class="p-2 text-center">
+                      <div class="flex items-center justify-center gap-2">
+                        ${file.url && file.url !== '#' ? `
+                          <a href="${file.url}" target="_blank" class="text-resolve-accent hover:underline text-[11px]">Abrir</a>
+                        ` : ''}
+                        <button onclick="removeMediaItem(${idx})" class="text-resolve-dimText hover:text-red-400">✕</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+    }
+
+    // Manejo de Subidas Locales
+    function handleMediaPoolUpload(e) {
+      const files = e.target.files;
+      if (!files || files.length === 0 || !activeOtId) return;
+
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot) return;
+
+      if (!ot.mediaFiles) ot.mediaFiles = [];
+
+      Array.from(files).forEach(file => {
+        const isImg = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf';
+        const typeStr = isImg ? 'image' : isPdf ? 'pdf' : 'document';
+        const sizeFormatted = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+        // Si es imagen pequeña (< 3MB) creamos reader para thumbnail persistente
+        if (isImg && file.size < 3 * 1024 * 1024) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            ot.mediaFiles.push({
+              id: 'm-' + Date.now() + Math.random().toString(36).substring(7),
+              name: file.name,
+              type: typeStr,
+              size: sizeFormatted,
+              date: getNowFormatted(),
+              url: evt.target.result
+            });
+            saveOrders(orders);
+            renderMediaPool(ot.mediaFiles);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // Archivo general / PDF
+          const objUrl = URL.createObjectURL(file);
+          ot.mediaFiles.push({
+            id: 'm-' + Date.now() + Math.random().toString(36).substring(7),
+            name: file.name,
+            type: typeStr,
+            size: sizeFormatted,
+            date: getNowFormatted(),
+            url: objUrl
+          });
+          saveOrders(orders);
+          renderMediaPool(ot.mediaFiles);
+        }
+      });
+
+      e.target.value = '';
+    }
+
+    function promptAddMediaLink() {
+      if (!activeOtId) return;
+      const title = prompt("Nombre o descripción del recurso (ej: Figma Wireframes / Drive):");
+      if (!title || !title.trim()) return;
+
+      const url = prompt("Enlace URL directo:");
+      if (!url || !url.trim()) return;
+
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot) return;
+
+      if (!ot.mediaFiles) ot.mediaFiles = [];
+      ot.mediaFiles.push({
+        id: 'm-' + Date.now(),
+        name: title.trim(),
+        type: 'link',
+        size: 'Enlace',
+        date: getNowFormatted(),
+        url: url.trim()
+      });
+
+      saveOrders(orders);
+      renderMediaPool(ot.mediaFiles);
+    }
+
+    function removeMediaItem(index) {
+      if (!activeOtId) return;
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === activeOtId);
+      if (!ot || !ot.mediaFiles) return;
+
+      ot.mediaFiles.splice(index, 1);
+      saveOrders(orders);
+      renderMediaPool(ot.mediaFiles);
+    }
+
+    // Drag and Drop en Media Pool
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('file-dropzone').classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('file-dropzone').classList.remove('dragover');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      document.getElementById('file-dropzone').classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files) {
+        handleMediaPoolUpload({ target: { files: e.dataTransfer.files } });
+      }
+    }
+
+    // ==============================================================
+    // MODAL NUEVA OT & GENERADOR DE ID
+    // ==============================================================
+    function openNewOtModal() {
+      const orders = getOrders();
+      let maxNum = 0;
+      orders.forEach(o => {
+        const parts = o.id.split('-');
+        if (parts.length === 3) {
+          const num = parseInt(parts[2], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      });
+      const nextId = `OT-26-${String(maxNum + 1).padStart(3, '0')}`;
+
+      document.getElementById('new-id-input').value = nextId;
+      document.getElementById('new-client-input').value = (selectedTreeFilter.client || '');
+      document.getElementById('new-brand-input').value = (selectedTreeFilter.brand || '');
+      document.getElementById('new-media-input').value = '';
+      document.getElementById('new-title-input').value = '';
+      document.getElementById('new-first-task-input').value = '';
+      document.getElementById('new-urgent-input').checked = false;
+
+      updateClientsDatalist();
+      document.getElementById('new-ot-modal').classList.remove('hidden');
+    }
+
+    function closeNewOtModal() {
+      document.getElementById('new-ot-modal').classList.add('hidden');
+    }
+
+    function handleCreateOt(e) {
+      e.preventDefault();
+      const orders = getOrders();
+      const clients = getClients();
+
+      const newId = document.getElementById('new-id-input').value;
+      const client = document.getElementById('new-client-input').value.trim();
+      const brand = document.getElementById('new-brand-input').value.trim();
+      const media = document.getElementById('new-media-input').value.trim();
+      const title = document.getElementById('new-title-input').value.trim();
+      const firstTask = document.getElementById('new-first-task-input').value.trim();
+      const urgent = document.getElementById('new-urgent-input').checked;
+
+      // Auto-agregar al Árbol de Bins si es un Cliente o Marca nueva
+      let existingClient = clients.find(c => c.name.toLowerCase() === client.toLowerCase());
+      if (!existingClient) {
+        existingClient = { id: 'c-' + Date.now(), name: client, brands: [brand] };
+        clients.push(existingClient);
+        saveClients(clients);
+      } else {
+        if (!existingClient.brands) existingClient.brands = [];
+        if (!existingClient.brands.some(b => b.toLowerCase() === brand.toLowerCase())) {
+          existingClient.brands.push(brand);
+          saveClients(clients);
+        }
+      }
+
+      const initialRoutes = [];
+      if (firstTask) {
+        initialRoutes.push({
+          from: "Cuentas",
+          to: "Creativos",
+          task: firstTask,
+          entryDate: getNowFormatted(),
+          deliveryDate: "",
+          stamp: "RECIBIDO",
+          completed: false
+        });
+      }
+
+      const newOt = {
+        id: newId,
+        createdAt: getNowFormatted(),
+        client: client,
+        product: brand,
+        title: title,
+        media: media,
+        urgent: urgent,
+        status: "En Redacción",
+        brief: "",
+        legalText: "",
+        mediaFiles: [],
+        routes: initialRoutes
+      };
+
+      orders.unshift(newOt);
+      saveOrders(orders);
+      closeNewOtModal();
+      openEnvelopeModal(newOt.id);
+    }
+
+    function updateClientsDatalist() {
+      const dl = document.getElementById('clients-datalist');
+      const clients = getClients();
+      dl.innerHTML = clients.map(c => `<option value="${escapeHtml(c.name)}"></option>`).join('');
+    }
+
+    // ==============================================================
+    // BACKUP & RESTAURACIÓN JSON (MONO-USUARIO SEGURO)
+    // ==============================================================
+    function exportBackupData() {
+      const backup = {
+        app: "ElMarcanteTrafficControl",
+        version: "2.1",
+        date: new Date().toISOString(),
+        clients: getClients(),
+        orders: getOrders()
+      };
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Respaldo_OTs_ElMarcante_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importBackupData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.orders && parsed.clients) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed.orders));
+            localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(parsed.clients));
+            renderBinTree();
+            renderTrafficDesk();
+            alert("Respaldo restaurado con éxito.");
+          } else {
+            alert("Archivo de respaldo inválido.");
+          }
+        } catch (err) {
+          alert("Error al parsear el archivo JSON.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Inicialización
+    window.addEventListener('DOMContentLoaded', () => {
+      renderBinTree();
+      renderTrafficDesk();
+    });
+  </script>
+</body>
+</html>
