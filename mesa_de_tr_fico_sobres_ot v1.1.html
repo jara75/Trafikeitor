@@ -1276,6 +1276,143 @@
     </div>
   </div>
 
+  <!-- MODAL PARA CREAR / EDITAR TAREA LIBRE (macOS Sheet) -->
+  <div id="custom-task-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs flex flex-col gap-4">
+      <!-- Encabezado del modal -->
+      <div class="flex items-center justify-between border-b border-resolve-border pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+          <h3 id="custom-task-modal-title" class="text-sm font-bold text-white tracking-tight">Tarea Libre • Plan de Trabajo</h3>
+        </div>
+        <button 
+          type="button" 
+          onclick="closeCustomTaskModal()" 
+          class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulario de la tarea libre -->
+      <form id="custom-task-form" onsubmit="saveCustomTaskModal(event)" class="space-y-3.5">
+        <!-- Título / Descripción -->
+        <div>
+          <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+            Descripción de la Tarea <span class="text-amber-400">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="custom-task-title-input" 
+            required 
+            placeholder="ej: Reunión de Tráfico, Presentación a Cliente, Standby..."
+            class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-2 text-white text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all placeholder-zinc-500"
+          />
+        </div>
+
+        <!-- Responsable / Asignado a -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-[11px] font-medium text-zinc-300">
+              Responsable / Área Asignada <span class="text-amber-400">*</span>
+            </label>
+            <span class="text-[10px] text-zinc-500">Escribe o crea un nuevo nombre</span>
+          </div>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="custom-task-assignee-input" 
+              list="dept-options" 
+              required 
+              placeholder="Selecciona o escribe un responsable..."
+              class="w-full bg-black/40 border border-resolve-border rounded-lg pl-3 pr-8 py-2 text-cyan-300 font-semibold text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all placeholder-zinc-500"
+            />
+            <span class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-zinc-500 text-[10px]">▼</span>
+          </div>
+          <!-- Píldoras rápidas de responsables sugeridos -->
+          <div class="flex flex-wrap gap-1 mt-1.5" id="custom-task-quick-responsibles">
+            <!-- Píldoras dinámicas generadas por JS -->
+          </div>
+        </div>
+
+        <!-- Fila doble: Franja Horaria & Estado -->
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Horario -->
+          <div>
+            <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+              Horario / Turno
+            </label>
+            <input 
+              type="text" 
+              id="custom-task-timeslot-input" 
+              value="08:30 - 09:30" 
+              placeholder="08:30 - 09:30" 
+              class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 font-mono text-zinc-200 text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all"
+            />
+          </div>
+
+          <!-- Estado del Turno -->
+          <div>
+            <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+              Estado de la Tarea
+            </label>
+            <select 
+              id="custom-task-status-input" 
+              class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 font-medium text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all cursor-pointer"
+            >
+              <option value="Por Iniciar">Por Iniciar</option>
+              <option value="En Mesa">En Mesa</option>
+              <option value="Entregado">Entregado</option>
+              <option value="Detenido">Detenido</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Cliente / Proyecto (opcional) -->
+        <div>
+          <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+            Cliente / Proyecto Asociado
+          </label>
+          <input 
+            type="text" 
+            id="custom-task-client-input" 
+            list="clients-datalist"
+            value="Interno" 
+            placeholder="Interno" 
+            class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 text-zinc-200 text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all placeholder-zinc-500"
+          />
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex items-center justify-between pt-3 border-t border-resolve-border mt-4">
+          <button 
+            type="button" 
+            id="custom-task-delete-btn" 
+            onclick="deleteCustomTaskFromModal()" 
+            class="hidden px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-semibold text-xs transition-colors cursor-pointer"
+          >
+            Eliminar
+          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button 
+              type="button" 
+              onclick="closeCustomTaskModal()" 
+              class="px-3.5 py-1.5 rounded-lg border border-resolve-border bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              class="px-4 py-1.5 rounded-lg bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              Guardar Tarea
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ==================================================================== -->
   <!-- JAVASCRIPT: LÓGICA DE ÁRBOL, PERSISTENCIA Y MEDIA POOL               -->
   <!-- ==================================================================== -->
@@ -1287,6 +1424,54 @@
     // Constantes de almacenamiento adicionales
     const STATUSES_STORAGE_KEY = 'resolve_traffic_statuses_v2';
     const STRIPBOARD_STORAGE_KEY = 'resolve_traffic_stripboard_v2';
+    const RESPONSIBLES_STORAGE_KEY = 'resolve_traffic_responsibles_v2';
+
+    // Responsables y Áreas por defecto del sistema
+    const defaultResponsibles = [
+      "Cuentas",
+      "Creativos",
+      "Redacción / Copy",
+      "Dirección de Arte",
+      "Dirección Creativa",
+      "Control de Tráfico",
+      "Producción Audiovisual",
+      "Artes Finales / Preprensa",
+      "Cliente"
+    ];
+
+    function getResponsibles() {
+      try {
+        const data = localStorage.getItem(RESPONSIBLES_STORAGE_KEY);
+        if (!data) {
+          localStorage.setItem(RESPONSIBLES_STORAGE_KEY, JSON.stringify(defaultResponsibles));
+          return defaultResponsibles;
+        }
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        return defaultResponsibles;
+      } catch (e) {
+        return defaultResponsibles;
+      }
+    }
+
+    function addResponsible(name) {
+      if (!name || !name.trim()) return '';
+      const clean = name.trim();
+      const list = getResponsibles();
+      if (!list.some(r => r.toLowerCase() === clean.toLowerCase())) {
+        list.push(clean);
+        localStorage.setItem(RESPONSIBLES_STORAGE_KEY, JSON.stringify(list));
+        updateDeptOptionsDatalist();
+      }
+      return clean;
+    }
+
+    function updateDeptOptionsDatalist() {
+      const dl = document.getElementById('dept-options');
+      if (!dl) return;
+      const list = getResponsibles();
+      dl.innerHTML = list.map(r => `<option value="${escapeHtml(r)}"></option>`).join('');
+    }
 
     // Estados por defecto del sistema
     const defaultStatuses = [
@@ -1743,12 +1928,16 @@
       });
     }, true);
 
-    function handleStripCardClick(e, otId) {
-      if (!otId || dragState.isDragging) return;
+    function handleStripCardClick(e, otId, stripIdx, dateStr) {
+      if (dragState.isDragging) return;
       if (e && e.target && e.target.closest && e.target.closest('input, select, textarea, [data-no-open]')) {
         return;
       }
-      openEnvelopeModal(otId);
+      if (otId) {
+        openEnvelopeModal(otId);
+      } else if (stripIdx !== undefined && stripIdx !== null && stripIdx >= 0) {
+        openCustomTaskModal(stripIdx, dateStr || currentStripboardDate);
+      }
     }
 
     function handleStripDragStart(e, idx, dateStr) {
@@ -2062,7 +2251,7 @@
             ondragleave="handleStripDragLeave(event)"
             ondrop="handleStripDrop(event, ${idx})"
             ondragend="handleStripDragEnd(event)"
-            ondblclick="handleStripCardClick(event, '${strip.otId || ''}')"
+            ondblclick="handleStripCardClick(event, '${strip.otId || ''}', ${idx}, '${currentStripboardDate}')"
             class="stripboard-row strip-item-print group bg-resolve-surface hover:bg-resolve-card border border-resolve-border rounded-xl p-2.5 grid grid-cols-12 gap-2 items-center text-xs transition-all border-l-4 ${borderLeftColor} shadow-xs cursor-grab active:cursor-grabbing"
           >
             
@@ -2105,7 +2294,17 @@
                   ${strip.otId}
                 </button>
               ` : `
-                <span class="px-2 py-0.5 rounded-md bg-white/[0.05] text-stone-400 font-semibold text-xs">LIBRE</span>
+                <button 
+                  type="button" 
+                  data-no-drag="true" 
+                  onmousedown="pauseRowDrag(this); event.stopPropagation();"
+                  onmouseup="resumeRowDrag(this)"
+                  onclick="event.stopPropagation(); openCustomTaskModal(${idx}, '${currentStripboardDate}')" 
+                  title="Editar Tarea Libre y Responsable" 
+                  class="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  LIBRE ✎
+                </button>
               `}
               ${refDisplay ? `
                 <span class="text-[10px] text-zinc-400 font-mono truncate" title="Ref: ${escapeHtml(refDisplay)}">
@@ -2119,11 +2318,11 @@
               data-no-drag="true"
               onmousedown="pauseRowDrag(this)"
               onmouseup="resumeRowDrag(this)"
-              onclick="${strip.otId ? `event.stopPropagation(); openEnvelopeModal('${strip.otId}')` : ''}"
-              class="col-span-2 truncate ${strip.otId ? 'cursor-pointer group/client' : ''}"
-              title="${strip.otId ? 'Clic para abrir Sobre OT' : escapeHtml(clientDisplay)}"
+              onclick="event.stopPropagation(); handleStripCardClick(event, '${strip.otId || ''}', ${idx}, '${currentStripboardDate}')"
+              class="col-span-2 truncate cursor-pointer group/client"
+              title="${strip.otId ? 'Clic para abrir Sobre OT' : 'Clic para editar Tarea Libre'}"
             >
-              <div class="font-bold text-white ${strip.otId ? 'group-hover/client:text-amber-400' : ''} truncate transition-colors">${escapeHtml(clientDisplay)}</div>
+              <div class="font-bold text-white group-hover/client:text-amber-400 truncate transition-colors">${escapeHtml(clientDisplay)}</div>
               <div class="text-[10px] text-resolve-dimText truncate">
                 ${escapeHtml(brandDisplay)}${productDisplay ? ' • ' + escapeHtml(productDisplay) : ''}
               </div>
@@ -2152,7 +2351,7 @@
                 onmouseup="resumeRowDrag(this)"
                 onblur="resumeRowDrag(this)"
                 value="${escapeHtml(strip.assignee || 'Creativos')}" 
-                onchange="updateStripField(${idx}, 'assignee', this.value)" 
+                onchange="addResponsible(this.value); updateStripField(${idx}, 'assignee', this.value)" 
                 placeholder="Área" 
                 class="w-full bg-black/30 border border-resolve-border rounded-lg px-1.5 py-1 text-cyan-300 font-semibold text-[11px] focus:border-amber-500/60 focus:outline-none text-center cursor-text"
               />
@@ -2416,25 +2615,164 @@
       saveDayStrips(currentStripboardDate, strips);
     }
 
+    // ==============================================================
+    // GESTIÓN DE TAREAS LIBRES (MODAL, EDICIÓN Y RESPONSABLES)
+    // ==============================================================
+    let activeCustomTaskIndex = -1;
+    let activeCustomTaskDate = '';
+
     function addCustomTaskStripPrompt() {
-      const title = prompt("Descripción de la tarea libre (ej: Reunión de Tráfico / Presentación):");
-      if (!title || !title.trim()) return;
+      openCustomTaskModal(-1, currentStripboardDate);
+    }
 
-      const strips = getDayStrips(currentStripboardDate);
-      strips.push({
-        id: 'strip-cust-' + Date.now(),
-        type: 'ot',
-        otId: null,
-        client: "Interno",
-        brand: "Tráfico General",
-        product: "",
-        timeSlot: "08:30 - 09:30",
-        task: title.trim(),
-        assignee: "Cuentas & Creativos",
-        shiftStatus: "Por Iniciar"
-      });
+    function openCustomTaskModal(index, dateStr) {
+      activeCustomTaskIndex = (index !== undefined && index !== null) ? parseInt(index, 10) : -1;
+      activeCustomTaskDate = dateStr || currentStripboardDate;
 
-      saveDayStrips(currentStripboardDate, strips);
+      const modal = document.getElementById('custom-task-modal');
+      const modalTitle = document.getElementById('custom-task-modal-title');
+      const titleInput = document.getElementById('custom-task-title-input');
+      const assigneeInput = document.getElementById('custom-task-assignee-input');
+      const timeSlotInput = document.getElementById('custom-task-timeslot-input');
+      const statusInput = document.getElementById('custom-task-status-input');
+      const clientInput = document.getElementById('custom-task-client-input');
+      const deleteBtn = document.getElementById('custom-task-delete-btn');
+      const quickContainer = document.getElementById('custom-task-quick-responsibles');
+
+      if (!modal) return;
+
+      // Actualizar datalist de responsables
+      updateDeptOptionsDatalist();
+
+      // Renderizar píldoras rápidas de responsables sugeridos
+      if (quickContainer) {
+        const respList = getResponsibles();
+        quickContainer.innerHTML = respList.slice(0, 8).map(r => `
+          <button 
+            type="button" 
+            onclick="setCustomTaskAssignee('${escapeHtml(r)}')" 
+            class="px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-resolve-border text-[10px] transition-colors cursor-pointer"
+          >
+            ${escapeHtml(r)}
+          </button>
+        `).join('') + `
+          <button 
+            type="button" 
+            onclick="promptNewResponsible()" 
+            class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-semibold transition-colors cursor-pointer"
+            title="Crear un nuevo responsable"
+          >
+            + Nuevo
+          </button>
+        `;
+      }
+
+      if (activeCustomTaskIndex >= 0) {
+        const strips = getDayStrips(activeCustomTaskDate);
+        const strip = strips[activeCustomTaskIndex];
+        if (strip) {
+          if (modalTitle) modalTitle.innerText = `Editar Tarea Libre (#${activeCustomTaskIndex + 1})`;
+          if (titleInput) titleInput.value = strip.task || '';
+          if (assigneeInput) assigneeInput.value = strip.assignee || 'Creativos';
+          if (timeSlotInput) timeSlotInput.value = strip.timeSlot || '08:30 - 09:30';
+          if (statusInput) statusInput.value = strip.shiftStatus || 'Por Iniciar';
+          if (clientInput) clientInput.value = strip.client || 'Interno';
+          if (deleteBtn) deleteBtn.classList.remove('hidden');
+        }
+      } else {
+        if (modalTitle) modalTitle.innerText = 'Nueva Tarea Libre';
+        if (titleInput) titleInput.value = '';
+        if (assigneeInput) assigneeInput.value = 'Creativos';
+        if (timeSlotInput) timeSlotInput.value = '08:30 - 09:30';
+        if (statusInput) statusInput.value = 'Por Iniciar';
+        if (clientInput) clientInput.value = 'Interno';
+        if (deleteBtn) deleteBtn.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+      setTimeout(() => { if (titleInput) titleInput.focus(); }, 50);
+    }
+
+    function closeCustomTaskModal() {
+      const modal = document.getElementById('custom-task-modal');
+      if (modal) modal.classList.add('hidden');
+      activeCustomTaskIndex = -1;
+    }
+
+    function setCustomTaskAssignee(name) {
+      const assigneeInput = document.getElementById('custom-task-assignee-input');
+      if (assigneeInput) {
+        assigneeInput.value = name;
+        assigneeInput.focus();
+      }
+    }
+
+    function promptNewResponsible() {
+      const name = prompt("Nombre o Área del nuevo Responsable:");
+      if (!name || !name.trim()) return;
+      const clean = addResponsible(name);
+      setCustomTaskAssignee(clean);
+    }
+
+    function saveCustomTaskModal(e) {
+      if (e) e.preventDefault();
+
+      const titleInput = document.getElementById('custom-task-title-input');
+      const assigneeInput = document.getElementById('custom-task-assignee-input');
+      const timeSlotInput = document.getElementById('custom-task-timeslot-input');
+      const statusInput = document.getElementById('custom-task-status-input');
+      const clientInput = document.getElementById('custom-task-client-input');
+
+      const title = (titleInput ? titleInput.value : '').trim();
+      const rawAssignee = (assigneeInput ? assigneeInput.value : '').trim() || 'Creativos';
+      const timeSlot = (timeSlotInput ? timeSlotInput.value : '').trim() || '08:30 - 09:30';
+      const shiftStatus = (statusInput ? statusInput.value : 'Por Iniciar');
+      const client = (clientInput ? clientInput.value : 'Interno').trim() || 'Interno';
+
+      if (!title) {
+        alert("Por favor ingresa la descripción de la tarea.");
+        return;
+      }
+
+      // Asegurar que el responsable quede registrado para autocompletados futuros
+      const assignee = addResponsible(rawAssignee) || rawAssignee;
+
+      const dateToSave = activeCustomTaskDate || currentStripboardDate;
+      const strips = getDayStrips(dateToSave);
+
+      if (activeCustomTaskIndex >= 0 && strips[activeCustomTaskIndex]) {
+        // Modificar tarea libre existente
+        const strip = strips[activeCustomTaskIndex];
+        strip.task = title;
+        strip.assignee = assignee;
+        strip.timeSlot = timeSlot;
+        strip.shiftStatus = shiftStatus;
+        strip.client = client;
+      } else {
+        // Crear nueva tarea libre
+        strips.push({
+          id: 'strip-cust-' + Date.now(),
+          type: 'ot',
+          otId: null,
+          client: client,
+          brand: "Tráfico General",
+          product: "",
+          timeSlot: timeSlot,
+          task: title,
+          assignee: assignee,
+          shiftStatus: shiftStatus
+        });
+      }
+
+      saveDayStrips(dateToSave, strips);
+      closeCustomTaskModal();
+    }
+
+    function deleteCustomTaskFromModal() {
+      if (activeCustomTaskIndex < 0) return;
+      if (!confirm("¿Eliminar esta tarea libre del plan de trabajo?")) return;
+      removeStrip(activeCustomTaskIndex, activeCustomTaskDate || currentStripboardDate);
+      closeCustomTaskModal();
     }
 
     function moveStrip(index, direction) {
@@ -2658,7 +2996,7 @@
               ondragleave="handleStripDragLeave(event)"
               ondrop="handleStripDrop(event, ${idx}, '${day.dateStr}')"
               ondragend="handleStripDragEnd(event)"
-              onclick="handleStripCardClick(event, '${strip.otId || ''}')"
+              onclick="handleStripCardClick(event, '${strip.otId || ''}', ${idx}, '${day.dateStr}')"
               class="stripboard-row bg-resolve-surface hover:bg-resolve-card border border-resolve-border border-l-4 ${borderLeft} rounded p-2 text-[11px] flex flex-col gap-1 shadow-xs cursor-pointer transition-colors"
             >
               <div class="flex items-center justify-between gap-1">
@@ -2675,7 +3013,19 @@
                     >
                       ${strip.otId}
                     </button>
-                  ` : `<span class="px-1.5 py-0.2 bg-resolve-panel rounded text-stone-400 text-[10px]">LIBRE</span>`}
+                  ` : `
+                    <button
+                      type="button"
+                      data-no-drag="true"
+                      onmousedown="pauseRowDrag(this); event.stopPropagation();"
+                      onmouseup="resumeRowDrag(this)"
+                      onclick="event.stopPropagation(); openCustomTaskModal(${idx}, '${day.dateStr}')"
+                      class="px-1.5 py-0.2 bg-resolve-panel hover:bg-resolve-border border border-resolve-border hover:border-amber-400 rounded text-amber-300 font-bold text-[10px] cursor-pointer"
+                      title="Editar Tarea Libre y Responsable"
+                    >
+                      LIBRE ✎
+                    </button>
+                  `}
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
                   <span class="text-[9px] text-stone-400">${escapeHtml(strip.timeSlot || '')}</span>
@@ -3029,10 +3379,10 @@
               draggable="true"
               ondragstart="handleStripDragStart(event, ${idx}, '${currentStripboardDate}')"
               ondragend="handleStripDragEnd(event)"
-              onclick="handleStripCardClick(event, '${strip.otId || ''}')"
+              onclick="handleStripCardClick(event, '${strip.otId || ''}', ${idx}, '${currentStripboardDate}')"
               style="left: ${leftPct.toFixed(2)}%; width: ${widthPct.toFixed(2)}%;"
               class="gantt-clip stripboard-row absolute top-1.5 bottom-1.5 rounded-md border-l-4 ${track.color} border border-resolve-border hover:border-amber-400/80 px-2.5 py-1 flex flex-col justify-between overflow-hidden shadow-md cursor-pointer hover:z-20 transition-[border-color,background-color] group/clip select-none"
-              title="Clic para abrir Sobre ${escapeHtml(strip.otId || 'LIBRE')} • ${escapeHtml(strip.timeSlot || '')} • ${escapeHtml(strip.task || '')}"
+              title="${strip.otId ? 'Clic para abrir Sobre ' + escapeHtml(strip.otId) : 'Clic para editar Tarea Libre'} • ${escapeHtml(strip.timeSlot || '')} • ${escapeHtml(strip.task || '')}"
             >
               <!-- DaVinci Trim Handle Izquierda (In-Point / Head) -->
               <div
@@ -3057,7 +3407,19 @@
                     >
                       ${strip.otId}
                     </button>
-                  ` : `<span class="font-bold text-stone-300">LIBRE</span>`}
+                  ` : `
+                    <button
+                      type="button"
+                      data-no-drag="true"
+                      onmousedown="pauseRowDrag(this); event.stopPropagation();"
+                      onmouseup="resumeRowDrag(this)"
+                      onclick="event.stopPropagation(); openCustomTaskModal(${idx}, '${currentStripboardDate}')"
+                      class="px-1.5 py-0.2 bg-resolve-panel hover:bg-resolve-border border border-resolve-border hover:border-amber-400 rounded text-amber-300 font-bold text-[9px] cursor-pointer"
+                      title="Editar Tarea Libre y Responsable"
+                    >
+                      LIBRE ✎
+                    </button>
+                  `}
                   <span class="text-[9px] text-stone-300 truncate">${escapeHtml(clientName)}</span>
                 </div>
                 <div class="flex items-center gap-0.5 shrink-0">
@@ -5194,6 +5556,7 @@
         clients: getClients(),
         orders: getOrders(),
         statuses: getStatuses(),
+        responsibles: getResponsibles(),
         stripboard: getAllStripboardStorage()
       };
 
@@ -5218,10 +5581,13 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed.orders));
             localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(parsed.clients));
             if (parsed.statuses) localStorage.setItem(STATUSES_STORAGE_KEY, JSON.stringify(parsed.statuses));
+            if (parsed.responsibles) localStorage.setItem(RESPONSIBLES_STORAGE_KEY, JSON.stringify(parsed.responsibles));
             if (parsed.stripboard) localStorage.setItem(STRIPBOARD_STORAGE_KEY, JSON.stringify(parsed.stripboard));
             renderStatusSelects();
             renderBinTree();
             renderTrafficDesk();
+            updateClientsDatalist();
+            updateDeptOptionsDatalist();
             renderStripboard();
             alert("Respaldo restaurado con éxito.");
           } else {
@@ -5248,6 +5614,11 @@
     // Inicialización y atajo de teclado Esc para cerrar el Sobre OT o el Visor
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        const customTaskModal = document.getElementById('custom-task-modal');
+        if (customTaskModal && !customTaskModal.classList.contains('hidden')) {
+          closeCustomTaskModal();
+          return;
+        }
         const previewModal = document.getElementById('media-preview-modal');
         if (previewModal && !previewModal.classList.contains('hidden')) {
           closeMediaPreviewModal();
@@ -5275,6 +5646,7 @@
       renderBinTree();
       renderTrafficDesk();
       updateClientsDatalist();
+      updateDeptOptionsDatalist();
       initStripboard();
     });
   </script>
