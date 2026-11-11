@@ -845,19 +845,14 @@
         
         <!-- PESTAÑA 1: HOJA DE RUTA (BITÁCORA DE RELEVOS) -->
         <div id="ot-tab-hoja-ruta" class="space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
+          <div class="flex items-center justify-between pb-1">
             <div>
-              <h3 class="font-bold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos (Colaboración por Línea)</h3>
-              <p class="text-[11px] text-resolve-dimText">Arrastra archivos o notas (.md/.txt) directamente a cualquier línea de la hoja de ruta para vincular entregables e instrucciones.</p>
+              <h3 class="font-bold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos</h3>
+              <p class="text-[11px] text-resolve-dimText">Historial físico y digital de pases entre departamentos.</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="copyShareEnvelopeLink(null, this)" class="px-2.5 py-1.5 bg-resolve-panel hover:bg-resolve-card text-cyan-300 hover:text-white font-bold text-xs rounded border border-cyan-500/40 flex items-center gap-1.5 transition-all cursor-pointer" title="Copiar enlace colaborativo del Sobre para Cliente o Diseñador remoto">
-                <span>Compartir Sobre (Link Remoto)</span>
-              </button>
-              <button onclick="addNewRouteRow()" class="px-3 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold text-xs rounded border border-amber-400 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer">
-                <span>+ AGREGAR MOVIMIENTO</span>
-              </button>
-            </div>
+            <button onclick="addNewRouteRow()" class="px-3 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold text-xs rounded border border-amber-400 shadow-sm flex items-center gap-1.5 transition-all">
+              <span>+ AGREGAR MOVIMIENTO</span>
+            </button>
           </div>
 
           <!-- Tabla de Relevos -->
@@ -865,13 +860,13 @@
             <table class="w-full text-left font-mono text-xs border-collapse">
               <thead>
                 <tr class="bg-resolve-panel border-b border-resolve-border text-[10px] text-resolve-dimText uppercase tracking-wider">
-                  <th class="p-2 border-r border-resolve-border w-36">LÍNEA / DE:</th>
+                  <th class="p-2 border-r border-resolve-border w-32">DE:</th>
                   <th class="p-2 border-r border-resolve-border w-32">PARA:</th>
-                  <th class="p-2 border-r border-resolve-border min-w-[320px]">NOTAS, INSTRUCCIONES Y ARCHIVOS DE LA LÍNEA</th>
-                  <th class="p-2 border-r border-resolve-border w-44">ENTRADA</th>
-                  <th class="p-2 border-r border-resolve-border w-44">ENTREGA</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[280px]">TAREA / OBSERVACIONES</th>
+                  <th class="p-2 border-r border-resolve-border w-48">ENTRADA</th>
+                  <th class="p-2 border-r border-resolve-border w-48">ENTREGA</th>
                   <th class="p-2 border-r border-resolve-border w-28 text-center">FIRMA / SELLO</th>
-                  <th class="p-2 w-24 text-center">ACCIÓN</th>
+                  <th class="p-2 w-20 text-center">ACCIÓN</th>
                 </tr>
               </thead>
               <tbody id="route-sheet-rows" class="divide-y divide-resolve-border/60">
@@ -884,13 +879,13 @@
           <!-- CONTENIDO FÍSICO DEL SOBRE Y MONITOR DE PREVISUALIZACIÓN       -->
           <!-- ============================================================== -->
           <div class="pt-3 border-t border-resolve-border">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
               <div>
                 <h3 class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
                   <span>Contenido dentro del Sobre (Previsualización Directa)</span>
                   <span id="inline-envelope-files-count" class="px-1.5 py-0.2 rounded bg-resolve-panel border border-resolve-border text-amber-400 text-[10px]">0 piezas</span>
                 </h3>
-                <p class="text-[11px] text-resolve-dimText">Previsualiza Affinity (.af*), Pages, Keynote, Numbers, Office (.docx/.xlsx), Adobe (.ai/.psd), PDF, Fuentes y Código sin abrir las apps nativas.</p>
+                <p class="text-[11px] text-resolve-dimText">Selecciona cualquier foto, boceto, video o PDF adjunto al sobre para previsualizarlo aquí mismo sin cambiar de pestaña.</p>
               </div>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="promptAddMediaLink()" class="px-2.5 py-1 bg-resolve-panel hover:bg-resolve-card text-stone-200 hover:text-white rounded border border-resolve-border text-xs transition-colors cursor-pointer">
@@ -903,14 +898,9 @@
               </div>
             </div>
 
-            <!-- Barra de Filtro por Línea de la Hoja de Ruta -->
-            <div id="envelope-inline-route-filter-bar" class="mb-2.5 flex items-center gap-1.5 flex-wrap font-mono text-[10px]">
-              <!-- Inyectado dinámicamente con JS -->
-            </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
               <!-- Lista de Piezas dentro del Sobre (5 columnas) con Zona de Soltar / Importar directa -->
-              <div class="lg:col-span-5 flex flex-col gap-2 max-h-[430px]">
+              <div class="lg:col-span-5 flex flex-col gap-2 max-h-[410px]">
                 <div 
                   id="envelope-inline-dropzone"
                   ondragover="handleInlineDropzoneOver(event)"
@@ -923,9 +913,9 @@
                   <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
                   <div class="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span id="envelope-inline-dropzone-label">Arrastra archivos aquí o haz clic para importar</span>
+                    <span>Arrastra archivos aquí o haz clic para importar</span>
                   </div>
-                  <span class="text-[9px] text-resolve-dimText mt-0.5">Affinity (.afdesign/.afphoto/.afpub), Pages, Keynote, Numbers, Word, Excel, Adobe (.ai/.psd), PDF, Fuentes, Código</span>
+                  <span class="text-[9px] text-resolve-dimText mt-0.5">Fotos, PDF, Código (HTML/JS), Fuentes (.ttf/.otf), Pages, Word, Adobe (.ai/.psd), Affinity</span>
                 </div>
 
                 <div id="envelope-inline-files-list" class="flex-1 bg-resolve-bg border border-resolve-border rounded p-2 overflow-y-auto space-y-1.5">
@@ -934,7 +924,7 @@
               </div>
 
               <!-- Monitor de Previsualización Integrado (Source Viewer - 7 columnas) -->
-              <div id="envelope-inline-viewer" class="lg:col-span-7 bg-resolve-bg border border-resolve-border rounded flex flex-col overflow-hidden min-h-[360px] max-h-[430px]">
+              <div id="envelope-inline-viewer" class="lg:col-span-7 bg-resolve-bg border border-resolve-border rounded flex flex-col overflow-hidden min-h-[340px] max-h-[410px]">
                 <!-- Inyectado dinámicamente con JS -->
               </div>
             </div>
@@ -4124,329 +4114,8 @@
     // ==============================================================
     // HOJA DE RUTA (BITÁCORA DE RELEVOS)
     // ==============================================================
-    // ==============================================================
-    // COLABORACIÓN POR LÍNEA: archivos/notas vinculados a una línea de la Hoja de Ruta
-    // ==============================================================
-    let inlineRouteFilter = 'all';
-
-    function genId(prefix) {
-      return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
-    }
-
-    // Garantiza que cada línea tenga un id estable (rid) y lo persiste
-    function ensureActiveRouteIds(routes) {
-      if (!activeOtId || !routes || !routes.length) return routes;
-      if (routes.every(r => r.rid)) return routes;
-      const orders = getOrders();
-      const ot = orders.find(o => o.id === activeOtId);
-      if (!ot || !ot.routes) return routes;
-      ot.routes.forEach(r => { if (!r.rid) r.rid = genId('r-'); });
-      saveOrders(orders);
-      return ot.routes;
-    }
-
-    function fileMatchesRouteFilter(file) {
-      if (inlineRouteFilter === 'all') return true;
-      if (inlineRouteFilter === 'general') return !file.routeId;
-      return file.routeId === inlineRouteFilter;
-    }
-
-    function setInlineRouteFilter(value) {
-      inlineRouteFilter = value;
-      const ot = getOrders().find(o => o.id === activeOtId);
-      if (!ot) return;
-      const files = ot.mediaFiles || [];
-      const first = files.findIndex(fileMatchesRouteFilter);
-      if (first >= 0 && !fileMatchesRouteFilter(files[selectedInlineMediaIndex] || {})) selectedInlineMediaIndex = first;
-      renderRouteSheetRows(ot.routes || []);
-      renderInlineEnvelopeMedia(files);
-    }
-
-    function renderRouteFilterBar(ot) {
-      const bar = document.getElementById('envelope-inline-route-filter-bar');
-      if (!bar) return;
-      const routes = (ot && ot.routes) || [];
-      const files = (ot && ot.mediaFiles) || [];
-      const chip = (val, label, count) => {
-        const active = inlineRouteFilter === val;
-        return `<button type="button" onclick="setInlineRouteFilter('${val}')" class="px-2 py-0.5 rounded border ${active ? 'bg-resolve-card border-amber-500 text-amber-400 font-bold' : 'bg-resolve-panel border-resolve-border text-resolve-dimText hover:text-white'}">${label} (${count})</button>`;
-      };
-      let html = '<span class="text-resolve-dimText uppercase tracking-wider font-bold mr-1">Ver:</span>';
-      html += chip('all', 'Todo el sobre', files.length);
-      html += chip('general', 'Sin línea', files.filter(f => !f.routeId).length);
-      routes.forEach((r, i) => {
-        if (!r.rid) return;
-        html += chip(r.rid, 'Línea #' + (i + 1), files.filter(f => f.routeId === r.rid).length);
-      });
-      bar.innerHTML = html;
-    }
-
-    function routeAttachmentsHtml(row, index, ot) {
-      const files = (ot && ot.mediaFiles) || [];
-      const mine = files.map((f, i) => ({ f, i })).filter(x => row.rid && x.f.routeId === row.rid);
-      const chips = mine.map(x => {
-        const m = getMediaMeta(x.f);
-        return `<button type="button" onclick="focusMediaFromRoute(${x.i})" title="${escapeHtml(x.f.name)}" class="inline-flex items-center gap-1 max-w-[170px] px-1.5 py-0.5 rounded border border-resolve-border bg-resolve-panel hover:border-amber-400 text-[10px] text-stone-200">` +
-          `<span class="px-1 rounded font-bold text-[9px]" style="${m.badgeStyle}">${m.badge}</span><span class="truncate">${escapeHtml(x.f.name)}</span></button>`;
-      }).join('');
-      return `<div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
-        ${chips}
-        <label class="px-1.5 py-0.5 rounded border border-dashed border-resolve-border hover:border-amber-400 text-[10px] text-resolve-dimText hover:text-amber-300 cursor-pointer">+ Archivo / nota
-          <input type="file" multiple class="hidden" onchange="uploadFilesToRoute(this.files, ${index}); this.value='';">
-        </label>
-        <button type="button" onclick="copyShareEnvelopeLink(${index}, this)" class="px-1.5 py-0.5 rounded border border-resolve-border hover:border-cyan-400 text-[10px] text-cyan-300">Compartir línea</button>
-      </div>`;
-    }
-
-    function focusMediaFromRoute(fileIndex) {
-      inlineRouteFilter = 'all';
-      selectInlinePreviewMedia(fileIndex);
-      const v = document.getElementById('envelope-inline-viewer');
-      if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    function uploadFilesToRoute(files, index) {
-      if (!files || !files.length || !activeOtId) return;
-      const routes = ensureActiveRouteIds((getOrders().find(o => o.id === activeOtId) || {}).routes || []);
-      const row = routes[index];
-      if (!row) return;
-      handleMediaPoolUpload({ target: { files }, routeId: row.rid });
-    }
-
-    function handleRouteRowOver(e) {
-      e.preventDefault();
-      e.currentTarget.classList.add('bg-amber-950/30');
-    }
-    function handleRouteRowLeave(e) {
-      e.currentTarget.classList.remove('bg-amber-950/30');
-    }
-    function handleRouteRowDrop(e, index) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('bg-amber-950/30');
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
-        uploadFilesToRoute(e.dataTransfer.files, index);
-      }
-    }
-
-    // Enlace colaborativo (sobre completo o una línea). El token se genera y persiste;
-    // el enlace solo será funcional para terceros cuando el backend (api.php) esté publicado.
-    function copyShareEnvelopeLink(index, btn) {
-      if (!activeOtId) return;
-      const orders = getOrders();
-      const ot = orders.find(o => o.id === activeOtId);
-      if (!ot) return;
-      if (!ot.shareToken) ot.shareToken = genId('s') + genId('');
-      let link = location.origin + location.pathname + '?share=' + ot.shareToken;
-      if (index !== null && index !== undefined && ot.routes && ot.routes[index]) {
-        if (!ot.routes[index].rid) ot.routes[index].rid = genId('r-');
-        link += '&line=' + ot.routes[index].rid;
-      }
-      saveOrders(orders);
-      const done = () => {
-        if (!btn) return;
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<span class="text-emerald-400 font-bold">Enlace copiado</span>';
-        setTimeout(() => { btn.innerHTML = orig; }, 1600);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(() => prompt('Copia el enlace:', link));
-      else prompt('Copia el enlace:', link);
-    }
-
-    // ==============================================================
-    // EXTRACTORES DE VISTA PREVIA LOCALES (Affinity, iWork, Office, Adobe .ai)
-    // ==============================================================
-    function blobToDataUrl(blob) {
-      return new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.onerror = reject;
-        r.readAsDataURL(blob);
-      });
-    }
-
-    async function readZip(file) {
-      if (file.size > 150 * 1024 * 1024) return null;
-      const buf = await file.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      const view = new DataView(buf);
-      let eocd = -1;
-      for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
-        if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-      }
-      if (eocd < 0) return null;
-      const total = view.getUint16(eocd + 10, true);
-      let ptr = view.getUint32(eocd + 16, true);
-      const dec = new TextDecoder('utf-8');
-      const entries = {};
-      for (let n = 0; n < total; n++) {
-        if (ptr + 46 > bytes.length || view.getUint32(ptr, true) !== 0x02014b50) break;
-        const method = view.getUint16(ptr + 10, true);
-        const compSize = view.getUint32(ptr + 20, true);
-        const nameLen = view.getUint16(ptr + 28, true);
-        const extraLen = view.getUint16(ptr + 30, true);
-        const commentLen = view.getUint16(ptr + 32, true);
-        const lho = view.getUint32(ptr + 42, true);
-        const name = dec.decode(bytes.subarray(ptr + 46, ptr + 46 + nameLen));
-        entries[name.toLowerCase()] = { name, method, compSize, lho };
-        ptr += 46 + nameLen + extraLen + commentLen;
-      }
-      async function get(name) {
-        const e = entries[String(name).toLowerCase()];
-        if (!e) return null;
-        const lh = e.lho;
-        if (view.getUint32(lh, true) !== 0x04034b50) return null;
-        const start = lh + 30 + view.getUint16(lh + 26, true) + view.getUint16(lh + 28, true);
-        const raw = bytes.subarray(start, start + e.compSize);
-        if (e.method === 0) return raw;
-        if (e.method === 8 && typeof DecompressionStream !== 'undefined') {
-          const ds = new DecompressionStream('deflate-raw');
-          const w = ds.writable.getWriter();
-          w.write(raw); w.close();
-          return new Uint8Array(await new Response(ds.readable).arrayBuffer());
-        }
-        return null;
-      }
-      return { entries, get };
-    }
-
-    function xmlText(s) {
-      return String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
-    }
-
-    function docxToHtml(xml) {
-      const paras = xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) || [];
-      return paras.map(p => {
-        const txt = (p.match(/<w:t[^>]*>[\s\S]*?<\/w:t>/g) || []).map(t => xmlText(t.replace(/<[^>]+>/g, ''))).join('');
-        if (!txt.trim()) return '';
-        const heading = /<w:pStyle w:val="(Heading|Titulo|Title)/i.test(p);
-        return heading
-          ? '<h3 class="text-sm font-bold text-amber-400 mt-3 mb-1">' + escapeHtml(txt) + '</h3>'
-          : '<p class="my-1.5 text-stone-300 text-xs leading-relaxed">' + escapeHtml(txt) + '</p>';
-      }).join('');
-    }
-
-    async function xlsxToHtml(zip) {
-      const ssXml = await zip.get('xl/sharedStrings.xml');
-      const shared = [];
-      if (ssXml) {
-        const x = new TextDecoder().decode(ssXml);
-        (x.match(/<si>[\s\S]*?<\/si>/g) || []).forEach(si => {
-          shared.push(xmlText((si.match(/<t[^>]*>[\s\S]*?<\/t>/g) || []).map(t => t.replace(/<[^>]+>/g, '')).join('')));
-        });
-      }
-      const shXml = await zip.get('xl/worksheets/sheet1.xml');
-      if (!shXml) return '';
-      const x = new TextDecoder().decode(shXml);
-      const rows = (x.match(/<row[ >][\s\S]*?<\/row>/g) || []).slice(0, 80);
-      const colIdx = ref => { const l = ref.replace(/[0-9]/g, ''); let n = 0; for (const c of l) n = n * 26 + (c.charCodeAt(0) - 64); return n - 1; };
-      const grid = rows.map(r => {
-        const cells = [];
-        (r.match(/<c [^>]*?(?:\/>|>[\s\S]*?<\/c>)/g) || []).forEach(c => {
-          const ref = (c.match(/r="([A-Z]+[0-9]+)"/) || [])[1];
-          if (!ref) return;
-          const t = (c.match(/t="(\w+)"/) || [])[1];
-          let val = '';
-          const v = (c.match(/<v>([\s\S]*?)<\/v>/) || [])[1];
-          if (t === 's' && v !== undefined) val = shared[parseInt(v, 10)] || '';
-          else if (t === 'inlineStr') val = xmlText((c.match(/<t[^>]*>([\s\S]*?)<\/t>/) || [])[1] || '');
-          else if (v !== undefined) val = xmlText(v);
-          cells[Math.min(colIdx(ref), 25)] = val;
-        });
-        return cells;
-      });
-      const width = Math.max(1, ...grid.map(r => r.length));
-      return '<table class="text-[11px] border-collapse w-full">' + grid.map((r, ri) =>
-        '<tr>' + Array.from({ length: width }, (_, i) => {
-          const tag = ri === 0 ? 'th' : 'td';
-          return '<' + tag + ' class="border border-resolve-border px-2 py-1 ' + (ri === 0 ? 'bg-resolve-panel text-amber-300 font-bold' : 'text-stone-300') + '">' + escapeHtml(r[i] || '') + '</' + tag + '>';
-        }).join('') + '</tr>').join('') + '</table>';
-    }
-
-    function findLargestPng(bytes) {
-      let best = null;
-      for (let i = 0; i < bytes.length - 16; i++) {
-        if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4E && bytes[i + 3] === 0x47 && bytes[i + 4] === 0x0D && bytes[i + 5] === 0x0A && bytes[i + 6] === 0x1A && bytes[i + 7] === 0x0A) {
-          for (let j = i + 8; j < bytes.length - 8; j++) {
-            if (bytes[j] === 0x49 && bytes[j + 1] === 0x45 && bytes[j + 2] === 0x4E && bytes[j + 3] === 0x44) {
-              const slice = bytes.subarray(i, j + 8);
-              if (!best || slice.length > best.length) best = slice;
-              i = j + 7;
-              break;
-            }
-          }
-        }
-      }
-      return best && best.length > 256 ? best : null;
-    }
-
-    // Completa la entrada con previewUrl/previewKind/docHtml/sheetHtml y vuelca notas de texto en la línea
-    async function enrichEntryPreview(entry, file, routeId, ot) {
-      const ext = (entry.ext || '').toLowerCase();
-      const setImg = async (bytes, mime) => {
-        const blob = new Blob([bytes], { type: mime });
-        entry.previewUrl = blob.size < 2.5 * 1024 * 1024 ? await blobToDataUrl(blob) : URL.createObjectURL(blob);
-        entry.previewKind = 'image';
-      };
-      const setPdf = async (bytes) => {
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        entry.previewUrl = blob.size < 2.5 * 1024 * 1024 ? await blobToDataUrl(blob) : URL.createObjectURL(blob);
-        entry.previewKind = 'pdf';
-      };
-
-      if (['afdesign', 'afphoto', 'afpub'].includes(ext)) {
-        const head = new Uint8Array(await file.slice(0, 16 * 1024 * 1024).arrayBuffer());
-        const png = findLargestPng(head);
-        if (png) await setImg(png, 'image/png');
-      } else if (['pages', 'key', 'numbers'].includes(ext)) {
-        const zip = await readZip(file);
-        if (zip) {
-          const pdf = await zip.get('QuickLook/Preview.pdf');
-          if (pdf && pdf.length > 64) await setPdf(pdf);
-          else {
-            for (const n of ['QuickLook/Thumbnail.jpg', 'preview.jpg', 'preview-web.jpg']) {
-              const d = await zip.get(n);
-              if (d && d.length > 64) { await setImg(d, 'image/jpeg'); break; }
-            }
-          }
-        }
-      } else if (ext === 'docx') {
-        const zip = await readZip(file);
-        if (zip) {
-          const xml = await zip.get('word/document.xml');
-          if (xml) entry.docHtml = docxToHtml(new TextDecoder().decode(xml));
-          if (!entry.docHtml) {
-            const th = await zip.get('docProps/thumbnail.jpeg');
-            if (th) await setImg(th, 'image/jpeg');
-          }
-        }
-      } else if (ext === 'pptx') {
-        const zip = await readZip(file);
-        if (zip) { const th = await zip.get('docProps/thumbnail.jpeg'); if (th) await setImg(th, 'image/jpeg'); }
-      } else if (ext === 'xlsx') {
-        const zip = await readZip(file);
-        if (zip) entry.sheetHtml = await xlsxToHtml(zip);
-      } else if (ext === 'ai') {
-        const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
-        if (new TextDecoder().decode(head).includes('%PDF-') && file.size < 40 * 1024 * 1024) {
-          entry.previewUrl = URL.createObjectURL(new Blob([await file.arrayBuffer()], { type: 'application/pdf' }));
-          entry.previewKind = 'pdf';
-        }
-      }
-
-      // Notas de texto soltadas en una línea: se anexan a la nota de la línea
-      if (routeId && ['md', 'markdown', 'txt'].includes(ext) && ot && ot.routes) {
-        const row = ot.routes.find(r => r.rid === routeId);
-        if (row) {
-          const txt = await file.text();
-          row.task = ((row.task ? row.task + '\n\n' : '') + '[' + file.name + ']\n' + txt.slice(0, 4000)).trim();
-        }
-      }
-    }
-
     function renderRouteSheetRows(routes) {
       const tbody = document.getElementById('route-sheet-rows');
-      routes = ensureActiveRouteIds(routes);
-      const _routeOt = getOrders().find(o => o.id === activeOtId);
       if (!routes || routes.length === 0) {
         tbody.innerHTML = `
           <tr>
@@ -4480,8 +4149,9 @@
         }
 
         return `
-          <tr ondragover="handleRouteRowOver(event)" ondragleave="handleRouteRowLeave(event)" ondrop="handleRouteRowDrop(event, ${index})" class="hover:bg-resolve-card/60 transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
-            $&
+          <tr class="hover:bg-resolve-card/60 transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
+            <!-- DE -->
+            <td class="p-2 border-r border-resolve-border align-top">
               <input 
                 type="text" 
                 list="dept-options" 
@@ -4510,7 +4180,6 @@
                 placeholder="Instrucción del relevo..." 
                 class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 text-xs text-white leading-relaxed resize-y"
               >${escapeHtml(row.task || '')}</textarea>
-              ${routeAttachmentsHtml(row, index, _routeOt)}
             </td>
 
             <!-- ENTRADA -->
@@ -4897,7 +4566,6 @@
       if (!ot.mediaFiles) ot.mediaFiles = [];
 
       const list = Array.from(files);
-      const routeId = (e && e.routeId) || (inlineRouteFilter !== 'all' && inlineRouteFilter !== 'general' ? inlineRouteFilter : null);
       let pending = list.length;
 
       const finalize = () => {
@@ -4920,7 +4588,7 @@
           date: getNowFormatted(),
           url: ''
         };
-        const push = async () => { entry.routeId = routeId; try { await enrichEntryPreview(entry, file, routeId, ot); } catch (err) { console.warn('Vista previa no disponible:', err); } ot.mediaFiles.push(entry); finalize(); };
+        const push = () => { ot.mediaFiles.push(entry); finalize(); };
         const readAs = (mode, cb) => {
           const r = new FileReader();
           r.onload = ev => cb(ev.target.result);
@@ -4996,7 +4664,6 @@
     // ==============================================================
     function renderInlineEnvelopeMedia(files) {
       const listContainer = document.getElementById('envelope-inline-files-list');
-      renderRouteFilterBar(getOrders().find(o => o.id === activeOtId));
       const countEl = document.getElementById('inline-envelope-files-count');
       if (!listContainer) return;
       if (countEl) countEl.innerText = `${files ? files.length : 0} pieza${(files && files.length === 1) ? '' : 's'}`;
@@ -5013,7 +4680,6 @@
       if (selectedInlineMediaIndex >= files.length) selectedInlineMediaIndex = Math.max(0, files.length - 1);
 
       listContainer.innerHTML = files.map((file, idx) => {
-        if (!fileMatchesRouteFilter(file)) return '';
         const sel = idx === selectedInlineMediaIndex;
         const meta = getMediaMeta(file);
         const icon = (meta.type === 'image' && file.url && file.url !== '#')
@@ -5161,21 +4827,6 @@
               <div class="specimen-${id} text-xs text-stone-400 tracking-wider">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ 0123456789</div>
             </div>
           </div>
-        </div>`;
-      }
-      // Vista previa extraída del propio archivo (Affinity, iWork, Office, .ai)
-      if (file.previewUrl || file.docHtml || file.sheetHtml) {
-        let pv;
-        if (file.previewKind === 'pdf' && file.previewUrl) pv = `<object data="${file.previewUrl}" type="application/pdf" class="w-full h-full"></object>`;
-        else if (file.previewKind === 'image' && file.previewUrl) pv = `<div class="w-full h-full flex items-center justify-center bg-black/60 p-3"><img src="${file.previewUrl}" class="max-h-full max-w-full object-contain rounded shadow-lg"></div>`;
-        else if (file.docHtml) pv = `<div class="p-4 overflow-y-auto h-full select-text">${file.docHtml}</div>`;
-        else pv = `<div class="p-3 overflow-auto h-full select-text">${file.sheetHtml}</div>`;
-        return `<div class="w-full h-full flex flex-col overflow-hidden bg-resolve-bg font-mono">
-          <div class="h-8 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between text-[10px] shrink-0">
-            <span class="text-resolve-dimText">Vista previa extraída del archivo (${escapeHtml(meta.subLabel)})</span>
-            ${url ? `<a href="${url}" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded bg-resolve-card border border-resolve-border text-amber-400 font-bold">Abrir en app nativa para editar</a>` : ''}
-          </div>
-          <div class="flex-1 overflow-hidden relative">${pv}</div>
         </div>`;
       }
       // Suites: Adobe, Affinity, Pages, Word
