@@ -122,6 +122,18 @@
     #stripboard-strips-container.drag-over-empty {
       background-color: rgba(217, 119, 6, 0.04);
     }
+    tr.stripboard-row.drop-before {
+      border-top: 2px solid #f59e0b !important;
+      box-shadow: inset 0 2px 0 0 #f59e0b;
+    }
+    tr.stripboard-row.drop-after {
+      border-bottom: 2px solid #f59e0b !important;
+      box-shadow: inset 0 -2px 0 0 #f59e0b;
+    }
+    tr.stripboard-row.dragging {
+      opacity: 0.35;
+      background-color: rgba(245, 158, 11, 0.08) !important;
+    }
 
     /* Apple Pro macOS dark scrollbars & typography rendering */
     * {
@@ -450,7 +462,7 @@
                   <th class="p-2 min-w-[140px]">Notas</th>
                 </tr>
               </thead>
-              <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-zinc-300">
+              <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-zinc-300" ondragover="handleTableContainerDragOver(event)" ondrop="handleTableContainerDrop(event, 'trafico')">
                 <!-- Inyectado dinámicamente con JS -->
               </tbody>
             </table>
@@ -734,7 +746,7 @@
                   <th class="p-2 min-w-[140px]">Notas</th>
                 </tr>
               </thead>
-              <tbody id="stripboard-day-table-body" class="divide-y divide-resolve-border/70 text-zinc-300">
+              <tbody id="stripboard-day-table-body" class="divide-y divide-resolve-border/70 text-zinc-300" ondragover="handleTableContainerDragOver(event)" ondrop="handleTableContainerDrop(event, 'stripboard')">
                 <!-- Inyectado dinámicamente con JS con renderUnifiedTableRows() -->
               </tbody>
             </table>
@@ -1990,6 +2002,34 @@
     // ==============================================================
     // MOTOR DE ORDENAMIENTO, AGRUPACIÓN (APPLE NUMBERS) Y TABLA UNIFICADA
     // ==============================================================
+    let dragState = {
+      isDragging: false,
+      sourceType: null, // 'strip' | 'pool-ot' | 'table-row'
+      sourceDate: null,
+      sourceIndex: null,
+      sourceContext: null,
+      otId: null,
+      dropTargetIndex: null,
+      dropTargetOtId: null,
+      dropPosition: null // 'before' | 'after'
+    };
+    if (typeof window !== 'undefined') window.dragState = dragState;
+
+    function resetDragState() {
+      dragState = {
+        isDragging: false,
+        sourceType: null,
+        sourceDate: null,
+        sourceIndex: null,
+        sourceContext: null,
+        otId: null,
+        dropTargetIndex: null,
+        dropTargetOtId: null,
+        dropPosition: null
+      };
+      if (typeof window !== 'undefined') window.dragState = dragState;
+    }
+
     let currentTableSort = { field: 'none', dir: 'asc' };
     let currentTableGroup = 'none';
     const collapsedGroupKeys = new Set();
@@ -2105,8 +2145,277 @@
     }
 
     function handleTableRowClick(event, otId) {
-      if (event.target.closest('input, select, textarea, button, a')) return;
+      if (typeof dragState !== 'undefined' && dragState.isDragging) return;
+      if (event.target.closest('input, select, textarea, button, a, [data-no-open]')) return;
       openEnvelopeModal(otId);
+    }
+
+    function handleUnifiedRowDragStart(e, otId, viewContext) {
+      if (e.target && e.target.closest && e.target.closest('button, input, select, textarea, a, [data-no-drag]')) {
+        e.preventDefault();
+        return;
+      }
+      dragState.isDragging = true;
+      dragState.sourceType = 'table-row';
+      dragState.otId = otId;
+      dragState.sourceContext = viewContext;
+      dragState.sourceDate = currentStripboardDate;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', otId);
+      const row = e.currentTarget;
+      setTimeout(() => {
+        if (row && row.classList) row.classList.add('dragging');
+      }, 0);
+    }
+
+    function handleUnifiedRowDragOver(e, targetOtId, viewContext) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = e.currentTarget;
+      const rect = row.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const pos = e.clientY < midY ? 'before' : 'after';
+
+      document.querySelectorAll('tr.stripboard-row').forEach(r => {
+        if (r !== row) r.classList.remove('drop-before', 'drop-after');
+      });
+
+      if (pos === 'before') {
+        row.classList.add('drop-before');
+        row.classList.remove('drop-after');
+      } else {
+        row.classList.add('drop-after');
+        row.classList.remove('drop-before');
+      }
+
+      dragState.dropTargetOtId = targetOtId;
+      dragState.dropPosition = pos;
+    }
+
+    function handleUnifiedRowDragLeave(e) {
+      const row = e.currentTarget;
+      if (row && row.classList && (!e.relatedTarget || !row.contains(e.relatedTarget))) {
+        row.classList.remove('drop-before', 'drop-after');
+      }
+    }
+
+    function handleUnifiedRowDragEnd(e) {
+      clearStripDropIndicators();
+      resetDragState();
+    }
+
+    function handleCategoryRowDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = e.currentTarget;
+      if (row && row.classList) {
+        row.classList.add('bg-white/[0.12]', 'ring-1', 'ring-amber-500/50');
+      }
+    }
+
+    function handleCategoryRowDragLeave(e) {
+      const row = e.currentTarget;
+      if (row && row.classList) {
+        row.classList.remove('bg-white/[0.12]', 'ring-1', 'ring-amber-500/50');
+      }
+    }
+
+    function handleCategoryRowDrop(e, groupKey, viewContext) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.currentTarget && e.currentTarget.classList) {
+        e.currentTarget.classList.remove('bg-white/[0.12]', 'ring-1', 'ring-amber-500/50');
+      }
+      clearStripDropIndicators();
+
+      const sourceOtId = dragState.otId;
+      if (!sourceOtId) {
+        resetDragState();
+        return;
+      }
+
+      let orders = getOrders();
+      const srcOt = orders.find(o => o.id === sourceOtId);
+      if (!srcOt) {
+        resetDragState();
+        return;
+      }
+
+      // Asignar el nuevo valor según la categoría Apple Numbers
+      if (currentTableGroup === 'client') {
+        srcOt.client = groupKey;
+      } else if (currentTableGroup === 'status') {
+        srcOt.status = groupKey;
+      } else if (currentTableGroup === 'responsible') {
+        srcOt.responsible = groupKey;
+      } else if (currentTableGroup === 'department') {
+        const route = getActiveRoute(srcOt);
+        route.to = groupKey;
+      }
+
+      saveOrders(orders);
+
+      if (currentTableSort.field !== 'none') {
+        currentTableSort = { field: 'none', dir: 'asc' };
+        syncSortAndGroupControls();
+      }
+
+      resetDragState();
+      refreshAllViews();
+    }
+
+    function handleUnifiedRowDrop(e, targetOtId, viewContext) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearStripDropIndicators();
+
+      const sourceOtId = dragState.otId;
+      const pos = dragState.dropPosition || 'after';
+
+      if (!sourceOtId || sourceOtId === targetOtId) {
+        resetDragState();
+        return;
+      }
+
+      let orders = getOrders();
+      const srcIndex = orders.findIndex(o => o.id === sourceOtId);
+      const targetIndex = orders.findIndex(o => o.id === targetOtId);
+
+      if (srcIndex === -1 || targetIndex === -1) {
+        resetDragState();
+        return;
+      }
+
+      const srcOt = orders[srcIndex];
+      const targetOt = orders[targetIndex];
+
+      // Si está agrupado por categorías de Apple Numbers, sincronizar la categoría si se movió a otro grupo
+      if (currentTableGroup === 'client') {
+        if (srcOt.client !== targetOt.client) {
+          srcOt.client = targetOt.client;
+        }
+      } else if (currentTableGroup === 'status') {
+        if (srcOt.status !== targetOt.status) {
+          srcOt.status = targetOt.status;
+        }
+      } else if (currentTableGroup === 'responsible') {
+        if (srcOt.responsible !== targetOt.responsible) {
+          srcOt.responsible = targetOt.responsible;
+        }
+      } else if (currentTableGroup === 'department') {
+        const srcRoute = getActiveRoute(srcOt);
+        const targetRoute = getActiveRoute(targetOt);
+        if (srcRoute.to !== targetRoute.to) {
+          srcRoute.to = targetRoute.to || 'Tráfico';
+        }
+      }
+
+      // Reordenar en el array global de OTs
+      const [movedOt] = orders.splice(srcIndex, 1);
+      const newTargetIndex = orders.findIndex(o => o.id === targetOtId);
+      let insertIndex = pos === 'before' ? newTargetIndex : newTargetIndex + 1;
+      insertIndex = Math.max(0, Math.min(orders.length, insertIndex));
+      orders.splice(insertIndex, 0, movedOt);
+      saveOrders(orders);
+
+      // Si estamos en Stripboard Día, sincronizar también el orden de tiras del día
+      if (viewContext === 'stripboard' || currentMainView === 'stripboard') {
+        let strips = getDayStrips(currentStripboardDate);
+        if (!strips || strips.length === 0) {
+          strips = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').map(o => ({
+            type: 'ot',
+            otId: o.id,
+            shiftStatus: 'En Mesa',
+            timeSlot: '08:30 - 10:00'
+          }));
+        }
+        const sIdx = strips.findIndex(s => s.otId === sourceOtId);
+        const tIdx = strips.findIndex(s => s.otId === targetOtId);
+        if (sIdx !== -1 && tIdx !== -1) {
+          const [movedStrip] = strips.splice(sIdx, 1);
+          const newTIdx = strips.findIndex(s => s.otId === targetOtId);
+          let insIdx = pos === 'before' ? newTIdx : newTIdx + 1;
+          insIdx = Math.max(0, Math.min(strips.length, insIdx));
+          strips.splice(insIdx, 0, movedStrip);
+          saveDayStrips(currentStripboardDate, strips);
+        } else if (tIdx !== -1 && sIdx === -1) {
+          let insIdx = pos === 'before' ? tIdx : tIdx + 1;
+          insIdx = Math.max(0, Math.min(strips.length, insIdx));
+          strips.splice(insIdx, 0, {
+            type: 'ot',
+            otId: sourceOtId,
+            shiftStatus: 'En Mesa',
+            timeSlot: '08:30 - 10:00'
+          });
+          saveDayStrips(currentStripboardDate, strips);
+        }
+      }
+
+      // Desactivar ordenamiento automático para respetar el orden manual establecido
+      if (currentTableSort.field !== 'none') {
+        currentTableSort = { field: 'none', dir: 'asc' };
+        syncSortAndGroupControls();
+      }
+
+      resetDragState();
+      refreshAllViews();
+    }
+
+    function handleTableContainerDragOver(e) {
+      e.preventDefault();
+    }
+
+    function handleTableContainerDrop(e, viewContext) {
+      e.preventDefault();
+      clearStripDropIndicators();
+
+      const sourceOtId = dragState.otId;
+      if (!sourceOtId) {
+        resetDragState();
+        return;
+      }
+
+      let orders = getOrders();
+      const srcIndex = orders.findIndex(o => o.id === sourceOtId);
+      if (srcIndex !== -1) {
+        const [movedOt] = orders.splice(srcIndex, 1);
+        orders.push(movedOt);
+        saveOrders(orders);
+      }
+
+      if (viewContext === 'stripboard' || currentMainView === 'stripboard') {
+        let strips = getDayStrips(currentStripboardDate);
+        if (!strips || strips.length === 0) {
+          strips = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').map(o => ({
+            type: 'ot',
+            otId: o.id,
+            shiftStatus: 'En Mesa',
+            timeSlot: '08:30 - 10:00'
+          }));
+        }
+        const sIdx = strips.findIndex(s => s.otId === sourceOtId);
+        if (sIdx !== -1) {
+          const [movedStrip] = strips.splice(sIdx, 1);
+          strips.push(movedStrip);
+          saveDayStrips(currentStripboardDate, strips);
+        } else {
+          strips.push({
+            type: 'ot',
+            otId: sourceOtId,
+            shiftStatus: 'En Mesa',
+            timeSlot: '08:30 - 10:00'
+          });
+          saveDayStrips(currentStripboardDate, strips);
+        }
+      }
+
+      if (currentTableSort.field !== 'none') {
+        currentTableSort = { field: 'none', dir: 'asc' };
+        syncSortAndGroupControls();
+      }
+
+      resetDragState();
+      refreshAllViews();
     }
 
     function handleTableOtDateChange(otId, field, isoValue) {
@@ -2146,8 +2455,8 @@
       }
     }
 
-    // COMPONENTE DE FILA ÚNICO COMPARTIDO (11 COLUMNAS EXACTAS)
-    function renderUnifiedOtRow(ot, activeRoute) {
+    // COMPONENTE DE FILA ÚNICO COMPARTIDO (11 COLUMNAS EXACTAS CON DRAG & DROP)
+    function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
       const safeDesc = ot.title || ot.description || '';
       const safeBrand = ot.brand || ot.product || '--';
       const safeMedia = ot.media || '--';
@@ -2157,12 +2466,23 @@
 
       return `
         <tr 
-          class="hover:bg-white/[0.04] transition-colors cursor-pointer group" 
+          draggable="true"
+          ondragstart="handleUnifiedRowDragStart(event, '${ot.id}', '${viewContext}')"
+          ondragover="handleUnifiedRowDragOver(event, '${ot.id}', '${viewContext}')"
+          ondragleave="handleUnifiedRowDragLeave(event)"
+          ondrop="handleUnifiedRowDrop(event, '${ot.id}', '${viewContext}')"
+          ondragend="handleUnifiedRowDragEnd(event)"
+          class="stripboard-row hover:bg-white/[0.04] transition-colors cursor-grab active:cursor-grabbing group" 
           onclick="handleTableRowClick(event, '${ot.id}')"
         >
           <!-- 1. No. OT -->
           <td class="p-2 border-r border-resolve-border align-middle">
             <div class="flex items-center gap-1.5">
+              <span class="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-amber-400 transition-colors select-none p-0.5 shrink-0" title="Arrastrar para reorganizar">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M7 4a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm6-12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                </svg>
+              </span>
               <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/50 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px] whitespace-nowrap">
                 ${ot.id}
               </span>
@@ -2270,7 +2590,7 @@
       const sorted = sortOrdersList(ordersList);
 
       if (currentTableGroup === 'none') {
-        return sorted.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot))).join('');
+        return sorted.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext)).join('');
       }
 
       const groups = new Map();
@@ -2302,7 +2622,12 @@
       groups.forEach((items, groupKey) => {
         const isCollapsed = collapsedGroupKeys.has(groupKey);
         html += `
-          <tr class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none">
+          <tr 
+            class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none"
+            ondragover="handleCategoryRowDragOver(event)"
+            ondragleave="handleCategoryRowDragLeave(event)"
+            ondrop="handleCategoryRowDrop(event, '${escapeHtml(groupKey)}', '${viewContext}')"
+          >
             <td colspan="11" class="px-3 py-1.5 font-bold text-xs text-white" onclick="toggleGroupCollapse('${escapeHtml(groupKey)}')">
               <div class="flex items-center gap-2">
                 <span class="text-amber-400 font-mono text-[11px] inline-block transition-transform duration-150 ${isCollapsed ? '' : 'rotate-90'}">▶</span>
@@ -2314,7 +2639,7 @@
           </tr>
         `;
         if (!isCollapsed) {
-          html += items.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot))).join('');
+          html += items.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext)).join('');
         }
       });
 
@@ -2602,28 +2927,7 @@
       renderStripboard();
     }
 
-    // Estado de Drag & Drop del Stripboard (soporta arrastre intra-día y entre días Lun-Sáb)
-    let dragState = {
-      isDragging: false,
-      sourceType: null, // 'strip' | 'pool-ot'
-      sourceDate: null,
-      sourceIndex: null,
-      otId: null,
-      dropTargetIndex: null,
-      dropPosition: null // 'before' | 'after'
-    };
-
-    function resetDragState() {
-      dragState = {
-        isDragging: false,
-        sourceType: null,
-        sourceDate: null,
-        sourceIndex: null,
-        otId: null,
-        dropTargetIndex: null,
-        dropPosition: null
-      };
-    }
+    // Estado de Drag & Drop del Stripboard ya inicializado globalmente
 
     function pauseRowDrag(el) {
       if (!el || !el.closest) return;
