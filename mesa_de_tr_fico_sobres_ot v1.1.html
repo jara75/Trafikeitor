@@ -346,11 +346,14 @@
             class="h-6 bg-black/30 border border-resolve-border rounded-md px-2 text-[11px] text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-medium cursor-pointer"
           >
             <option value="all">Todos los estados</option>
-            <option value="En Tránsito">En Tránsito</option>
-            <option value="En Redacción">En Redacción</option>
-            <option value="En Cuentas">En Cuentas</option>
-            <option value="En Producción">En Producción</option>
-            <option value="Archivada">Archivada</option>
+            <option value="Tráfico">Tráfico</option>
+            <option value="Recibido">Recibido</option>
+            <option value="Desarrollo">Desarrollo</option>
+            <option value="Cliente">Cliente</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Facturación">Facturación</option>
+            <option value="Cerrado">Cerrado</option>
+            <option value="Cancelado">Cancelado</option>
           </select>
 
           <!-- Separador -->
@@ -393,9 +396,10 @@
               <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
                 <th class="p-2.5 border-r border-resolve-border w-28">N° OT</th>
                 <th class="p-2.5 border-r border-resolve-border w-32">ESTADO</th>
+                <th class="p-2.5 border-r border-resolve-border w-32">RESPONSABLE</th>
                 <th class="p-2.5 border-r border-resolve-border w-32">REFERENCIA</th>
                 <th class="p-2.5 border-r border-resolve-border w-44">CLIENTE / MARCA</th>
-                <th class="p-2.5 border-r border-resolve-border min-w-[220px]">TÍTULO DE LA PIEZA & MEDIO</th>
+                <th class="p-2.5 border-r border-resolve-border min-w-[200px]">TÍTULO DE LA PIEZA & MEDIO</th>
                 <th class="p-2.5 border-r border-resolve-border w-44">ÚLTIMO RELEVO</th>
                 <th class="p-2.5 border-r border-resolve-border w-32">FECHA ENTREGA</th>
                 <th class="p-2.5 border-r border-resolve-border w-20 text-center">POOL</th>
@@ -774,8 +778,8 @@
           </button>
         </div>
       </div>
-      <!-- Ficha de Encabezado Técnico de la OT: Cliente -> Marca -> Producto -> Medio -> Referencia -> Estado -->
-      <div class="bg-black/25 border-b border-resolve-border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs shrink-0">
+      <!-- Ficha de Encabezado Técnico de la OT: Cliente -> Marca -> Producto -> Medio -> Referencia -> Responsable -> Estado -->
+      <div class="bg-black/25 border-b border-resolve-border p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs shrink-0">
         <!-- 1. Cliente -->
         <div>
           <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Cliente / Bin</label>
@@ -806,7 +810,20 @@
           <input type="text" id="modal-ot-ref" onchange="updateActiveOtField('ref', this.value)" placeholder="Ej: BOT-26-DIG" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-mono">
         </div>
 
-        <!-- 6. Estado (con botón de gestión y creación) -->
+        <!-- 6. Responsable -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Responsable</label>
+            <button type="button" onclick="handleOtResponsibleChange('__NEW_RESPONSIBLE__', 'modal-ot-responsible')" class="text-[10px] text-zinc-400 hover:text-cyan-400 font-medium underline cursor-pointer" title="Agregar nuevo responsable">
+              + Nuevo
+            </button>
+          </div>
+          <select id="modal-ot-responsible" onchange="handleOtResponsibleChange(this.value, 'modal-ot-responsible')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-cyan-300 font-semibold focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none text-xs transition-all cursor-pointer">
+            <!-- Inyectado dinámicamente con JS -->
+          </select>
+        </div>
+
+        <!-- 7. Estado (con botón de gestión y creación) -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-[10px] uppercase text-zinc-400 font-semibold">Estado</label>
@@ -814,7 +831,7 @@
               + Editar
             </button>
           </div>
-          <select id="modal-ot-status" onchange="handleOtStatusChange(this.value)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none text-xs transition-all">
+          <select id="modal-ot-status" onchange="handleOtStatusChange(this.value, 'modal-ot-status')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none text-xs transition-all cursor-pointer">
             <!-- Inyectado dinámicamente con JS -->
           </select>
         </div>
@@ -1188,6 +1205,22 @@
           </div>
         </div>
 
+        <!-- Responsable y Estado Inicial -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Responsable *</label>
+            <select id="new-ot-responsible" onchange="handleOtResponsibleChange(this.value, 'new-ot-responsible')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-cyan-300 font-semibold focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none cursor-pointer">
+              <!-- Inyectado dinámicamente con JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Estado Inicial *</label>
+            <select id="new-ot-status" onchange="handleOtStatusChange(this.value, 'new-ot-status')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none cursor-pointer">
+              <!-- Inyectado dinámicamente con JS -->
+            </select>
+          </div>
+        </div>
+
         <div>
           <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Medio / Medidas</label>
           <input type="text" id="new-media-input" placeholder="Ej: TV 20'', Prensa 1 Pag..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
@@ -1218,15 +1251,7 @@
   <datalist id="clients-datalist"></datalist>
   <datalist id="brands-datalist"></datalist>
   <datalist id="dept-options">
-    <option value="Cuentas"></option>
-    <option value="Creativos"></option>
-    <option value="Redacción / Copy"></option>
-    <option value="Dirección de Arte"></option>
-    <option value="Dirección Creativa"></option>
-    <option value="Control de Tráfico"></option>
-    <option value="Producción Audiovisual"></option>
-    <option value="Artes Finales / Preprensa"></option>
-    <option value="Cliente"></option>
+    <option value="Andrés J."></option>
   </datalist>
 
   <!-- MODAL PARA CREAR / EDITAR CLIENTE -->
@@ -1426,8 +1451,12 @@
     const STRIPBOARD_STORAGE_KEY = 'resolve_traffic_stripboard_v2';
     const RESPONSIBLES_STORAGE_KEY = 'resolve_traffic_responsibles_v2';
 
-    // Responsables y Áreas por defecto del sistema
+    // Responsables y Áreas por defecto del sistema (Nombres propios)
     const defaultResponsibles = [
+      "Andrés J."
+    ];
+
+    const legacyGenericRoles = [
       "Cuentas",
       "Creativos",
       "Redacción / Copy",
@@ -1447,7 +1476,16 @@
           return defaultResponsibles;
         }
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter(r => typeof r === 'string' && !legacyGenericRoles.includes(r.trim()) && r.trim().length > 0);
+          if (!cleaned.includes("Andrés J.")) {
+            cleaned.unshift("Andrés J.");
+          }
+          if (cleaned.length !== parsed.length || !parsed.includes("Andrés J.")) {
+            localStorage.setItem(RESPONSIBLES_STORAGE_KEY, JSON.stringify(cleaned));
+          }
+          return cleaned.length > 0 ? cleaned : defaultResponsibles;
+        }
         return defaultResponsibles;
       } catch (e) {
         return defaultResponsibles;
@@ -1461,8 +1499,9 @@
       if (!list.some(r => r.toLowerCase() === clean.toLowerCase())) {
         list.push(clean);
         localStorage.setItem(RESPONSIBLES_STORAGE_KEY, JSON.stringify(list));
-        updateDeptOptionsDatalist();
       }
+      updateDeptOptionsDatalist();
+      renderResponsibleSelects();
       return clean;
     }
 
@@ -1473,14 +1512,89 @@
       dl.innerHTML = list.map(r => `<option value="${escapeHtml(r)}"></option>`).join('');
     }
 
-    // Estados por defecto del sistema
+    function renderResponsibleSelects() {
+      const responsibles = getResponsibles();
+
+      // 1. Selector en Modal de Sobre OT
+      const modalSelect = document.getElementById('modal-ot-responsible');
+      if (modalSelect) {
+        const prevVal = modalSelect.value;
+        modalSelect.innerHTML = `
+          ${responsibles.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('')}
+          <option disabled>──────────</option>
+          <option value="__NEW_RESPONSIBLE__">+ Nuevo</option>
+        `;
+        if (prevVal && prevVal !== '__NEW_RESPONSIBLE__') {
+          modalSelect.value = prevVal;
+        }
+      }
+
+      // 2. Selector en Modal de Nueva OT
+      const newSelect = document.getElementById('new-ot-responsible');
+      if (newSelect) {
+        const prevVal = newSelect.value || 'Andrés J.';
+        newSelect.innerHTML = `
+          ${responsibles.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('')}
+          <option disabled>──────────</option>
+          <option value="__NEW_RESPONSIBLE__">+ Nuevo</option>
+        `;
+        newSelect.value = prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : 'Andrés J.';
+      }
+
+      updateDeptOptionsDatalist();
+    }
+
+    function handleOtResponsibleChange(val, targetSelectId = 'modal-ot-responsible') {
+      if (val === '__NEW_RESPONSIBLE__') {
+        const newName = prompt("Nombre propio del nuevo responsable:");
+        if (newName && newName.trim()) {
+          const clean = addResponsible(newName.trim());
+          renderResponsibleSelects();
+          const sel = document.getElementById(targetSelectId);
+          if (sel) sel.value = clean;
+          if (targetSelectId === 'modal-ot-responsible' && activeOtId) {
+            updateActiveOtField('responsible', clean);
+          }
+        } else {
+          if (targetSelectId === 'modal-ot-responsible') {
+            const ot = getOrders().find(o => o.id === activeOtId);
+            const sel = document.getElementById('modal-ot-responsible');
+            if (sel) sel.value = (ot && ot.responsible) || 'Andrés J.';
+          } else {
+            const sel = document.getElementById(targetSelectId);
+            if (sel) sel.value = 'Andrés J.';
+          }
+        }
+        return;
+      }
+
+      if (targetSelectId === 'modal-ot-responsible' && activeOtId) {
+        updateActiveOtField('responsible', val);
+      }
+    }
+
+    // Estados por defecto del sistema (Orden exacto y predeterminado)
     const defaultStatuses = [
-      { id: "st-1", name: "En Tránsito", color: "blue" },
-      { id: "st-2", name: "En Redacción", color: "amber" },
-      { id: "st-3", name: "En Cuentas", color: "cyan" },
-      { id: "st-4", name: "En Producción", color: "purple" },
-      { id: "st-5", name: "Archivada", color: "emerald" }
+      { id: "st-1", name: "Tráfico", color: "amber" },
+      { id: "st-2", name: "Recibido", color: "blue" },
+      { id: "st-3", name: "Desarrollo", color: "purple" },
+      { id: "st-4", name: "Cliente", color: "cyan" },
+      { id: "st-5", name: "Entregado", color: "emerald" },
+      { id: "st-6", name: "Facturación", color: "yellow" },
+      { id: "st-7", name: "Cerrado", color: "stone" },
+      { id: "st-8", name: "Cancelado", color: "red" }
     ];
+
+    const statusDescriptions = {
+      "Tráfico": "OT abierta pero le falta información.",
+      "Recibido": "Ya entró la OT con información completa, pero no se ha empezado a trabajar.",
+      "Desarrollo": "Programada, con tiempo de trabajo asignado y en ejecución.",
+      "Cliente": "Presentada al cliente para revisión y aprobación (si no aprueba vuelve a Desarrollo; si aprueba pasa a Entregado).",
+      "Entregado": "Entregada o publicada, pendiente de facturar.",
+      "Facturación": "Factura presentada, pendiente de pago.",
+      "Cerrado": "Pago recibido; la OT se cierra y se archiva.",
+      "Cancelado": "Se cierra sin trabajar/terminar porque ya no se va a realizar."
+    };
 
     let currentMainView = 'desk'; // 'desk' | 'stripboard'
     let currentStripboardDate = new Date().toISOString().split('T')[0];
@@ -1521,7 +1635,17 @@
       }
       try {
         const parsed = JSON.parse(data);
-        return parsed.length > 0 ? parsed : defaultStatuses;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOldDefaults = parsed.some(s => ['En Tránsito', 'En Redacción', 'En Cuentas', 'En Producción', 'Archivada'].includes(s.name));
+          if (hasOldDefaults) {
+            const customOnes = parsed.filter(s => !['En Tránsito', 'En Redacción', 'En Cuentas', 'En Producción', 'Archivada', 'Tráfico', 'Recibido', 'Desarrollo', 'Cliente', 'Entregado', 'Facturación', 'Cerrado', 'Cancelado'].includes(s.name));
+            const merged = [...defaultStatuses, ...customOnes];
+            localStorage.setItem(STATUSES_STORAGE_KEY, JSON.stringify(merged));
+            return merged;
+          }
+          return parsed;
+        }
+        return defaultStatuses;
       } catch (e) {
         return defaultStatuses;
       }
@@ -1566,7 +1690,7 @@
         const prevFilter = filterSelect.value || 'all';
         filterSelect.innerHTML = `
           <option value="all">Todos los estados</option>
-          ${statuses.map(st => `<option value="${escapeHtml(st.name)}">${escapeHtml(st.name)}</option>`).join('')}
+          ${statuses.map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}">${escapeHtml(st.name)}</option>`).join('')}
         `;
         filterSelect.value = prevFilter;
       }
@@ -1576,26 +1700,62 @@
       if (modalSelect) {
         const prevVal = modalSelect.value;
         modalSelect.innerHTML = `
-          ${statuses.map(st => `<option value="${escapeHtml(st.name)}">${escapeHtml(st.name)}</option>`).join('')}
+          ${statuses.map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}">${escapeHtml(st.name)}</option>`).join('')}
           <option disabled>──────────</option>
-          <option value="__NEW__">+ Crear nuevo estado...</option>
+          <option value="__NEW__">+ Nuevo</option>
         `;
         if (prevVal && prevVal !== '__NEW__') {
           modalSelect.value = prevVal;
         }
       }
+
+      // 3. Selector en Modal de Nueva OT
+      const newOtStatus = document.getElementById('new-ot-status');
+      if (newOtStatus) {
+        const prevVal = newOtStatus.value || 'Tráfico';
+        newOtStatus.innerHTML = `
+          ${statuses.map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}">${escapeHtml(st.name)}</option>`).join('')}
+          <option disabled>──────────</option>
+          <option value="__NEW__">+ Nuevo</option>
+        `;
+        newOtStatus.value = prevVal !== '__NEW__' ? prevVal : 'Tráfico';
+      }
     }
 
-    function handleOtStatusChange(val) {
+    function handleOtStatusChange(val, targetSelectId = 'modal-ot-status') {
       if (val === '__NEW__') {
-        openStatusManagerModal();
-        const ot = getOrders().find(o => o.id === activeOtId);
-        if (ot && document.getElementById('modal-ot-status')) {
-          document.getElementById('modal-ot-status').value = ot.status;
+        const newName = prompt("Nombre del nuevo estado personalizado:");
+        if (newName && newName.trim()) {
+          const clean = newName.trim();
+          const statuses = getStatuses();
+          let existing = statuses.find(s => s.name.toLowerCase() === clean.toLowerCase());
+          if (!existing) {
+            existing = { id: 'st-' + Date.now(), name: clean, color: 'stone' };
+            statuses.push(existing);
+            saveStatuses(statuses);
+          }
+          if (targetSelectId === 'modal-ot-status' && activeOtId) {
+            updateActiveOtField('status', existing.name);
+          }
+          renderStatusSelects();
+          const sel = document.getElementById(targetSelectId);
+          if (sel) sel.value = existing.name;
+        } else {
+          if (targetSelectId === 'modal-ot-status') {
+            const ot = getOrders().find(o => o.id === activeOtId);
+            const sel = document.getElementById('modal-ot-status');
+            if (sel) sel.value = (ot && ot.status) || 'Tráfico';
+          } else {
+            const sel = document.getElementById(targetSelectId);
+            if (sel) sel.value = 'Tráfico';
+          }
         }
         return;
       }
-      updateActiveOtField('status', val);
+
+      if (targetSelectId === 'modal-ot-status' && activeOtId) {
+        updateActiveOtField('status', val);
+      }
     }
 
     function openStatusManagerModal() {
@@ -1731,12 +1891,12 @@
       const orders = getOrders();
       const count = orders.filter(o => (o.status || '').toLowerCase() === st.name.toLowerCase()).length;
       if (count > 0) {
-        if (!confirm(`Hay ${count} OTs con el estado "${st.name}". ¿Deseas eliminarlo? Las OTs pasarán al estado "En Tránsito".`)) {
+        if (!confirm(`Hay ${count} OTs con el estado "${st.name}". ¿Deseas eliminarlo? Las OTs pasarán al estado "Tráfico".`)) {
           return;
         }
         orders.forEach(o => {
           if ((o.status || '').toLowerCase() === st.name.toLowerCase()) {
-            o.status = "En Tránsito";
+            o.status = "Tráfico";
           }
         });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
@@ -2136,7 +2296,7 @@
         product: ot.product || '',
         timeSlot: nextSlot,
         task: lastRoute ? lastRoute.task : (ot.title || 'Desarrollo de piezas de campaña'),
-        assignee: customAssignee || (lastRoute ? (lastRoute.to || 'Creativos') : 'Creativos'),
+        assignee: customAssignee || ot.responsible || (lastRoute ? (lastRoute.to || 'Andrés J.') : 'Andrés J.'),
         shiftStatus: 'Por Iniciar'
       };
 
@@ -2350,9 +2510,9 @@
                 onmousedown="pauseRowDrag(this)"
                 onmouseup="resumeRowDrag(this)"
                 onblur="resumeRowDrag(this)"
-                value="${escapeHtml(strip.assignee || 'Creativos')}" 
+                value="${escapeHtml(strip.assignee || 'Andrés J.')}" 
                 onchange="addResponsible(this.value); updateStripField(${idx}, 'assignee', this.value)" 
-                placeholder="Área" 
+                placeholder="Responsable" 
                 class="w-full bg-black/30 border border-resolve-border rounded-lg px-1.5 py-1 text-cyan-300 font-semibold text-[11px] focus:border-amber-500/60 focus:outline-none text-center cursor-text"
               />
             </div>
@@ -2453,8 +2613,8 @@
       const badge = document.getElementById('stripboard-pending-badge');
       const countEl = document.getElementById('stripboard-pool-count');
 
-      // OTs activas no archivadas
-      const activeOrders = orders.filter(o => o.status !== 'Archivada');
+      // OTs activas no cerradas ni canceladas
+      const activeOrders = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada');
       if (badge) badge.innerText = activeOrders.length;
 
       // Filtrado por texto y por estado de agendamiento (Todas | Sin Agendar | En Plan)
@@ -2673,7 +2833,7 @@
         if (strip) {
           if (modalTitle) modalTitle.innerText = `Editar Tarea Libre (#${activeCustomTaskIndex + 1})`;
           if (titleInput) titleInput.value = strip.task || '';
-          if (assigneeInput) assigneeInput.value = strip.assignee || 'Creativos';
+          if (assigneeInput) assigneeInput.value = strip.assignee || 'Andrés J.';
           if (timeSlotInput) timeSlotInput.value = strip.timeSlot || '08:30 - 09:30';
           if (statusInput) statusInput.value = strip.shiftStatus || 'Por Iniciar';
           if (clientInput) clientInput.value = strip.client || 'Interno';
@@ -2682,7 +2842,7 @@
       } else {
         if (modalTitle) modalTitle.innerText = 'Nueva Tarea Libre';
         if (titleInput) titleInput.value = '';
-        if (assigneeInput) assigneeInput.value = 'Creativos';
+        if (assigneeInput) assigneeInput.value = 'Andrés J.';
         if (timeSlotInput) timeSlotInput.value = '08:30 - 09:30';
         if (statusInput) statusInput.value = 'Por Iniciar';
         if (clientInput) clientInput.value = 'Interno';
@@ -2813,7 +2973,7 @@
 
     function autoPopulatePendingOts() {
       const orders = getOrders();
-      const activeOrders = orders.filter(o => o.status !== 'Archivada');
+      const activeOrders = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada');
       if (activeOrders.length === 0) {
         alert("No hay OTs activas para planificar.");
         return;
@@ -2838,7 +2998,7 @@
             product: ot.product || '',
             timeSlot: assignedSlot,
             task: lastRoute ? lastRoute.task : (ot.title || 'Desarrollo'),
-            assignee: lastRoute ? (lastRoute.to || 'Creativos') : 'Creativos',
+            assignee: ot.responsible || (lastRoute ? (lastRoute.to || 'Andrés J.') : 'Andrés J.'),
             shiftStatus: 'Por Iniciar'
           });
         }
@@ -3713,7 +3873,8 @@
         title: "Comercial TV 20'' Lanzamiento Nueva Botella",
         media: "Televisión Abierta & Digital 20''",
         urgent: true,
-        status: "En Redacción",
+        status: "Tráfico",
+        responsible: "Andrés J.",
         brief: "Campaña de posicionamiento de la nueva botella retornable. Tono sofisticado, noche entre amigos selectos.",
         legalText: "Prohibida su venta a menores de edad. Tomar bebidas alcohólicas en exceso es perjudicial.",
         mediaFiles: [
@@ -3736,8 +3897,8 @@
         ],
         routes: [
           {
-            from: "Cuentas",
-            to: "Creativos",
+            from: "Andrés J.",
+            to: "Andrés J.",
             task: "Favor desarrollar los diálogos para el comercial de TV 20\" cerrando siempre con el Product Shot y el slogan de la marca en OFF. Incluir al final la locución legal: 'Prohibida su venta a menores de edad'.",
             entryDate: "21/05/2026 10:15",
             deliveryDate: "23/05/2026 15:00",
@@ -3745,8 +3906,8 @@
             completed: false
           },
           {
-            from: "Creativos",
-            to: "Cuentas",
+            from: "Andrés J.",
+            to: "Andrés J.",
             task: "Se envían 2 guiones dialogados con minutero exacto.",
             entryDate: "23/05/2026 14:00",
             deliveryDate: "24/05/2026 10:00",
@@ -3765,14 +3926,15 @@
         title: "Doble Página Prensa Dominical",
         media: "Prensa Nacional 2 Páginas",
         urgent: false,
-        status: "En Producción",
+        status: "Desarrollo",
+        responsible: "Andrés J.",
         brief: "Tasa preferencial vivienda sostenible.",
         legalText: "Sujeto a estudio de crédito y políticas de la entidad.",
         mediaFiles: [],
         routes: [
           {
-            from: "Cuentas",
-            to: "Creativos",
+            from: "Andrés J.",
+            to: "Andrés J.",
             task: "Desarrollo de titulares y copy largo.",
             entryDate: "18/05/2026 11:30",
             deliveryDate: "19/05/2026 17:00",
@@ -3851,7 +4013,35 @@
         return defaultOrders;
       }
       try {
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          let modified = false;
+          parsed.forEach(ot => {
+            // Migración de estados obsoletos al nuevo flujo de 8 estados
+            if (ot.status === 'En Tránsito') { ot.status = 'Tráfico'; modified = true; }
+            else if (ot.status === 'En Redacción') { ot.status = 'Desarrollo'; modified = true; }
+            else if (ot.status === 'En Producción') { ot.status = 'Desarrollo'; modified = true; }
+            else if (ot.status === 'En Cuentas') { ot.status = 'Recibido'; modified = true; }
+            else if (ot.status === 'Archivada') { ot.status = 'Cerrado'; modified = true; }
+            else if (!ot.status) { ot.status = 'Tráfico'; modified = true; }
+
+            // Migración de responsable a nombre propio
+            if (!ot.responsible) {
+              const lastRoute = ot.routes && ot.routes.length > 0 ? ot.routes[ot.routes.length - 1] : null;
+              if (lastRoute && lastRoute.to && !legacyGenericRoles.includes(lastRoute.to)) {
+                ot.responsible = lastRoute.to;
+              } else {
+                ot.responsible = 'Andrés J.';
+              }
+              modified = true;
+            }
+          });
+          if (modified) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          }
+          return parsed;
+        }
+        return defaultOrders;
       } catch (e) {
         return defaultOrders;
       }
@@ -4256,7 +4446,7 @@
       
       const footerCount = document.getElementById('footer-active-count');
       if (footerCount) {
-        footerCount.innerText = `${orders.filter(o => o.status !== 'Archivada').length} Activas en Tráfico`;
+        footerCount.innerText = `${orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').length} Activas en Tráfico`;
       }
 
       const grid = document.getElementById('envelopes-grid');
@@ -4320,9 +4510,9 @@
                 <h3 class="font-semibold text-sm text-zinc-100 mt-1 group-hover:text-amber-400 transition-colors leading-snug tracking-tight">
                   ${escapeHtml(ot.title)}
                 </h3>
-                <div class="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
-                  <span class="text-zinc-500 font-medium">Medio:</span>
-                  <span class="text-zinc-300 truncate">${escapeHtml(ot.media || 'No especificado')}</span>
+                <div class="text-[11px] text-zinc-400 mt-1 flex items-center justify-between gap-1.5">
+                  <span class="truncate"><span class="text-zinc-500 font-medium">Medio:</span> <span class="text-zinc-300">${escapeHtml(ot.media || 'No especificado')}</span></span>
+                  <span class="shrink-0"><span class="text-zinc-500 font-medium">Resp:</span> <span class="text-cyan-300 font-semibold">${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.'))}</span></span>
                 </div>
 
                 <!-- Último Relevo -->
@@ -4388,6 +4578,13 @@
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
               <span class="text-[10px] font-medium px-2.5 py-0.5 rounded-full border inline-block whitespace-nowrap ${statusBadge}">
                 ${ot.status}
+              </span>
+            </td>
+
+            <!-- RESPONSABLE -->
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
+              <span class="text-cyan-300 font-semibold text-[11px] truncate block max-w-[120px]">
+                ${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.'))}
               </span>
             </td>
 
@@ -4476,8 +4673,12 @@
       document.getElementById('modal-ot-media').value = ot.media || '';
       document.getElementById('modal-ot-ref').value = ot.ref || '';
       renderStatusSelects();
+      renderResponsibleSelects();
       if (document.getElementById('modal-ot-status')) {
-        document.getElementById('modal-ot-status').value = ot.status || 'En Tránsito';
+        document.getElementById('modal-ot-status').value = ot.status || 'Tráfico';
+      }
+      if (document.getElementById('modal-ot-responsible')) {
+        document.getElementById('modal-ot-responsible').value = ot.responsible || 'Andrés J.';
       }
       document.getElementById('modal-ot-brief').value = ot.brief || '';
       document.getElementById('modal-ot-legal').value = ot.legalText || '';
@@ -4770,12 +4971,12 @@
 
       if (!ot.routes) ot.routes = [];
 
-      let defaultFrom = "Cuentas";
-      let defaultTo = "Creativos";
+      let defaultFrom = "Andrés J.";
+      let defaultTo = ot.responsible || "Andrés J.";
       if (ot.routes.length > 0) {
         const last = ot.routes[ot.routes.length - 1];
-        defaultFrom = last.to || "Creativos";
-        defaultTo = last.from || "Cuentas";
+        defaultFrom = last.to || "Andrés J.";
+        defaultTo = last.from || "Andrés J.";
       }
 
       ot.routes.push({
@@ -5449,6 +5650,15 @@
       document.getElementById('new-first-task-input').value = '';
       document.getElementById('new-urgent-input').checked = false;
 
+      renderStatusSelects();
+      renderResponsibleSelects();
+      if (document.getElementById('new-ot-status')) {
+        document.getElementById('new-ot-status').value = 'Tráfico';
+      }
+      if (document.getElementById('new-ot-responsible')) {
+        document.getElementById('new-ot-responsible').value = 'Andrés J.';
+      }
+
       updateClientsDatalist();
       syncNewOtBrandSuggestions();
       document.getElementById('new-ot-modal').classList.remove('hidden');
@@ -5484,6 +5694,8 @@
       const client = document.getElementById('new-client-input').value.trim();
       const brand = document.getElementById('new-brand-input').value.trim();
       const product = (document.getElementById('new-product-input')?.value || '').trim();
+      const responsible = (document.getElementById('new-ot-responsible')?.value) || 'Andrés J.';
+      const status = (document.getElementById('new-ot-status')?.value) || 'Tráfico';
       const media = document.getElementById('new-media-input').value.trim();
       const title = document.getElementById('new-title-input').value.trim();
       const firstTask = document.getElementById('new-first-task-input').value.trim();
@@ -5503,11 +5715,16 @@
         }
       }
 
+      // Asegurar persistencia de responsable si es nuevo
+      if (responsible && responsible !== '__NEW_RESPONSIBLE__') {
+        addResponsible(responsible);
+      }
+
       const initialRoutes = [];
       if (firstTask) {
         initialRoutes.push({
-          from: "Cuentas",
-          to: "Creativos",
+          from: "Andrés J.",
+          to: responsible !== '__NEW_RESPONSIBLE__' ? responsible : 'Andrés J.',
           task: firstTask,
           entryDate: getNowFormatted(),
           deliveryDate: "",
@@ -5526,7 +5743,8 @@
         title: title,
         media: media,
         urgent: urgent,
-        status: "En Redacción",
+        status: status !== '__NEW__' ? status : 'Tráfico',
+        responsible: responsible !== '__NEW_RESPONSIBLE__' ? responsible : 'Andrés J.',
         brief: "",
         legalText: "",
         mediaFiles: [],
@@ -5643,6 +5861,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       renderStatusSelects();
+      renderResponsibleSelects();
       renderBinTree();
       renderTrafficDesk();
       updateClientsDatalist();
