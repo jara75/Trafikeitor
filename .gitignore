@@ -2,22 +2,25 @@
 .DS_Store
 Thumbs.db
 
-# Dependencias
+# Dependencias y compilación
 node_modules/
 dist/
 
 # Entorno y credenciales
 .env
-.env.local
-.env.*.local
+.env.*
 
 # Base de datos SQLite local
-trafico.db
-trafico.db-shm
-trafico.db-wal
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 
-# Archivos subidos
-uploads/
+# Archivos subidos locales (conservando la carpeta)
+uploads/*
+!uploads/.gitkeep
 
 # Logs
 npm-debug.log*
