@@ -34,7 +34,7 @@
 
     const badge = document.createElement('div');
     badge.id = 'sqlite-sync-badge';
-    badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/60 border border-emerald-700/60 text-[10px] font-mono text-emerald-300';
+    badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-semibold text-emerald-300';
     badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span>SQLite Activo</span>';
     headerRight.prepend(badge);
 
@@ -42,7 +42,7 @@
       const userBtn = document.createElement('button');
       userBtn.id = 'elmarcante-logout-btn';
       userBtn.type = 'button';
-      userBtn.className = 'px-2.5 py-1 text-xs font-mono bg-resolve-card hover:bg-red-950/80 text-stone-300 hover:text-red-300 rounded border border-resolve-border hover:border-red-700 transition-colors cursor-pointer';
+      userBtn.className = 'px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-rose-500/10 text-zinc-300 hover:text-rose-300 rounded-lg border border-white/[0.08] hover:border-rose-500/30 transition-all cursor-pointer';
       userBtn.title = 'Sesión activa: ' + (user.email || user.name) + ' (Clic para cerrar sesión)';
       userBtn.innerText = 'Salir (' + (user.name || 'Director').split(' ')[0] + ')';
       userBtn.onclick = async () => {
@@ -66,10 +66,10 @@
     const b = document.getElementById('sqlite-sync-badge');
     if (!b) return;
     if (isSaving) {
-      b.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/60 border border-amber-700/60 text-[10px] font-mono text-amber-300';
+      b.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] font-semibold text-amber-300';
       b.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span><span>' + (stateText || 'Guardando en SQLite...') + '</span>';
     } else {
-      b.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/60 border border-emerald-700/60 text-[10px] font-mono text-emerald-300';
+      b.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-semibold text-emerald-300';
       b.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>' + (stateText || 'SQLite Sincronizado') + '</span>';
     }
   }
@@ -81,27 +81,27 @@
 
     gate = document.createElement('div');
     gate.id = 'elmarcante-auth-gate';
-    gate.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-[#0e0f12]/95 backdrop-blur-md p-4 select-none';
+    gate.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-xl p-4 select-none';
 
     let isRegisterMode = !hasAnyUsers;
 
     const renderGateForm = () => {
       gate.innerHTML = `
-        <div class="w-full max-w-md bg-[#1c1d21] border border-[#383b42] rounded-lg shadow-2xl p-6 font-mono text-xs text-stone-200">
-          <div class="flex items-center justify-between border-b border-[#383b42] pb-4 mb-5">
+        <div class="w-full max-w-md bg-[#16171b]/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/90 p-7 text-xs text-zinc-200">
+          <div class="flex items-center justify-between border-b border-white/[0.08] pb-4 mb-5">
             <div class="flex items-center gap-2.5">
-              <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-6 h-6 rounded object-cover shadow-[0_0_8px_rgba(217,119,6,0.6)]">
+              <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-6 h-6 rounded-md object-cover shadow-[0_1px_4px_rgba(0,0,0,0.6),0_0_8px_rgba(245,158,11,0.25)]">
               <div>
-                <h1 class="font-black text-sm tracking-widest text-white uppercase">TRAFIKEITOR</h1>
-                <p class="text-[10px] text-[#8e929b]">CONTROL DE TRÁFICO • EL MARCANTE</p>
+                <h1 class="font-bold text-sm tracking-tight text-white uppercase">TRAFIKEITOR</h1>
+                <p class="text-[10px] text-zinc-400 font-medium">CONTROL DE TRÁFICO • EL MARCANTE</p>
               </div>
             </div>
-            <span class="px-2 py-0.5 rounded bg-[#23252a] border border-[#383b42] text-[10px] text-amber-400 font-bold">
+            <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] text-amber-300 font-semibold">
               ${isRegisterMode ? 'ACTIVAR CUENTA' : 'BETTER AUTH'}
             </span>
           </div>
 
-          <p class="text-[11px] text-[#8e929b] mb-4 leading-relaxed">
+          <p class="text-[11px] text-zinc-400 mb-4 leading-relaxed font-normal">
             ${isRegisterMode
               ? 'Bienvenido, Director. Crea tu cuenta maestra para proteger tus Órdenes de Trabajo, el Media Pool y tu Stripboard en SQLite.'
               : 'Ingresa tus credenciales para abrir la Mesa de Tráfico y sincronizar con la base de datos.'}
@@ -110,31 +110,31 @@
           <form id="elmarcante-auth-form" class="space-y-3.5">
             ${isRegisterMode ? `
               <div>
-                <label class="block text-[10px] uppercase text-[#8e929b] font-bold mb-1">Nombre del Director *</label>
-                <input type="text" id="auth-name" required value="Andrés Jaramillo" class="w-full bg-[#141416] border border-[#383b42] rounded px-3 py-2 text-white font-bold focus:border-[#d97706] focus:outline-none">
+                <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre del Director *</label>
+                <input type="text" id="auth-name" required value="Andrés Jaramillo" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
               </div>
             ` : ''}
 
             <div>
-              <label class="block text-[10px] uppercase text-[#8e929b] font-bold mb-1">Correo Electrónico *</label>
-              <input type="email" id="auth-email" required placeholder="contacto@marcanter.com" value="contacto@marcanter.com" class="w-full bg-[#141416] border border-[#383b42] rounded px-3 py-2 text-white font-bold focus:border-[#d97706] focus:outline-none">
+              <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Correo Electrónico *</label>
+              <input type="email" id="auth-email" required placeholder="contacto@marcanter.com" value="contacto@marcanter.com" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
             </div>
 
             <div>
-              <label class="block text-[10px] uppercase text-[#8e929b] font-bold mb-1">Contraseña (mín. 8 caracteres) *</label>
-              <input type="password" id="auth-password" required minlength="8" placeholder="••••••••" class="w-full bg-[#141416] border border-[#383b42] rounded px-3 py-2 text-white font-bold focus:border-[#d97706] focus:outline-none">
+              <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Contraseña (mín. 8 caracteres) *</label>
+              <input type="password" id="auth-password" required minlength="8" placeholder="••••••••" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
             </div>
 
-            <div id="auth-error-msg" class="hidden p-2.5 rounded bg-red-950/70 border border-red-800 text-red-300 text-[11px]"></div>
+            <div id="auth-error-msg" class="hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-medium"></div>
 
-            <button type="submit" id="auth-submit-btn" class="w-full py-2.5 bg-[#d97706] hover:bg-[#b45309] text-stone-950 font-black uppercase tracking-wider rounded transition-colors cursor-pointer">
+            <button type="submit" id="auth-submit-btn" class="w-full py-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold uppercase tracking-wider rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] cursor-pointer text-xs">
               ${isRegisterMode ? 'Crear Cuenta Maestra y Entrar' : 'Entrar al Estudio'}
             </button>
           </form>
 
-          <div class="mt-4 pt-3 border-t border-[#383b42] flex items-center justify-between text-[11px] text-[#8e929b]">
+          <div class="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-400">
             <span>${isRegisterMode ? '¿Ya tienes cuenta creada?' : '¿Necesitas registrar un usuario?'}</span>
-            <button type="button" id="auth-toggle-mode" class="text-amber-400 hover:underline font-bold cursor-pointer">
+            <button type="button" id="auth-toggle-mode" class="text-amber-400 hover:underline font-semibold cursor-pointer">
               ${isRegisterMode ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </button>
           </div>

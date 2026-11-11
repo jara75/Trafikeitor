@@ -14,20 +14,20 @@
         extend: {
           colors: {
             resolve: {
-              bg: '#141416',
-              panel: '#1c1d21',
-              surface: '#23252a',
-              card: '#2e3037',
-              border: '#383b42',
-              lightText: '#e2e4ea',
-              dimText: '#8e929b',
-              accent: '#d97706',
-              accentHover: '#b45309',
+              bg: '#0d0e11',
+              panel: '#15161a',
+              surface: '#1b1c22',
+              card: '#22232a',
+              border: 'rgba(255, 255, 255, 0.08)',
+              lightText: '#f4f4f6',
+              dimText: '#9496a1',
+              accent: '#f59e0b',
+              accentHover: '#d97706',
             }
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['"SF Mono"', '"JetBrains Mono"', 'ui-monospace', 'Menlo', 'Monaco', 'monospace'],
           }
         }
       }
@@ -35,7 +35,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Special+Elite&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
   <style>
     
     /* Estilos de Impresión: Hoja de Tiempos y Stripboard de Producción */
@@ -123,24 +123,28 @@
       background-color: rgba(217, 119, 6, 0.04);
     }
 
-    /* DaVinci Resolve custom dark scrollbars & subtle grid */
+    /* Apple Pro macOS dark scrollbars & typography rendering */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
-      background: #141416;
+      background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: #33353b;
-      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #4b4e57;
+      background: rgba(255, 255, 255, 0.25);
     }
     .bin-active {
-      background-color: #2e3037 !important;
-      border-left: 3px solid #d97706;
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      border-left: 2.5px solid #f59e0b !important;
       color: #ffffff !important;
     }
     .ink-stamp-box {
@@ -153,8 +157,8 @@
       user-select: none;
     }
     .file-dropzone.dragover {
-      border-color: #d97706 !important;
-      background-color: rgba(217, 119, 6, 0.08) !important;
+      border-color: #f59e0b !important;
+      background-color: rgba(245, 158, 11, 0.08) !important;
     }
     /* Eliminar el icono de calendario de los campos de fecha */
     input[type="datetime-local"]::-webkit-calendar-picker-indicator,
@@ -169,16 +173,16 @@
     }
   </style>
 </head>
-<body class="h-full bg-resolve-bg text-resolve-lightText font-sans flex flex-col antialiased select-none overflow-hidden">
+<body class="h-full bg-resolve-bg text-resolve-lightText font-sans flex flex-col antialiased select-none overflow-hidden tracking-normal">
 
-  <!-- TOP BAR: Control de Tráfico & Master Actions -->
-  <header class="h-12 bg-resolve-panel border-b border-resolve-border px-3 sm:px-4 flex items-center justify-between z-30 shrink-0">
+  <!-- TOP BAR: Control de Tráfico & Master Actions (macOS Pro Toolbar) -->
+  <header class="h-12 bg-resolve-panel/95 backdrop-blur-md border-b border-resolve-border px-3 sm:px-4 flex items-center justify-between z-30 shrink-0">
     <div class="flex items-center gap-3">
       <!-- Toggle para colapsar la barra lateral desde la barra superior -->
       <button 
         onclick="toggleSidebar()" 
         title="Ocultar / Mostrar Bins (Sidebar)" 
-        class="p-1.5 rounded hover:bg-resolve-card text-resolve-dimText hover:text-white transition-colors border border-resolve-border"
+        class="p-1.5 rounded-lg hover:bg-white/[0.08] text-resolve-dimText hover:text-white transition-all border border-resolve-border"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
@@ -186,29 +190,29 @@
       </button>
 
       <div class="flex items-center gap-2.5">
-        <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-5 h-5 rounded-sm object-cover shadow-[0_0_8px_rgba(217,119,6,0.5)]">
-        <span class="font-mono font-black text-sm tracking-widest text-white uppercase">TRAFIKEITOR</span>
-        <span class="text-stone-600 font-mono text-xs hidden sm:inline">//</span>
-        <span class="font-mono text-xs text-stone-300 hidden sm:inline tracking-wider">EL MARCANTE • CONTROL DE TRÁFICO</span>
+        <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-5 h-5 rounded-md object-cover shadow-[0_1px_4px_rgba(0,0,0,0.6),0_0_8px_rgba(245,158,11,0.25)]">
+        <span class="font-bold text-sm tracking-tight text-white uppercase">TRAFIKEITOR</span>
+        <span class="text-zinc-600 text-xs hidden sm:inline">/</span>
+        <span class="text-xs text-zinc-400 font-medium hidden sm:inline tracking-normal">Control de Tráfico • El Marcante</span>
       </div>
-      <!-- Selector de Módulo: Mesa de OTs vs Stripboard de Producción -->
-      <nav class="hidden sm:flex items-center bg-resolve-bg p-0.5 rounded border border-resolve-border text-xs font-mono ml-2">
+      <!-- Selector de Módulo: Mesa de OTs vs Stripboard de Producción (macOS Segmented Bar) -->
+      <nav class="hidden sm:flex items-center bg-black/40 p-0.5 rounded-lg border border-resolve-border text-xs ml-2 shadow-inner">
         <button 
           id="nav-btn-desk" 
           onclick="switchMainView('desk')" 
-          class="px-2.5 py-1 rounded font-bold transition-colors bg-resolve-panel text-white shadow-xs flex items-center gap-1.5"
+          class="px-3 py-1 rounded-md font-semibold transition-all bg-white/[0.12] text-white shadow-xs border border-white/[0.08] flex items-center gap-1.5"
         >
-          <svg class="w-3.5 h-3.5 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
           <span>Mesa de OTs</span>
         </button>
         <button 
           id="nav-btn-stripboard" 
           onclick="switchMainView('stripboard')" 
-          class="px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white flex items-center gap-1.5"
+          class="px-3 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white flex items-center gap-1.5"
         >
-          <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
           <span>Stripboard • Hoja de Tiempos</span>
-          <span id="stripboard-pending-badge" class="px-1.5 py-0.2 bg-resolve-panel rounded text-[10px] text-amber-400 font-bold">0</span>
+          <span id="stripboard-pending-badge" class="px-1.5 py-0.2 bg-white/[0.08] rounded-full text-[10px] text-amber-300 font-bold border border-white/[0.06]">0</span>
         </button>
       </nav>
     </div>
@@ -216,18 +220,18 @@
     <!-- Acciones Rápidas -->
     <div class="flex items-center gap-2">
       <!-- Respaldo / Restauración -->
-      <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="px-2.5 py-1 text-xs font-mono bg-resolve-card hover:bg-resolve-border text-resolve-dimText hover:text-white rounded border border-resolve-border flex items-center gap-1.5 transition-colors">
+      <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border flex items-center gap-1.5 transition-all active:scale-[0.98] shadow-xs">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span class="hidden sm:inline">Backup</span>
       </button>
-      <label title="Restaurar Archivo JSON" class="px-2.5 py-1 text-xs font-mono bg-resolve-card hover:bg-resolve-border text-resolve-dimText hover:text-white rounded border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-colors">
+      <label title="Restaurar Archivo JSON" class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] shadow-xs">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
         <span class="hidden sm:inline">Restaurar</span>
         <input type="file" id="import-input" accept=".json" onchange="importBackupData(event)" class="hidden">
       </label>
 
       <!-- Botón Nueva OT -->
-      <button onclick="openNewOtModal()" class="ml-1 px-3 py-1 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-mono font-bold text-xs rounded border border-amber-400 shadow-sm flex items-center gap-1.5 transition-all active:scale-95">
+      <button onclick="openNewOtModal()" class="ml-1 px-3.5 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1.5 transition-all active:scale-[0.97]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
         <span>NUEVA OT</span>
       </button>
@@ -245,15 +249,15 @@
       
       <!-- Encabezado de la barra lateral -->
       <div class="h-9 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
-        <span class="text-[11px] font-mono uppercase tracking-wider text-resolve-dimText font-bold flex items-center gap-1.5 truncate">
-          <svg class="w-3.5 h-3.5 text-resolve-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        <span class="text-[11px] uppercase tracking-wider text-resolve-dimText font-semibold flex items-center gap-1.5 truncate">
+          <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
           <span class="truncate">Árbol de Bins</span>
         </span>
         <div class="flex items-center gap-1">
-          <button onclick="openClientModal(null)" title="Crear Nuevo Cliente" class="px-2 py-0.5 bg-resolve-card hover:bg-resolve-border text-white rounded text-[11px] font-mono border border-resolve-border flex items-center gap-1 transition-colors">
+          <button onclick="openClientModal(null)" title="Crear Nuevo Cliente" class="px-2 py-0.5 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-md text-[11px] font-medium border border-resolve-border flex items-center gap-1 transition-all">
             <span>+</span> <span>Cliente</span>
           </button>
-          <button onclick="toggleSidebar()" title="Colapsar panel" class="p-1 hover:bg-resolve-card text-resolve-dimText hover:text-white rounded">
+          <button onclick="toggleSidebar()" title="Colapsar panel" class="p-1 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           </button>
         </div>
@@ -261,22 +265,22 @@
 
       <!-- Master Bin (Ver Todas) -->
       <div class="p-2 border-b border-resolve-border/60 shrink-0">
-        <button onclick="selectTreeFilter('all', null, null)" id="bin-all" class="bin-item bin-active w-full text-left px-2.5 py-1.5 rounded text-xs font-mono flex items-center justify-between text-stone-300 hover:bg-resolve-panel transition-colors">
+        <button onclick="selectTreeFilter('all', null, null)" id="bin-all" class="bin-item bin-active w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between text-zinc-300 hover:bg-white/[0.05] transition-colors">
           <div class="flex items-center gap-2 truncate">
-            <svg class="w-4 h-4 text-resolve-accent shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
-            <span class="font-bold truncate">Master Bin (Todas las OTs)</span>
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+            <span class="font-semibold truncate">Master Bin (Todas las OTs)</span>
           </div>
-          <span class="text-[10px] font-bold bg-resolve-card px-1.5 py-0.5 rounded text-resolve-dimText" id="badge-count-all">0</span>
+          <span class="text-[10px] font-semibold bg-white/[0.08] px-2 py-0.5 rounded-full text-zinc-300" id="badge-count-all">0</span>
         </button>
       </div>
 
       <!-- Contenedor jerárquico del Árbol de Clientes y Marcas -->
-      <div class="flex-1 overflow-y-auto p-2 space-y-1 font-mono text-xs" id="bin-tree-container">
+      <div class="flex-1 overflow-y-auto p-2 space-y-1 text-xs" id="bin-tree-container">
         <!-- Inyectado dinámicamente con JS -->
       </div>
 
       <!-- Resumen en pie de barra -->
-      <div class="p-2 bg-resolve-panel border-t border-resolve-border text-[10px] font-mono text-resolve-dimText flex items-center justify-between shrink-0">
+      <div class="p-2 bg-resolve-panel border-t border-resolve-border text-[11px] font-medium text-resolve-dimText flex items-center justify-between shrink-0">
         <span id="tree-summary-clients">0 Clientes</span>
         <span id="tree-summary-brands">0 Marcas</span>
       </div>
@@ -291,7 +295,7 @@
       <button 
         onclick="toggleSidebar()" 
         title="Desplegar Árbol de Bins" 
-        class="p-2 text-resolve-accent hover:text-white hover:bg-resolve-panel rounded transition-colors"
+        class="p-2 text-amber-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
@@ -301,21 +305,21 @@
       <button 
         onclick="selectTreeFilter('all', null, null)" 
         title="Master Bin" 
-        class="p-2 text-resolve-dimText hover:text-white hover:bg-resolve-panel rounded transition-colors"
+        class="p-2 text-resolve-dimText hover:text-white hover:bg-white/[0.08] rounded-md transition-colors"
       >
-        <svg class="w-4 h-4 text-resolve-accent" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+        <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
       </button>
     </div>
 
     <!-- PANEL CENTRAL: MESA DE TRABAJO (Sobres y Órdenes) -->
     <main class="flex-1 flex flex-col bg-resolve-bg overflow-hidden">
-      <!-- SUB-HEADER DE TRÁFICO: BREADCRUMB, BUSCADOR Y SELECTOR DE VISTAS -->
+      <!-- SUB-HEADER DE TRÁFICO: BREADCRUMB, BUSCADOR Y SELECTOR DE VISTAS (macOS Action Bar) -->
       <div class="h-11 px-4 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-3 shrink-0">
         <!-- Breadcrumb & Cantidad -->
         <div class="flex items-center gap-2 min-w-0">
-          <svg class="w-4 h-4 text-resolve-accent shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
-          <span id="current-bin-breadcrumb" class="font-mono text-xs font-bold text-white truncate">Master Bin (Todas las OTs)</span>
-          <span id="current-bin-count" class="text-[10px] font-mono px-2 py-0.5 rounded bg-resolve-panel text-resolve-dimText border border-resolve-border/60 shrink-0">0 OTs encontradas</span>
+          <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+          <span id="current-bin-breadcrumb" class="text-xs font-semibold text-white truncate tracking-tight">Master Bin (Todas las OTs)</span>
+          <span id="current-bin-count" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-resolve-border shrink-0">0 OTs encontradas</span>
         </div>
 
         <!-- Filtros, Búsqueda y Cambios de Vista -->
@@ -330,7 +334,7 @@
               id="search-input" 
               oninput="renderTrafficDesk()" 
               placeholder="Buscar OT, ref, cliente..." 
-              class="w-40 sm:w-56 bg-resolve-bg border border-resolve-border rounded pl-8 pr-2.5 py-1 text-xs font-mono text-white focus:border-resolve-accent focus:outline-none placeholder-stone-500"
+              class="w-44 sm:w-60 bg-black/30 border border-resolve-border rounded-lg pl-8 pr-2.5 py-1 text-xs text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none placeholder-zinc-500 transition-all"
             />
           </div>
 
@@ -338,7 +342,7 @@
           <select 
             id="status-filter" 
             onchange="renderTrafficDesk()" 
-            class="bg-resolve-bg border border-resolve-border rounded px-2 py-1 text-xs font-mono text-stone-300 focus:border-resolve-accent focus:outline-none"
+            class="bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1 text-xs text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-medium"
           >
             <option value="all">Todos los estados</option>
             <option value="En Tránsito">En Tránsito</option>
@@ -351,13 +355,13 @@
           <!-- Separador -->
           <div class="h-4 w-px bg-resolve-border"></div>
 
-          <!-- Selector Cuadrícula / Lista -->
-          <div class="flex items-center bg-resolve-bg p-0.5 rounded border border-resolve-border">
+          <!-- Selector Cuadrícula / Lista (macOS Segmented Switch) -->
+          <div class="flex items-center bg-black/40 p-0.5 rounded-lg border border-resolve-border shadow-inner">
             <button 
               id="view-toggle-grid" 
               onclick="setMainDeskView('grid')" 
               title="Vista Cuadrícula de Sobres" 
-              class="px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors bg-resolve-card text-white border border-resolve-border/60 shadow-xs"
+              class="px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
               <span class="hidden sm:inline">Sobres</span>
@@ -366,7 +370,7 @@
               id="view-toggle-list" 
               onclick="setMainDeskView('list')" 
               title="Vista Lista de Tráfico" 
-              class="px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors text-resolve-dimText hover:text-white"
+              class="px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all text-resolve-dimText hover:text-white"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
               <span class="hidden sm:inline">Lista</span>
@@ -381,11 +385,11 @@
         <div id="envelopes-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Inyectado dinámicamente con JS -->
         </div>
-        <!-- VISTA EN LISTA (TABLA ESTILO DAVINCI RESOLVE EDIT/MEDIA) -->
-        <div id="envelopes-list-container" class="hidden border border-resolve-border rounded bg-resolve-surface overflow-x-auto">
-          <table class="w-full text-left font-mono text-xs border-collapse">
+        <!-- VISTA EN LISTA (TABLA ESTILO DAVINCI RESOLVE / MACOS PRO) -->
+        <div id="envelopes-list-container" class="hidden border border-resolve-border rounded-xl bg-resolve-surface overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="bg-resolve-panel border-b border-resolve-border text-[11px] text-resolve-dimText uppercase tracking-wider">
+              <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
                 <th class="p-2.5 border-r border-resolve-border w-28">N° OT</th>
                 <th class="p-2.5 border-r border-resolve-border w-32">ESTADO</th>
                 <th class="p-2.5 border-r border-resolve-border w-32">REFERENCIA</th>
@@ -397,38 +401,37 @@
                 <th class="p-2.5 w-24 text-center">ACCIONES</th>
               </tr>
             </thead>
-            <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-stone-300">
+            <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-zinc-300">
               <!-- Filas de la lista inyectadas con JS -->
             </tbody>
           </table>
         </div>
 
         <!-- Vista Vacía -->
-        <!-- Vista Vacía -->
-        <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center font-mono">
-          <div class="w-14 h-14 rounded-full bg-resolve-panel border border-resolve-border flex items-center justify-center text-resolve-dimText mb-3">
+        <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/[0.04] border border-resolve-border flex items-center justify-center text-zinc-400 mb-3 shadow-inner">
             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           </div>
           <h4 class="font-bold text-white text-sm">No hay Órdenes de Trabajo en este Bin</h4>
           <p class="text-xs text-resolve-dimText mt-1 max-w-sm">No se encontraron OTs con los filtros activos. Crea una nueva OT o selecciona otro Bin.</p>
-          <button onclick="openNewOtModal()" class="mt-4 px-3 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold text-xs rounded transition-colors flex items-center gap-1.5">
+          <button onclick="openNewOtModal()" class="mt-4 px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] flex items-center gap-1.5">
             <span>+ Crear Nueva OT</span>
           </button>
         </div>
       </div>
 
       <!-- FOOTER DE LA MESA: STATUS BAR -->
-      <footer class="h-7 px-3 bg-resolve-panel border-t border-resolve-border flex items-center justify-between text-[11px] font-mono text-resolve-dimText shrink-0">
+      <footer class="h-7 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between text-[11px] font-medium text-resolve-dimText shrink-0">
         <div class="flex items-center gap-3">
           <span class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-            <span>Mesa de Tráfico Sincronizada</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.6)]"></span>
+            <span class="text-zinc-300">Mesa de Tráfico Sincronizada</span>
           </span>
           <span>•</span>
           <span id="footer-active-count">0 Activas en Tráfico</span>
         </div>
-        <div class="text-[10px] text-stone-500">
-          DaVinci Media & Traffic Mode // El Marcante System
+        <div class="text-[10px] text-zinc-500">
+          Trafikeitor // Control de Tráfico • El Marcante
         </div>
       </footer>
     </main>
@@ -439,72 +442,72 @@
   <!-- ==================================================================== -->
   <div id="app-view-stripboard" class="hidden flex-1 flex flex-col bg-resolve-bg overflow-hidden relative">
     
-    <!-- TOOLBAR DEL STRIPBOARD -->
+    <!-- TOOLBAR DEL STRIPBOARD (macOS Action Bar) -->
     <div class="stripboard-screen-header h-12 px-4 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
       
       <!-- Navegación de Fecha del Plan -->
       <div class="flex items-center gap-1.5 shrink-0">
-        <button onclick="changeStripboardDay(-1)" title="Periodo Anterior" class="p-1 hover:bg-resolve-panel text-resolve-dimText hover:text-white rounded border border-resolve-border cursor-pointer">
+        <button onclick="changeStripboardDay(-1)" title="Periodo Anterior" class="p-1 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border cursor-pointer transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <div class="flex items-center gap-1.5 bg-resolve-panel px-2.5 py-1 rounded border border-resolve-border">
-          <span id="stripboard-period-label" class="text-[10px] font-mono text-resolve-dimText uppercase font-bold">Fecha:</span>
+        <div class="flex items-center gap-1.5 bg-black/30 px-2.5 py-1 rounded-lg border border-resolve-border">
+          <span id="stripboard-period-label" class="text-[10px] text-zinc-400 uppercase font-semibold">Fecha:</span>
           <input 
             type="date" 
             id="stripboard-date-input" 
             onclick="if(this.showPicker) this.showPicker()"
             onchange="handleStripboardDateChange(this.value)" 
-            class="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer"
+            class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer"
             style="color-scheme: dark;"
           />
         </div>
-        <button onclick="setStripboardToToday()" class="px-2 py-1 text-xs font-mono bg-resolve-panel hover:bg-resolve-card text-stone-300 hover:text-white rounded border border-resolve-border font-bold transition-colors cursor-pointer">
+        <button onclick="setStripboardToToday()" class="px-2.5 py-1 text-xs bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-lg border border-resolve-border font-semibold transition-all cursor-pointer">
           Hoy
         </button>
-        <button onclick="changeStripboardDay(1)" title="Periodo Siguiente" class="p-1 hover:bg-resolve-panel text-resolve-dimText hover:text-white rounded border border-resolve-border cursor-pointer">
+        <button onclick="changeStripboardDay(1)" title="Periodo Siguiente" class="p-1 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border cursor-pointer transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
 
-      <!-- Selector de Vistas del Stripboard (Día | Semana Lun-Sáb | Timeline Gantt | Mes Entregas) -->
-      <div class="flex items-center bg-resolve-bg border border-resolve-border rounded p-0.5 font-mono text-[11px] shrink-0">
+      <!-- Selector de Vistas del Stripboard (Día | Semana Lun-Sáb | Timeline Gantt | Mes Entregas) (macOS Segmented Bar) -->
+      <div class="flex items-center bg-black/40 border border-resolve-border rounded-lg p-0.5 text-[11px] shrink-0 shadow-inner">
         <button 
           id="sb-view-btn-day" 
           onclick="setStripboardViewMode('day')" 
-          class="px-2.5 py-1 rounded font-bold transition-colors bg-resolve-panel text-amber-400 shadow-xs cursor-pointer"
+          class="px-2.5 py-1 rounded-md font-semibold transition-all bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] cursor-pointer"
         >
           Día • Tiras
         </button>
         <button 
           id="sb-view-btn-week" 
           onclick="setStripboardViewMode('week')" 
-          class="px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white cursor-pointer"
+          class="px-2.5 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
         >
           Semana • Lun–Sáb
         </button>
         <button 
           id="sb-view-btn-gantt" 
           onclick="setStripboardViewMode('gantt')" 
-          class="px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white cursor-pointer"
+          class="px-2.5 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
         >
           Timeline • Gantt
         </button>
         <button 
           id="sb-view-btn-month" 
           onclick="setStripboardViewMode('month')" 
-          class="px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white cursor-pointer"
+          class="px-2.5 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
         >
           Mes • Entregas
         </button>
       </div>
 
       <!-- Métricas / Resumen rápido -->
-      <div class="hidden xl:flex items-center gap-2.5 text-[11px] font-mono text-resolve-dimText shrink-0">
-        <span>Tiras: <strong id="strip-count-total" class="text-white">0</strong></span>
+      <div class="hidden xl:flex items-center gap-2.5 text-[11px] font-medium text-resolve-dimText shrink-0">
+        <span>Tiras: <strong id="strip-count-total" class="text-white font-semibold">0</strong></span>
         <span>•</span>
-        <span>En Mesa: <strong id="strip-count-active" class="text-amber-400">0</strong></span>
+        <span>En Mesa: <strong id="strip-count-active" class="text-amber-400 font-semibold">0</strong></span>
         <span>•</span>
-        <span>Entregadas: <strong id="strip-count-done" class="text-emerald-400">0</strong></span>
+        <span>Entregadas: <strong id="strip-count-done" class="text-emerald-400 font-semibold">0</strong></span>
       </div>
 
       <!-- Acciones del Stripboard -->
@@ -512,7 +515,7 @@
         <button 
           onclick="autoPopulatePendingOts()" 
           title="Cargar automáticamente las OTs pendientes al plan del día" 
-          class="px-2 py-1 bg-resolve-card hover:bg-resolve-border text-amber-300 font-mono font-bold text-xs rounded border border-amber-500/40 flex items-center gap-1 transition-colors cursor-pointer"
+          class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-lg border border-amber-500/30 flex items-center gap-1 transition-all cursor-pointer"
         >
           <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           <span class="hidden lg:inline">Cargar Pendientes</span>
@@ -520,21 +523,21 @@
         <button 
           onclick="addBreakStripPrompt()" 
           title="Añadir separador de descanso, reunión o corte" 
-          class="px-2 py-1 bg-resolve-panel hover:bg-resolve-card text-stone-300 hover:text-white font-mono text-xs rounded border border-resolve-border flex items-center gap-1 transition-colors cursor-pointer"
+          class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs rounded-lg border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
         >
           <span>+ Separador</span>
         </button>
         <button 
           onclick="addCustomTaskStripPrompt()" 
           title="Añadir tira de tarea sin OT asociada" 
-          class="px-2 py-1 bg-resolve-panel hover:bg-resolve-card text-stone-300 hover:text-white font-mono text-xs rounded border border-resolve-border flex items-center gap-1 transition-colors cursor-pointer"
+          class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs rounded-lg border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
         >
           <span>+ Tarea Libre</span>
         </button>
         <button 
           onclick="printStripboard()" 
           title="Imprimir Hoja de Tiempos Física" 
-          class="px-2.5 py-1 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-mono font-bold text-xs rounded border border-amber-400 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+          class="px-3 py-1 bg-white/[0.08] hover:bg-white/[0.15] text-white font-semibold text-xs rounded-lg border border-white/[0.12] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           <span class="hidden md:inline">Imprimir</span>
@@ -567,11 +570,11 @@
       <!-- COLUMNA IZQUIERDA: POOL DE OTS PENDIENTES DE ASIGNAR -->
       <aside id="stripboard-pool-panel" class="w-72 lg:w-80 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 overflow-hidden no-print">
         <div class="h-10 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
-          <span class="text-[11px] font-mono uppercase tracking-wider text-resolve-dimText font-bold flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span class="text-[11px] uppercase tracking-wider text-resolve-dimText font-semibold flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
             <span>OTs Pendientes de Asignar</span>
           </span>
-          <span id="stripboard-pool-count" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-resolve-bg text-amber-400 font-bold">0</span>
+          <span id="stripboard-pool-count" class="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.08] text-amber-300 font-bold border border-white/[0.06]">0</span>
         </div>
 
         <!-- Buscador y Filtro de Estado de Programación de Pendientes -->
@@ -581,13 +584,13 @@
             id="stripboard-pool-search" 
             oninput="renderStripboardPendingPool()" 
             placeholder="Filtrar por OT, cliente, título..." 
-            class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1 text-xs font-mono text-white focus:border-resolve-accent focus:outline-none placeholder-stone-500"
+            class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1 text-xs text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none placeholder-zinc-500 transition-all"
           />
-          <div class="grid grid-cols-3 gap-1 bg-resolve-bg p-0.5 rounded border border-resolve-border font-mono text-[10px]">
+          <div class="grid grid-cols-3 gap-1 bg-black/40 p-0.5 rounded-lg border border-resolve-border text-[10px] font-medium shadow-inner">
             <button
               id="pool-filter-btn-all"
               onclick="setStripboardPoolFilter('all')"
-              class="py-1 rounded font-bold bg-resolve-panel text-amber-400 transition-colors cursor-pointer"
+              class="py-1 rounded font-semibold bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] transition-all cursor-pointer"
             >
               Todas
             </button>
@@ -609,7 +612,7 @@
         </div>
 
         <!-- Lista scrolleable de OTs -->
-        <div id="stripboard-pending-list" class="flex-1 overflow-y-auto p-2 space-y-2 font-mono text-xs">
+        <div id="stripboard-pending-list" class="flex-1 overflow-y-auto p-2 space-y-2 text-xs">
           <!-- Inyectado dinámicamente con JS -->
         </div>
       </aside>
@@ -622,8 +625,8 @@
         <!-- ============================================================== -->
         <div id="stripboard-day-view" class="flex-1 flex flex-col overflow-hidden">
           <!-- Encabezado de columnas del Stripboard -->
-          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border grid grid-cols-12 gap-2 text-[10px] font-mono uppercase tracking-wider text-resolve-dimText items-center shrink-0">
-            <div class="col-span-1 text-center font-bold">ORDEN</div>
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-resolve-dimText items-center shrink-0 font-semibold">
+            <div class="col-span-1 text-center">ORDEN</div>
             <div class="col-span-2">HORARIO / TURNO</div>
             <div class="col-span-2">N° OT / REF</div>
             <div class="col-span-2">CLIENTE / PRODUCTO</div>
@@ -638,7 +641,7 @@
             ondragover="handleContainerDragOver(event)" 
             ondragleave="handleContainerDragLeave(event)" 
             ondrop="handleContainerDrop(event)" 
-            class="flex-1 overflow-y-auto p-3 space-y-2 font-mono transition-colors"
+            class="flex-1 overflow-y-auto p-3 space-y-2 transition-colors"
           >
             <!-- Tiras inyectadas dinámicamente con JS -->
           </div>
@@ -648,11 +651,11 @@
         <!-- VISTA 2: SEMANA • LUNES–SÁBADO (COLUMNAS VERTICALES SEMANALES) -->
         <!-- ============================================================== -->
         <div id="stripboard-week-view" class="hidden flex-1 flex flex-col overflow-hidden">
-          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] font-mono text-resolve-dimText shrink-0">
-            <span id="stripboard-week-range-label" class="font-bold text-white uppercase tracking-wider">SEMANA LABORAL: LUNES A SÁBADO</span>
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] text-resolve-dimText shrink-0">
+            <span id="stripboard-week-range-label" class="font-semibold text-white uppercase tracking-wider">SEMANA LABORAL: LUNES A SÁBADO</span>
             <span>Arrastra tiras entre días (Lun–Sáb) o suelta OTs pendientes directamente en la columna del día</span>
           </div>
-          <div id="stripboard-week-grid" class="flex-1 grid grid-cols-6 divide-x divide-resolve-border overflow-x-auto overflow-y-hidden bg-resolve-bg font-mono">
+          <div id="stripboard-week-grid" class="flex-1 grid grid-cols-6 divide-x divide-resolve-border overflow-x-auto overflow-y-hidden bg-resolve-bg">
             <!-- 6 Columnas (Lunes a Sábado) inyectadas con JS -->
           </div>
         </div>
@@ -661,14 +664,14 @@
         <!-- VISTA 3: TIMELINE • GANTT DIARIO POR DEPARTAMENTO (08:00-19:00)-->
         <!-- ============================================================== -->
         <div id="stripboard-gantt-view" class="hidden flex-1 flex flex-col overflow-hidden">
-          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] font-mono text-resolve-dimText shrink-0">
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] text-resolve-dimText shrink-0">
             <div class="flex items-center gap-3">
-              <span class="font-bold text-white uppercase tracking-wider">TIMELINE • GANTT DE TRÁFICO DIARIO (08:00 – 19:00)</span>
-              <span id="stripboard-gantt-date-label" class="text-amber-400 font-bold">--</span>
+              <span class="font-semibold text-white uppercase tracking-wider">TIMELINE • GANTT DE TRÁFICO DIARIO (08:00 – 19:00)</span>
+              <span id="stripboard-gantt-date-label" class="text-amber-400 font-semibold">--</span>
             </div>
             <span>Pistas por Departamento • Pulsa ◀ / ▶ en un bloque para desplazar su turno 30 min o suelta una OT en una pista</span>
           </div>
-          <div id="stripboard-gantt-container" class="flex-1 overflow-auto p-3 font-mono select-none">
+          <div id="stripboard-gantt-container" class="flex-1 overflow-auto p-3 select-none">
             <!-- Pistas de Timeline DaVinci Resolve inyectadas con JS -->
           </div>
         </div>
@@ -677,9 +680,9 @@
         <!-- VISTA 4: MES • ENTREGAS Y CARGA MENSUAL (LUNES A SÁBADO)       -->
         <!-- ============================================================== -->
         <div id="stripboard-month-view" class="hidden flex-1 flex flex-col overflow-hidden">
-          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] font-mono text-resolve-dimText shrink-0">
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] text-resolve-dimText shrink-0">
             <div class="flex items-center gap-3">
-              <span id="stripboard-month-title" class="font-bold text-white uppercase tracking-wider">MES</span>
+              <span id="stripboard-month-title" class="font-semibold text-white uppercase tracking-wider">MES</span>
               <span class="flex items-center gap-1.5 text-[10px]">
                 <span class="w-2 h-2 rounded-xs bg-red-500 inline-block"></span>
                 <span>Entrega Comprometida (Hoja de Ruta)</span>
@@ -693,7 +696,7 @@
           </div>
 
           <!-- Cabecera Lunes a Sábado -->
-          <div class="grid grid-cols-6 border-b border-resolve-border bg-resolve-surface text-[10px] font-mono uppercase tracking-wider text-resolve-dimText font-bold text-center py-1.5 shrink-0">
+          <div class="grid grid-cols-6 border-b border-resolve-border bg-resolve-surface text-[10px] uppercase tracking-wider text-resolve-dimText font-semibold text-center py-1.5 shrink-0">
             <div>LUNES</div>
             <div>MARTES</div>
             <div>MIÉRCOLES</div>
@@ -703,15 +706,15 @@
           </div>
 
           <!-- Cuadrícula Mensual Lunes–Sábado -->
-          <div id="stripboard-month-grid" class="flex-1 grid grid-cols-6 auto-rows-fr divide-x divide-y divide-resolve-border overflow-y-auto bg-resolve-bg font-mono text-xs">
+          <div id="stripboard-month-grid" class="flex-1 grid grid-cols-6 auto-rows-fr divide-x divide-y divide-resolve-border overflow-y-auto bg-resolve-bg text-xs">
             <!-- Celdas del mes inyectadas con JS -->
           </div>
         </div>
 
         <!-- Pie del Stripboard -->
-        <div class="h-9 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between text-xs font-mono text-resolve-dimText shrink-0 no-print">
+        <div class="h-9 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between text-xs text-resolve-dimText shrink-0 no-print">
           <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-resolve-accent inline-block"></span>
+            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
             <span id="stripboard-footer-hint">Stripboard de Producción • Arrastra y suelta las tiras en la posición del día</span>
           </div>
           <div class="flex items-center gap-3">
@@ -729,97 +732,97 @@
 
 
   <!-- MODAL PRINCIPAL: SOBRE DE TRÁFICO OT (DETALLE COMPLETO) -->
-  <div id="envelope-modal" onclick="if(event.target === this) closeEnvelopeModal()" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-2 sm:p-4">
-    <div class="w-full max-w-7xl xl:max-w-[1450px] 2xl:max-w-[1600px] h-[94vh] bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl flex flex-col overflow-hidden font-mono text-xs">
+  <div id="envelope-modal" onclick="if(event.target === this) closeEnvelopeModal()" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="w-full max-w-7xl xl:max-w-[1450px] 2xl:max-w-[1600px] h-[94vh] bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/90 flex flex-col overflow-hidden text-xs">
       
-      <!-- Encabezado del Sobre -->
-      <div class="h-12 px-4 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
+      <!-- Encabezado del Sobre (macOS Sheet Header) -->
+      <div class="h-12 px-4 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3 min-w-0">
           <button
             id="modal-btn-back-stripboard"
             onclick="closeEnvelopeModal()"
-            class="hidden px-2.5 py-1 rounded bg-resolve-card hover:bg-resolve-border border border-amber-500/50 text-amber-300 font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+            class="hidden px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-amber-500/40 text-amber-300 font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
             title="Cerrar Sobre y volver al Stripboard"
           >
             <span>← Volver al Stripboard</span>
           </button>
-          <span id="modal-ot-id" class="px-2.5 py-0.5 rounded bg-resolve-bg border border-resolve-accent text-amber-400 font-bold text-xs font-mono shrink-0">OT-26-000</span>
-          <h2 id="modal-ot-title-header" class="font-bold text-white text-sm truncate max-w-lg lg:max-w-2xl">Título de la Pieza</h2>
-          <label class="flex items-center gap-1.5 text-xs font-mono cursor-pointer shrink-0 ml-2">
+          <span id="modal-ot-id" class="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs font-mono shrink-0">OT-26-000</span>
+          <h2 id="modal-ot-title-header" class="font-bold text-white text-sm truncate max-w-lg lg:max-w-2xl tracking-tight">Título de la Pieza</h2>
+          <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0 ml-2">
             <input type="checkbox" id="modal-ot-urgent" onchange="updateActiveOtField('urgent', this.checked)" class="accent-red-500 rounded">
-            <span class="text-red-400 font-bold">Urgente</span>
+            <span class="text-rose-400 font-semibold">Urgente</span>
           </label>
         </div>
 
-        <!-- Pestañas internas del Sobre y Botón Cerrar -->
+        <!-- Pestañas internas del Sobre y Botón Cerrar (macOS Segmented Tabs) -->
         <div class="flex items-center gap-2">
-          <div class="flex items-center bg-resolve-bg p-0.5 rounded border border-resolve-border text-xs">
-            <button id="tab-btn-hoja-ruta" onclick="switchOtTab('hoja-ruta')" class="px-3 py-1 rounded transition-colors bg-resolve-panel text-white font-bold cursor-pointer">
+          <div class="flex items-center bg-black/40 p-0.5 rounded-lg border border-resolve-border text-xs shadow-inner">
+            <button id="tab-btn-hoja-ruta" onclick="switchOtTab('hoja-ruta')" class="px-3 py-1 rounded-md transition-all bg-white/[0.12] text-white font-semibold shadow-xs border border-white/[0.08] cursor-pointer">
               Hoja de Ruta (Pases)
             </button>
-            <button id="tab-btn-media-pool" onclick="switchOtTab('media-pool')" class="px-3 py-1 rounded transition-colors text-resolve-dimText hover:text-white flex items-center gap-1.5 cursor-pointer">
+            <button id="tab-btn-media-pool" onclick="switchOtTab('media-pool')" class="px-3 py-1 rounded-md transition-all text-resolve-dimText hover:text-white font-medium flex items-center gap-1.5 cursor-pointer">
               <span>Media Pool</span>
-              <span id="tab-badge-files" class="px-1.5 py-0.2 bg-resolve-panel rounded text-[10px] text-amber-400 font-bold">0</span>
+              <span id="tab-badge-files" class="px-1.5 py-0.2 bg-white/[0.08] rounded-full text-[10px] text-amber-300 font-bold border border-white/[0.06]">0</span>
             </button>
-            <button id="tab-btn-brief" onclick="switchOtTab('brief')" class="px-3 py-1 rounded transition-colors text-resolve-dimText hover:text-white cursor-pointer">
+            <button id="tab-btn-brief" onclick="switchOtTab('brief')" class="px-3 py-1 rounded-md transition-all text-resolve-dimText hover:text-white font-medium cursor-pointer">
               Brief & Legales
             </button>
           </div>
-          <button onclick="closeEnvelopeModal()" title="Cerrar Sobre (Esc)" class="p-1.5 hover:bg-resolve-card text-stone-400 hover:text-white rounded border border-resolve-border ml-1 cursor-pointer">
+          <button onclick="closeEnvelopeModal()" title="Cerrar Sobre (Esc)" class="p-1.5 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg border border-resolve-border ml-1 cursor-pointer transition-colors">
             ✕
           </button>
         </div>
       </div>
       <!-- Ficha de Encabezado Técnico de la OT: Cliente -> Marca -> Producto -> Medio -> Referencia -> Estado -->
-      <div class="bg-resolve-bg border-b border-resolve-border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs font-mono shrink-0">
+      <div class="bg-black/25 border-b border-resolve-border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs shrink-0">
         <!-- 1. Cliente -->
         <div>
-          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Cliente / Bin</label>
-          <input type="text" id="modal-ot-client" onchange="updateActiveOtField('client', this.value)" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white font-bold focus:border-resolve-accent focus:outline-none">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Cliente / Bin</label>
+          <input type="text" id="modal-ot-client" onchange="updateActiveOtField('client', this.value)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
         <!-- 2. Marca -->
         <div>
-          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Marca</label>
-          <input type="text" id="modal-ot-brand" onchange="updateActiveOtField('brand', this.value)" placeholder="Ej: Club Premium" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white font-bold focus:border-resolve-accent focus:outline-none">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Marca</label>
+          <input type="text" id="modal-ot-brand" onchange="updateActiveOtField('brand', this.value)" placeholder="Ej: Club Premium" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
         <!-- 3. Producto (separado de Marca) -->
         <div>
-          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Producto</label>
-          <input type="text" id="modal-ot-product" onchange="updateActiveOtField('product', this.value)" placeholder="Ej: Nueva Botella Retornable" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-stone-200 focus:border-resolve-accent focus:outline-none">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Producto</label>
+          <input type="text" id="modal-ot-product" onchange="updateActiveOtField('product', this.value)" placeholder="Ej: Nueva Botella Retornable" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
         <!-- 4. Medio -->
         <div>
-          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Medio / Formato</label>
-          <input type="text" id="modal-ot-media" onchange="updateActiveOtField('media', this.value)" placeholder="Ej: TV 20'', Prensa..." class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white focus:border-resolve-accent focus:outline-none">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Medio / Formato</label>
+          <input type="text" id="modal-ot-media" onchange="updateActiveOtField('media', this.value)" placeholder="Ej: TV 20'', Prensa..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
         <!-- 5. Referencia -->
         <div>
-          <label class="text-[10px] uppercase text-resolve-dimText font-bold block mb-1">Referencia</label>
-          <input type="text" id="modal-ot-ref" onchange="updateActiveOtField('ref', this.value)" placeholder="Ej: BOT-26-DIG" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-amber-400 font-bold focus:border-resolve-accent focus:outline-none">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Referencia</label>
+          <input type="text" id="modal-ot-ref" onchange="updateActiveOtField('ref', this.value)" placeholder="Ej: BOT-26-DIG" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-mono">
         </div>
 
         <!-- 6. Estado (con botón de gestión y creación) -->
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="text-[10px] uppercase text-resolve-dimText font-bold">Estado</label>
-            <button type="button" onclick="openStatusManagerModal()" class="text-[10px] text-resolve-dimText hover:text-amber-400 font-mono underline cursor-pointer" title="Editar y crear estados">
+            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Estado</label>
+            <button type="button" onclick="openStatusManagerModal()" class="text-[10px] text-zinc-400 hover:text-amber-400 font-medium underline cursor-pointer" title="Editar y crear estados">
               + Editar
             </button>
           </div>
-          <select id="modal-ot-status" onchange="handleOtStatusChange(this.value)" class="w-full bg-resolve-panel border border-resolve-border rounded px-2 py-1 text-white font-bold focus:border-resolve-accent focus:outline-none text-xs">
+          <select id="modal-ot-status" onchange="handleOtStatusChange(this.value)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none text-xs transition-all">
             <!-- Inyectado dinámicamente con JS -->
           </select>
         </div>
       </div>
 
       <!-- BARRA TESTIGO DE DÍAS ASIGNADOS EN EL STRIPBOARD -->
-      <div class="bg-resolve-panel/90 border-b border-resolve-border px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono shrink-0">
+      <div class="bg-resolve-panel/90 border-b border-resolve-border px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] shrink-0">
         <div class="flex items-center gap-2 flex-wrap min-w-0 flex-1">
-          <span class="text-[10px] uppercase tracking-wider text-resolve-dimText font-bold shrink-0">Días en Stripboard:</span>
+          <span class="text-[10px] uppercase tracking-wider text-resolve-dimText font-semibold shrink-0">Días en Stripboard:</span>
           <div id="modal-ot-stripboard-days" class="flex items-center gap-1.5 flex-wrap">
             <!-- Píldoras testigo inyectadas dinámicamente con JS -->
           </div>
@@ -830,12 +833,12 @@
             id="modal-schedule-date-input"
             onclick="if(this.showPicker) this.showPicker()"
             style="color-scheme: dark;"
-            class="bg-resolve-bg border border-resolve-border rounded px-2 py-0.5 text-[11px] text-white font-bold focus:border-resolve-accent focus:outline-none cursor-pointer"
+            class="bg-black/40 border border-resolve-border rounded-lg px-2 py-0.5 text-[11px] text-white font-semibold focus:border-amber-500/60 focus:outline-none cursor-pointer"
           />
           <button
             type="button"
             onclick="scheduleActiveOtFromModal()"
-            class="px-2.5 py-0.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded text-[11px] transition-colors cursor-pointer"
+            class="px-2.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold rounded-lg text-[11px] transition-all cursor-pointer"
           >
             + Agendar Día
           </button>
@@ -843,33 +846,32 @@
       </div>
 
       <!-- CUERPO PRINCIPAL DEL MODAL (Scrollable) -->
-      <!-- CUERPO PRINCIPAL DEL MODAL (Scrollable) -->
       <div class="flex-1 overflow-y-auto p-4">
         
         <!-- PESTAÑA 1: HOJA DE RUTA (BITÁCORA DE RELEVOS) -->
         <div id="ot-tab-hoja-ruta" class="space-y-3">
           <div class="flex items-center justify-between pb-1">
             <div>
-              <h3 class="font-bold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos</h3>
+              <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos</h3>
               <p class="text-[11px] text-resolve-dimText">Historial físico y digital de pases entre departamentos.</p>
             </div>
-            <button onclick="addNewRouteRow()" class="px-3 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold text-xs rounded border border-amber-400 shadow-sm flex items-center gap-1.5 transition-all">
+            <button onclick="addNewRouteRow()" class="px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1.5 transition-all active:scale-[0.98]">
               <span>+ AGREGAR MOVIMIENTO</span>
             </button>
           </div>
 
           <!-- Tabla de Relevos -->
-          <div class="border border-resolve-border rounded bg-resolve-bg overflow-x-auto">
-            <table class="w-full text-left font-mono text-xs border-collapse">
+          <div class="border border-resolve-border rounded-xl bg-black/20 overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
               <thead>
-                <tr class="bg-resolve-panel border-b border-resolve-border text-[10px] text-resolve-dimText uppercase tracking-wider">
-                  <th class="p-2 border-r border-resolve-border w-32">DE:</th>
-                  <th class="p-2 border-r border-resolve-border w-32">PARA:</th>
-                  <th class="p-2 border-r border-resolve-border min-w-[280px]">TAREA / OBSERVACIONES</th>
-                  <th class="p-2 border-r border-resolve-border w-48">ENTRADA</th>
-                  <th class="p-2 border-r border-resolve-border w-48">ENTREGA</th>
-                  <th class="p-2 border-r border-resolve-border w-28 text-center">FIRMA / SELLO</th>
-                  <th class="p-2 w-20 text-center">ACCIÓN</th>
+                <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-resolve-dimText uppercase tracking-wider font-semibold">
+                  <th class="p-2.5 border-r border-resolve-border w-32">DE:</th>
+                  <th class="p-2.5 border-r border-resolve-border w-32">PARA:</th>
+                  <th class="p-2.5 border-r border-resolve-border min-w-[280px]">TAREA / OBSERVACIONES</th>
+                  <th class="p-2.5 border-r border-resolve-border w-48">ENTRADA</th>
+                  <th class="p-2.5 border-r border-resolve-border w-48">ENTREGA</th>
+                  <th class="p-2.5 border-r border-resolve-border w-28 text-center">FIRMA / SELLO</th>
+                  <th class="p-2.5 w-20 text-center">ACCIÓN</th>
                 </tr>
               </thead>
               <tbody id="route-sheet-rows" class="divide-y divide-resolve-border/60">
@@ -884,17 +886,17 @@
           <div class="pt-3 border-t border-resolve-border">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
               <div>
-                <h3 class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-2">
                   <span>Contenido dentro del Sobre (Previsualización Directa)</span>
-                  <span id="inline-envelope-files-count" class="px-1.5 py-0.2 rounded bg-resolve-panel border border-resolve-border text-amber-400 text-[10px]">0 piezas</span>
+                  <span id="inline-envelope-files-count" class="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.06] text-amber-300 text-[10px] font-bold">0 piezas</span>
                 </h3>
                 <p class="text-[11px] text-resolve-dimText">Selecciona cualquier foto, boceto, video o PDF adjunto al sobre para previsualizarlo aquí mismo sin cambiar de pestaña.</p>
               </div>
               <div class="flex items-center gap-2">
-                <button type="button" onclick="promptAddMediaLink()" class="px-2.5 py-1 bg-resolve-panel hover:bg-resolve-card text-stone-200 hover:text-white rounded border border-resolve-border text-xs transition-colors cursor-pointer">
+                <button type="button" onclick="promptAddMediaLink()" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-lg border border-resolve-border text-xs font-medium transition-all cursor-pointer">
                   + Enlace Web / Video
                 </button>
-                <label class="px-2.5 py-1 bg-resolve-card hover:bg-resolve-border text-amber-300 font-bold rounded border border-amber-500/40 text-xs flex items-center gap-1.5 cursor-pointer transition-colors">
+                <label class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold rounded-lg border border-amber-500/30 text-xs flex items-center gap-1.5 cursor-pointer transition-all">
                   <span>+ Importar Piezas</span>
                   <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
                 </label>
@@ -910,24 +912,24 @@
                   ondragleave="handleInlineDropzoneLeave(event)"
                   ondrop="handleInlineDropzoneDrop(event)"
                   onclick="this.querySelector('input').click()"
-                  class="border-2 border-dashed border-resolve-border/80 hover:border-resolve-accent rounded p-2.5 bg-resolve-panel/50 hover:bg-resolve-panel text-center transition-all cursor-pointer flex flex-col items-center justify-center shrink-0"
+                  class="border-2 border-dashed border-resolve-border hover:border-amber-400/60 rounded-xl p-3 bg-white/[0.02] hover:bg-white/[0.05] text-center transition-all cursor-pointer flex flex-col items-center justify-center shrink-0"
                   title="Arrastra o haz clic para importar fotos, PDFs, tipografías, código o suites de diseño"
                 >
                   <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
-                  <div class="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
+                  <div class="flex items-center gap-1.5 text-amber-400 font-semibold text-[11px]">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     <span>Arrastra archivos aquí o haz clic para importar</span>
                   </div>
                   <span class="text-[9px] text-resolve-dimText mt-0.5">Fotos, PDF, Código (HTML/JS), Fuentes (.ttf/.otf), Pages, Word, Adobe (.ai/.psd), Affinity</span>
                 </div>
 
-                <div id="envelope-inline-files-list" class="flex-1 bg-resolve-bg border border-resolve-border rounded p-2 overflow-y-auto space-y-1.5">
+                <div id="envelope-inline-files-list" class="flex-1 bg-black/20 border border-resolve-border rounded-xl p-2 overflow-y-auto space-y-1.5">
                   <!-- Inyectado dinámicamente con JS -->
                 </div>
               </div>
 
               <!-- Monitor de Previsualización Integrado (Source Viewer - 7 columnas) -->
-              <div id="envelope-inline-viewer" class="lg:col-span-7 bg-resolve-bg border border-resolve-border rounded flex flex-col overflow-hidden min-h-[340px] max-h-[410px]">
+              <div id="envelope-inline-viewer" class="lg:col-span-7 bg-black/30 border border-resolve-border rounded-xl flex flex-col overflow-hidden min-h-[340px] max-h-[410px]">
                 <!-- Inyectado dinámicamente con JS -->
               </div>
             </div>
@@ -1023,27 +1025,27 @@
   </div>
 
   <!-- MODAL VISOR AMPLIADO DE PIEZAS Y DOCUMENTOS (SOURCE VIEWER / SALA DE PROYECCIÓN) -->
-  <div id="media-preview-modal" onclick="if(event.target === this) closeMediaPreviewModal()" class="fixed inset-0 bg-black/90 z-[60] hidden flex items-center justify-center p-3 sm:p-6">
-    <div class="w-full max-w-6xl h-[88vh] bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl flex flex-col overflow-hidden font-mono text-xs">
-      <div class="h-11 px-4 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
+  <div id="media-preview-modal" onclick="if(event.target === this) closeMediaPreviewModal()" class="fixed inset-0 bg-black/85 backdrop-blur-xl z-[60] hidden flex items-center justify-center p-3 sm:p-6">
+    <div class="w-full max-w-6xl h-[88vh] bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/90 flex flex-col overflow-hidden text-xs">
+      <div class="h-11 px-4 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2.5 min-w-0">
-          <span class="px-2 py-0.5 rounded bg-resolve-bg border border-resolve-accent text-amber-400 font-bold text-[10px]">VISOR DE PIEZA</span>
-          <span id="media-preview-modal-title" class="font-bold text-white truncate">Archivo</span>
+          <span class="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.06] text-amber-300 font-bold text-[10px]">VISOR DE PIEZA</span>
+          <span id="media-preview-modal-title" class="font-semibold text-white truncate">Archivo</span>
           <span id="media-preview-modal-meta" class="text-[10px] text-resolve-dimText hidden sm:inline"></span>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" onclick="stepSelectedMediaItem(-1)" class="px-2.5 py-1 bg-resolve-bg hover:bg-resolve-card text-stone-300 hover:text-white rounded border border-resolve-border cursor-pointer">
+          <button type="button" onclick="stepSelectedMediaItem(-1)" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white rounded-lg border border-resolve-border font-medium cursor-pointer transition-all">
             ◀ Anterior
           </button>
-          <button type="button" onclick="stepSelectedMediaItem(1)" class="px-2.5 py-1 bg-resolve-bg hover:bg-resolve-card text-stone-300 hover:text-white rounded border border-resolve-border cursor-pointer">
+          <button type="button" onclick="stepSelectedMediaItem(1)" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white rounded-lg border border-resolve-border font-medium cursor-pointer transition-all">
             Siguiente ▶
           </button>
-          <button type="button" onclick="closeMediaPreviewModal()" class="px-2.5 py-1 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded cursor-pointer ml-1">
+          <button type="button" onclick="closeMediaPreviewModal()" class="px-3 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 cursor-pointer ml-1 transition-all active:scale-[0.98]">
             ← Volver al Sobre
           </button>
         </div>
       </div>
-      <div id="media-preview-modal-body" class="flex-1 bg-resolve-bg overflow-auto flex items-center justify-center p-4">
+      <div id="media-preview-modal-body" class="flex-1 bg-black/40 overflow-auto flex items-center justify-center p-4">
         <!-- Contenido del visor ampliado inyectado con JS -->
       </div>
     </div>
@@ -1051,14 +1053,14 @@
 
   
   <!-- MODAL PARA GESTIONAR / EDITAR / CREAR ESTADOS DE TRÁFICO -->
-  <div id="status-manager-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl p-5 font-mono text-xs">
-      <div class="flex items-center justify-between border-b border-resolve-border pb-2 mb-3">
-        <h4 class="font-bold text-white uppercase flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-sm bg-resolve-accent inline-block"></span>
+  <div id="status-manager-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-6 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 class="font-semibold text-white uppercase text-xs tracking-wider flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
           <span>Gestión de Estados de Tráfico</span>
         </h4>
-        <button onclick="closeStatusManagerModal()" class="text-stone-400 hover:text-white">✕</button>
+        <button onclick="closeStatusManagerModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
       </div>
 
       <p class="text-[11px] text-resolve-dimText mb-3">
@@ -1067,7 +1069,7 @@
 
       <!-- Lista de Estados Existentes -->
       <div class="mb-4">
-        <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-2">Estados configurados:</label>
+        <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-2">Estados configurados:</label>
         <div id="status-manager-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
           <!-- Render dinámico JS -->
         </div>
@@ -1075,16 +1077,16 @@
 
       <!-- Formulario para Agregar Nuevo Estado -->
       <form onsubmit="handleCreateStatus(event)" class="pt-3 border-t border-resolve-border space-y-2.5">
-        <label class="block text-[10px] uppercase text-resolve-dimText font-bold">+ Crear Nuevo Estado</label>
+        <label class="block text-[10px] uppercase text-zinc-400 font-semibold">+ Crear Nuevo Estado</label>
         <div class="flex items-center gap-2">
           <input 
             type="text" 
             id="new-status-name" 
             required 
             placeholder="Ej: En Aprobación Cliente..." 
-            class="flex-1 bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none font-bold"
+            class="flex-1 bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none"
           />
-          <select id="new-status-color" class="bg-resolve-bg border border-resolve-border rounded px-2 py-1.5 text-stone-200 text-xs focus:border-resolve-accent focus:outline-none font-bold">
+          <select id="new-status-color" class="bg-black/40 border border-resolve-border rounded-lg px-2 py-1.5 text-zinc-200 text-xs font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
             <option value="amber">Ámbar</option>
             <option value="blue">Azul</option>
             <option value="cyan">Celeste</option>
@@ -1094,14 +1096,14 @@
             <option value="yellow">Amarillo</option>
             <option value="stone">Gris</option>
           </select>
-          <button type="submit" class="px-3 py-1.5 bg-resolve-accent text-stone-950 font-bold rounded hover:bg-resolve-accentHover transition-colors shrink-0">
+          <button type="submit" class="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] shrink-0">
             + Añadir
           </button>
         </div>
       </form>
 
       <div class="flex justify-end pt-3 border-t border-resolve-border mt-3">
-        <button type="button" onclick="closeStatusManagerModal()" class="px-4 py-1.5 bg-resolve-panel text-white font-bold rounded border border-resolve-border hover:bg-resolve-card">
+        <button type="button" onclick="closeStatusManagerModal()" class="px-4 py-1.5 bg-white/[0.06] text-white font-semibold rounded-lg border border-resolve-border hover:bg-white/[0.10] transition-colors">
           Listo
         </button>
       </div>
@@ -1109,38 +1111,38 @@
   </div>
 
   <!-- MODAL DE SELLOS DE TINTA (CONTROL DE TRÁFICO) -->
-  <div id="stamp-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl p-4 font-mono text-xs">
-      <div class="flex items-center justify-between border-b border-resolve-border pb-2 mb-3">
-        <h4 class="font-bold text-white uppercase flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+  <div id="stamp-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 class="font-semibold text-white uppercase text-xs tracking-wider flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
           <span>Aplicar Sello de Relevo</span>
         </h4>
-        <button onclick="closeStampModal()" class="text-stone-400 hover:text-white">✕</button>
+        <button onclick="closeStampModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
       </div>
 
       <p class="text-[11px] text-resolve-dimText mb-3">Selecciona el estado con el que se sella este pase en la hoja de ruta:</p>
 
-      <div class="grid grid-cols-2 gap-2 mb-4">
-        <button onclick="applyStamp('RECIBIDO')" class="ink-stamp-box p-2 text-center border-red-500 text-red-400 hover:bg-red-950/30 rounded font-bold transition-colors">
+      <div class="grid grid-cols-2 gap-2.5 mb-4">
+        <button onclick="applyStamp('RECIBIDO')" class="ink-stamp-box p-2.5 text-center border-red-500 text-red-400 hover:bg-red-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
           [ RECIBIDO ]
         </button>
-        <button onclick="applyStamp('ENTREGADO')" class="ink-stamp-box p-2 text-center border-blue-500 text-blue-400 hover:bg-blue-950/30 rounded font-bold transition-colors">
+        <button onclick="applyStamp('ENTREGADO')" class="ink-stamp-box p-2.5 text-center border-blue-500 text-blue-400 hover:bg-blue-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
           [ ENTREGADO ]
         </button>
-        <button onclick="applyStamp('APROBADO')" class="ink-stamp-box p-2 text-center border-emerald-500 text-emerald-400 hover:bg-emerald-950/30 rounded font-bold transition-colors">
+        <button onclick="applyStamp('APROBADO')" class="ink-stamp-box p-2.5 text-center border-emerald-500 text-emerald-400 hover:bg-emerald-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
           [ APROBADO ]
         </button>
-        <button onclick="applyStamp('AJUSTES')" class="ink-stamp-box p-2 text-center border-amber-500 text-amber-400 hover:bg-amber-950/30 rounded font-bold transition-colors">
+        <button onclick="applyStamp('AJUSTES')" class="ink-stamp-box p-2.5 text-center border-amber-500 text-amber-400 hover:bg-amber-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
           [ AJUSTES ]
         </button>
       </div>
 
-      <div class="flex items-center justify-between pt-2 border-t border-resolve-border">
-        <button onclick="clearCurrentStamp()" class="text-resolve-dimText hover:text-red-400 text-[11px]">
+      <div class="flex items-center justify-between pt-2.5 border-t border-resolve-border">
+        <button onclick="clearCurrentStamp()" class="text-resolve-dimText hover:text-rose-400 text-[11px] transition-colors">
           Quitar sello
         </button>
-        <button onclick="closeStampModal()" class="px-3 py-1 bg-resolve-panel text-stone-300 rounded border border-resolve-border hover:bg-resolve-card">
+        <button onclick="closeStampModal()" class="px-3 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">
           Cancelar
         </button>
       </div>
@@ -1148,65 +1150,65 @@
   </div>
 
   <!-- MODAL PARA NUEVA ORDEN DE TRABAJO (NUEVA OT) -->
-  <div id="new-ot-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
-    <div class="w-full max-w-lg bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl p-5 font-mono text-xs">
-      <div class="flex items-center justify-between border-b border-resolve-border pb-2 mb-3">
-        <h4 class="font-bold text-white uppercase flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-sm bg-resolve-accent inline-block"></span>
+  <div id="new-ot-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-6 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 class="font-semibold text-white uppercase text-xs tracking-wider flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
           <span>Nueva Orden de Trabajo (Sobre OT)</span>
         </h4>
-        <button onclick="closeNewOtModal()" class="text-stone-400 hover:text-white">✕</button>
+        <button onclick="closeNewOtModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
       </div>
 
       <form onsubmit="handleCreateOt(event)" class="space-y-3">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">N° de Orden:</label>
-            <input type="text" id="new-id-input" class="w-full bg-resolve-panel border border-resolve-border rounded px-2.5 py-1.5 text-amber-400 font-bold" readonly>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">N° de Orden:</label>
+            <input type="text" id="new-id-input" class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-400 font-bold font-mono" readonly>
           </div>
           <div>
-            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Referencia / Código Campaña</label>
-            <input type="text" id="new-ref-input" placeholder="Ej: BOT-26-DIG" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-amber-300 font-bold focus:border-resolve-accent focus:outline-none">
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Referencia / Código Campaña</label>
+            <input type="text" id="new-ref-input" placeholder="Ej: BOT-26-DIG" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold font-mono focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
           </div>
         </div>
 
         <div class="grid grid-cols-3 gap-3">
           <div>
-            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Cliente *</label>
-            <input type="text" id="new-client-input" required list="clients-datalist" oninput="syncNewOtBrandSuggestions()" placeholder="Seleccionar o escribir..." class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none font-bold">
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Cliente *</label>
+            <input type="text" id="new-client-input" required list="clients-datalist" oninput="syncNewOtBrandSuggestions()" placeholder="Seleccionar..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
           </div>
           <div>
-            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Marca *</label>
-            <input type="text" id="new-brand-input" required list="brands-datalist" placeholder="Ej: Club Premium" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none font-bold">
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Marca *</label>
+            <input type="text" id="new-brand-input" required list="brands-datalist" placeholder="Ej: Club Premium" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
           </div>
           <div>
-            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Producto</label>
-            <input type="text" id="new-product-input" placeholder="Ej: Línea Retornable" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Producto</label>
+            <input type="text" id="new-product-input" placeholder="Ej: Línea Retornable" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
           </div>
         </div>
 
         <div>
-          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Medio / Medidas</label>
-          <input type="text" id="new-media-input" placeholder="Ej: TV 20'', Prensa 1 Pag..." class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Medio / Medidas</label>
+          <input type="text" id="new-media-input" placeholder="Ej: TV 20'', Prensa 1 Pag..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
         </div>
 
         <div>
-          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Título de la Pieza o Campaña *</label>
-          <input type="text" id="new-title-input" required placeholder="Ej: Comercial TV Lanzamiento Nueva Botella" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none">
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Título de la Pieza o Campaña *</label>
+          <input type="text" id="new-title-input" required placeholder="Ej: Comercial TV Lanzamiento Nueva Botella" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
         </div>
         <div>
-          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Primer Relevo / Instrucción Inicial</label>
-          <textarea id="new-first-task-input" rows="2" placeholder="Ej: Favor redactar guion de TV de 20 segundos..." class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none resize-none"></textarea>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Primer Relevo / Instrucción Inicial</label>
+          <textarea id="new-first-task-input" rows="2" placeholder="Ej: Favor redactar guion de TV de 20 segundos..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none resize-none"></textarea>
         </div>
 
         <div class="flex items-center gap-2 pt-1">
           <input type="checkbox" id="new-urgent-input" class="accent-red-500 rounded">
-          <label for="new-urgent-input" class="text-red-400 font-bold text-[11px] cursor-pointer">Marcar esta Orden como Prioridad URGENTE</label>
+          <label for="new-urgent-input" class="text-rose-400 font-semibold text-[11px] cursor-pointer">Marcar esta Orden como Prioridad URGENTE</label>
         </div>
 
         <div class="flex justify-end gap-2 pt-3 border-t border-resolve-border">
-          <button type="button" onclick="closeNewOtModal()" class="px-3 py-1.5 bg-resolve-panel text-stone-300 rounded border border-resolve-border hover:bg-resolve-card">Cancelar</button>
-          <button type="submit" class="px-4 py-1.5 bg-resolve-accent text-stone-950 font-bold rounded hover:bg-resolve-accentHover transition-colors">Crear y Abrir Sobre OT</button>
+          <button type="button" onclick="closeNewOtModal()" class="px-3.5 py-1.5 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">Cancelar</button>
+          <button type="submit" class="px-4 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Crear y Abrir Sobre OT</button>
         </div>
       </form>
     </div>
@@ -1227,47 +1229,47 @@
   </datalist>
 
   <!-- MODAL PARA CREAR / EDITAR CLIENTE -->
-  <div id="client-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl p-4 font-mono text-xs">
-      <div class="flex items-center justify-between border-b border-resolve-border pb-2 mb-3">
-        <h4 id="client-modal-title" class="font-bold text-white uppercase">Nuevo Cliente</h4>
-        <button onclick="closeClientModal()" class="text-stone-400 hover:text-white">✕</button>
+  <div id="client-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 id="client-modal-title" class="font-semibold text-white uppercase text-xs tracking-wider">Nuevo Cliente</h4>
+        <button onclick="closeClientModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
       </div>
       <form onsubmit="handleSaveClient(event)" class="space-y-3">
         <input type="hidden" id="edit-client-id">
         <div>
-          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Nombre del Cliente *</label>
-          <input type="text" id="client-modal-name" required placeholder="Ej: Compañía de Alimentos" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none font-bold">
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre del Cliente *</label>
+          <input type="text" id="client-modal-name" required placeholder="Ej: Compañía de Alimentos" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
         </div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-resolve-border">
-          <button type="button" onclick="closeClientModal()" class="px-3 py-1 bg-resolve-panel text-stone-300 rounded border border-resolve-border hover:bg-resolve-card">Cancelar</button>
-          <button type="submit" class="px-3 py-1 bg-resolve-accent text-stone-950 font-bold rounded hover:bg-resolve-accentHover">Guardar</button>
+        <div class="flex justify-end gap-2 pt-2.5 border-t border-resolve-border">
+          <button type="button" onclick="closeClientModal()" class="px-3.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">Cancelar</button>
+          <button type="submit" class="px-3.5 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Guardar</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL PARA CREAR / EDITAR MARCA -->
-  <div id="brand-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-resolve-surface border border-resolve-border rounded-lg shadow-2xl p-4 font-mono text-xs">
-      <div class="flex items-center justify-between border-b border-resolve-border pb-2 mb-3">
-        <h4 id="brand-modal-title" class="font-bold text-white uppercase">Nueva Marca</h4>
-        <button onclick="closeBrandModal()" class="text-stone-400 hover:text-white">✕</button>
+  <div id="brand-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 id="brand-modal-title" class="font-semibold text-white uppercase text-xs tracking-wider">Nueva Marca</h4>
+        <button onclick="closeBrandModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
       </div>
       <form onsubmit="handleSaveBrand(event)" class="space-y-3">
         <input type="hidden" id="brand-client-name">
         <input type="hidden" id="edit-brand-old-name">
         <div>
-          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Cliente Vinculado</label>
-          <input type="text" id="brand-client-display" readonly class="w-full bg-resolve-panel border border-resolve-border rounded px-2.5 py-1.5 text-amber-400 font-bold">
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Cliente Vinculado</label>
+          <input type="text" id="brand-client-display" readonly class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-400 font-semibold">
         </div>
         <div>
-          <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Nombre de la Marca / Producto *</label>
-          <input type="text" id="brand-modal-name" required placeholder="Ej: Bebida Energética" class="w-full bg-resolve-bg border border-resolve-border rounded px-2.5 py-1.5 text-white focus:border-resolve-accent focus:outline-none font-bold">
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre de la Marca / Producto *</label>
+          <input type="text" id="brand-modal-name" required placeholder="Ej: Bebida Energética" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
         </div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-resolve-border">
-          <button type="button" onclick="closeBrandModal()" class="px-3 py-1 bg-resolve-panel text-stone-300 rounded border border-resolve-border hover:bg-resolve-card">Cancelar</button>
-          <button type="submit" class="px-3 py-1 bg-resolve-accent text-stone-950 font-bold rounded hover:bg-resolve-accentHover">Guardar Marca</button>
+        <div class="flex justify-end gap-2 pt-2.5 border-t border-resolve-border">
+          <button type="button" onclick="closeBrandModal()" class="px-3.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">Cancelar</button>
+          <button type="submit" class="px-3.5 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Guardar Marca</button>
         </div>
       </form>
     </div>
@@ -1357,14 +1359,14 @@
       const st = statuses.find(s => s.name.toLowerCase() === (statusName || '').toLowerCase());
       const color = st ? st.color : 'stone';
       const colorMap = {
-        amber: "bg-amber-950/60 text-amber-400 border-amber-800",
-        blue: "bg-blue-950/60 text-blue-400 border-blue-800",
-        cyan: "bg-cyan-950/60 text-cyan-400 border-cyan-800",
-        purple: "bg-purple-950/60 text-purple-400 border-purple-800",
-        emerald: "bg-emerald-950/60 text-emerald-400 border-emerald-800",
-        red: "bg-red-950/60 text-red-400 border-red-800",
-        yellow: "bg-yellow-950/60 text-yellow-300 border-yellow-700",
-        stone: "bg-stone-800 text-stone-300 border-stone-700"
+        amber: "bg-amber-500/10 text-amber-300 border-amber-500/25",
+        blue: "bg-sky-500/10 text-sky-300 border-sky-500/25",
+        cyan: "bg-cyan-500/10 text-cyan-300 border-cyan-500/25",
+        purple: "bg-purple-500/10 text-purple-300 border-purple-500/25",
+        emerald: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25",
+        red: "bg-rose-500/10 text-rose-300 border-rose-500/25",
+        yellow: "bg-amber-400/10 text-amber-200 border-amber-400/25",
+        stone: "bg-white/[0.05] text-zinc-300 border-white/[0.10]"
       };
       return colorMap[color] || colorMap.stone;
     }
@@ -1989,11 +1991,11 @@
 
       if (!strips || strips.length === 0) {
         container.innerHTML = `
-          <div class="p-12 text-center border border-dashed border-resolve-border rounded bg-resolve-surface/30 font-mono text-xs text-resolve-dimText flex flex-col items-center justify-center">
+          <div class="p-12 text-center border border-dashed border-resolve-border rounded-2xl bg-white/[0.02] text-xs text-resolve-dimText flex flex-col items-center justify-center">
             <svg class="w-10 h-10 text-stone-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             <span class="font-bold text-white text-sm">Arrastra OTs aquí o cárgales automáticamente</span>
             <p class="text-[11px] text-resolve-dimText mt-1 max-w-sm">Puedes arrastrar cualquier OT desde la columna izquierda y soltarla en este tablero, o pulsar el botón para cargar todas las pendientes.</p>
-            <button onclick="autoPopulatePendingOts()" class="mt-4 px-3 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded transition-colors text-xs flex items-center gap-1.5">
+            <button onclick="autoPopulatePendingOts()" class="mt-4 px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg transition-all active:scale-[0.98] text-xs flex items-center gap-1.5 shadow-sm">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               <span>Cargar OTs Pendientes al Plan</span>
             </button>
@@ -2013,7 +2015,7 @@
               ondragleave="handleStripDragLeave(event)"
               ondrop="handleStripDrop(event, ${idx})"
               ondragend="handleStripDragEnd(event)"
-              class="stripboard-row strip-item-print bg-resolve-panel border border-amber-600/40 rounded px-3 py-2 flex items-center justify-between font-mono text-xs border-l-4 border-l-amber-500 shadow-xs cursor-grab active:cursor-grabbing"
+              class="stripboard-row strip-item-print bg-resolve-panel/90 border border-amber-600/30 rounded-xl px-3 py-2 flex items-center justify-between text-xs border-l-4 border-l-amber-500 shadow-xs cursor-grab active:cursor-grabbing"
             >
               <div class="flex items-center gap-2.5 flex-1">
                 <!-- Grip handle de cine -->
@@ -2030,7 +2032,7 @@
                   onblur="resumeRowDrag(this)"
                   value="${escapeHtml(strip.title || 'SEPARADOR DE TURNO')}" 
                   onchange="updateStripField(${idx}, 'title', this.value)" 
-                  class="bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent font-bold text-white text-xs px-1 flex-1 focus:ring-0 cursor-text"
+                  class="bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 font-semibold text-white text-xs px-1 flex-1 focus:ring-0 cursor-text"
                 />
               </div>
               <div class="flex items-center gap-1 no-print">
@@ -2041,10 +2043,10 @@
         }
 
         const ot = strip.otId ? orders.find(o => o.id === strip.otId) : null;
-        let borderLeftColor = 'border-l-blue-500';
-        if (strip.shiftStatus === 'En Mesa') borderLeftColor = 'border-l-amber-500 bg-amber-950/10';
+        let borderLeftColor = 'border-l-sky-500';
+        if (strip.shiftStatus === 'En Mesa') borderLeftColor = 'border-l-amber-500 bg-amber-500/[0.04]';
         else if (strip.shiftStatus === 'Entregado') borderLeftColor = 'border-l-emerald-500 opacity-80';
-        else if (strip.shiftStatus === 'Detenido') borderLeftColor = 'border-l-red-500 bg-red-950/10';
+        else if (strip.shiftStatus === 'Detenido') borderLeftColor = 'border-l-rose-500 bg-rose-500/[0.04]';
 
         const clientDisplay = ot ? (ot.client || '--') : (strip.client || '--');
         const brandDisplay = ot ? (ot.brand || ot.product || '--') : (strip.brand || '--');
@@ -2060,7 +2062,7 @@
             ondrop="handleStripDrop(event, ${idx})"
             ondragend="handleStripDragEnd(event)"
             ondblclick="handleStripCardClick(event, '${strip.otId || ''}')"
-            class="stripboard-row strip-item-print group bg-resolve-surface hover:bg-resolve-card border border-resolve-border rounded p-2.5 grid grid-cols-12 gap-2 items-center text-xs font-mono transition-all border-l-4 ${borderLeftColor} shadow-xs cursor-grab active:cursor-grabbing"
+            class="stripboard-row strip-item-print group bg-resolve-surface hover:bg-resolve-card border border-resolve-border rounded-xl p-2.5 grid grid-cols-12 gap-2 items-center text-xs transition-all border-l-4 ${borderLeftColor} shadow-xs cursor-grab active:cursor-grabbing"
           >
             
             <!-- Col 1: Grip de arrastre + N° de secuencia -->
@@ -2083,7 +2085,7 @@
                 value="${escapeHtml(strip.timeSlot || '')}" 
                 onchange="updateStripField(${idx}, 'timeSlot', this.value)" 
                 placeholder="08:30 - 10:30" 
-                class="w-full bg-resolve-bg border border-resolve-border rounded px-2 py-1 text-white font-bold text-xs focus:border-resolve-accent focus:outline-none cursor-text"
+                class="w-full bg-black/40 border border-resolve-border rounded-lg px-2 py-1 text-white font-bold text-xs font-mono focus:border-amber-500/60 focus:outline-none cursor-text"
               />
             </div>
 
@@ -2097,15 +2099,15 @@
                   onmouseup="resumeRowDrag(this)"
                   onclick="event.stopPropagation(); openEnvelopeModal('${strip.otId}')" 
                   title="Abrir Sobre OT" 
-                  class="px-2 py-0.5 rounded bg-resolve-panel hover:bg-resolve-border border border-resolve-border hover:border-amber-400 text-amber-400 font-black text-xs font-mono truncate transition-colors cursor-pointer"
+                  class="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-xs font-mono truncate transition-all cursor-pointer"
                 >
                   ${strip.otId}
                 </button>
               ` : `
-                <span class="px-2 py-0.5 rounded bg-resolve-panel text-stone-400 font-bold text-xs">LIBRE</span>
+                <span class="px-2 py-0.5 rounded-md bg-white/[0.05] text-stone-400 font-semibold text-xs">LIBRE</span>
               `}
               ${refDisplay ? `
-                <span class="text-[10px] text-stone-400 truncate" title="Ref: ${escapeHtml(refDisplay)}">
+                <span class="text-[10px] text-zinc-400 font-mono truncate" title="Ref: ${escapeHtml(refDisplay)}">
                   ${escapeHtml(refDisplay)}
                 </span>
               ` : ''}
@@ -2136,7 +2138,7 @@
                 value="${escapeHtml(strip.task || '')}" 
                 onchange="updateStripField(${idx}, 'task', this.value)" 
                 placeholder="Instrucción de este turno de trabajo..." 
-                class="w-full bg-resolve-bg border border-resolve-border rounded px-2 py-1 text-white text-xs focus:border-resolve-accent focus:outline-none cursor-text"
+                class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1 text-zinc-100 text-xs focus:border-amber-500/60 focus:outline-none cursor-text"
               />
             </div>
 
@@ -2151,7 +2153,7 @@
                 value="${escapeHtml(strip.assignee || 'Creativos')}" 
                 onchange="updateStripField(${idx}, 'assignee', this.value)" 
                 placeholder="Área" 
-                class="w-full bg-resolve-bg border border-resolve-border rounded px-1.5 py-1 text-cyan-300 font-bold text-[11px] focus:border-resolve-accent focus:outline-none text-center cursor-text"
+                class="w-full bg-black/30 border border-resolve-border rounded-lg px-1.5 py-1 text-cyan-300 font-semibold text-[11px] focus:border-amber-500/60 focus:outline-none text-center cursor-text"
               />
             </div>
 
@@ -2162,7 +2164,7 @@
                 onmouseup="resumeRowDrag(this)"
                 onblur="resumeRowDrag(this)"
                 onchange="updateStripField(${idx}, 'shiftStatus', this.value)" 
-                class="bg-resolve-bg border border-resolve-border rounded px-1 py-1 text-[10px] font-bold text-stone-200 focus:outline-none cursor-pointer"
+                class="bg-black/40 border border-resolve-border rounded-lg px-1.5 py-1 text-[10px] font-semibold text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="Por Iniciar" ${strip.shiftStatus === 'Por Iniciar' ? 'selected' : ''}>Por Iniciar</option>
                 <option value="En Mesa" ${strip.shiftStatus === 'En Mesa' ? 'selected' : ''}>En Mesa</option>
@@ -2287,24 +2289,24 @@
         // Construir píldoras testigo de días asignados
         const witnessPillsHtml = scheduledDays.length > 0
           ? scheduledDays.map(d => {
-              let pillColor = 'bg-resolve-bg text-stone-300 border-resolve-border hover:border-amber-400';
-              if (d.dominantStatus === 'En Mesa') pillColor = 'bg-amber-950/60 text-amber-300 border-amber-700/70';
-              else if (d.dominantStatus === 'Entregado') pillColor = 'bg-emerald-950/60 text-emerald-300 border-emerald-700/70';
-              else if (d.dominantStatus === 'Detenido') pillColor = 'bg-red-950/60 text-red-300 border-red-700/70';
+              let pillColor = 'bg-white/[0.04] text-zinc-300 border-white/[0.08] hover:border-amber-400/50';
+              if (d.dominantStatus === 'En Mesa') pillColor = 'bg-amber-500/10 text-amber-300 border-amber-500/25';
+              else if (d.dominantStatus === 'Entregado') pillColor = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25';
+              else if (d.dominantStatus === 'Detenido') pillColor = 'bg-rose-500/10 text-rose-300 border-rose-500/25';
 
-              const activeRing = d.isCurrentDay ? 'ring-1 ring-amber-400 font-black' : '';
+              const activeRing = d.isCurrentDay ? 'ring-1 ring-amber-400 font-bold' : '';
               return `
                 <button
                   type="button"
                   onclick="event.stopPropagation(); selectStripboardDate('${d.dateStr}', false)"
                   title="Ir al plan del ${d.shortLabel} (${d.dominantStatus})"
-                  class="px-1.5 py-0.5 rounded border text-[9px] font-mono transition-all cursor-pointer ${pillColor} ${activeRing}"
+                  class="px-1.5 py-0.5 rounded-md border text-[9px] transition-all cursor-pointer ${pillColor} ${activeRing}"
                 >
                   ${d.shortLabel}${d.count > 1 ? ` ×${d.count}` : ''}
                 </button>
               `;
             }).join('')
-          : `<span class="text-[9px] text-stone-500 italic">Sin días asignados</span>`;
+          : `<span class="text-[9px] text-zinc-500 italic">Sin días asignados</span>`;
 
         // Estado visual dinámico del botón de asignación al día activo
         const actionBtnHtml = inTodayCount > 0
@@ -2312,7 +2314,7 @@
             <button 
               onclick="event.stopPropagation(); addOtToStripboard('${ot.id}')" 
               title="Ya tiene ${inTodayCount} turno(s) en este día. Pulsa para agregar otro turno adicional hoy."
-              class="px-2 py-0.5 bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-700/70 font-bold rounded text-[10px] transition-colors cursor-pointer"
+              class="px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold rounded-lg text-[10px] transition-all cursor-pointer"
             >
               ✓ En este día (${inTodayCount}) + Turno
             </button>
@@ -2321,7 +2323,7 @@
             <button 
               onclick="event.stopPropagation(); addOtToStripboard('${ot.id}')" 
               title="Agregar esta OT al plan del día seleccionado"
-              class="px-2 py-0.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded text-[10px] transition-colors cursor-pointer"
+              class="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold rounded-lg text-[10px] transition-all cursor-pointer"
             >
               + Al Día
             </button>
@@ -2333,7 +2335,7 @@
             ondragstart="handlePoolOtDragStart(event, '${ot.id}')"
             ondragend="handlePoolOtDragEnd(event)"
             title="Arrastra esta OT hacia el Stripboard o haz clic en su código para abrir el Sobre"
-            class="p-2.5 bg-resolve-panel border ${ot.urgent ? 'border-red-600/70' : (inTodayCount > 0 ? 'border-emerald-700/50' : 'border-resolve-border')} rounded group hover:border-resolve-accent transition-all cursor-grab active:cursor-grabbing select-none"
+            class="p-2.5 bg-white/[0.02] hover:bg-white/[0.05] border ${ot.urgent ? 'border-rose-500/50 shadow-sm shadow-rose-950/20' : (inTodayCount > 0 ? 'border-emerald-500/30' : 'border-resolve-border')} rounded-xl group hover:border-amber-400/50 transition-all cursor-grab active:cursor-grabbing select-none"
           >
             <div class="flex items-center justify-between mb-1">
               <div class="flex items-center gap-1.5 truncate">
@@ -2344,13 +2346,13 @@
                   type="button"
                   onclick="event.stopPropagation(); openEnvelopeModal('${ot.id}')"
                   title="Abrir Sobre OT completo"
-                  class="font-bold text-amber-400 hover:text-white text-[11px] px-1.5 py-0.2 bg-resolve-bg hover:bg-resolve-card rounded border border-resolve-border transition-colors cursor-pointer"
+                  class="font-mono font-bold text-amber-400 hover:text-white text-[11px] px-1.5 py-0.2 bg-black/40 hover:bg-black/60 rounded-md border border-resolve-border transition-colors cursor-pointer"
                 >
                   ${ot.id}
                 </button>
-                ${ot.urgent ? '<span class="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente"></span>' : ''}
+                ${ot.urgent ? '<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Urgente"></span>' : ''}
               </div>
-              <span class="text-[9px] font-bold px-1.5 py-0.2 rounded border ${getStatusBadgeClass(ot.status)}">
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border ${getStatusBadgeClass(ot.status)}">
                 ${ot.status}
               </span>
             </div>
@@ -3315,13 +3317,13 @@
       const listContainer = document.getElementById('envelopes-list-container');
 
       if (mode === 'grid') {
-        btnGrid.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors bg-resolve-card text-white border border-resolve-border/60 shadow-xs";
-        btnList.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors text-resolve-dimText hover:text-white";
+        btnGrid.className = "px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs";
+        btnList.className = "px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all text-resolve-dimText hover:text-white";
         gridContainer.classList.remove('hidden');
         listContainer.classList.add('hidden');
       } else {
-        btnList.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors bg-resolve-card text-white border border-resolve-border/60 shadow-xs";
-        btnGrid.className = "px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors text-resolve-dimText hover:text-white";
+        btnList.className = "px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs";
+        btnGrid.className = "px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all text-resolve-dimText hover:text-white";
         gridContainer.classList.add('hidden');
         listContainer.classList.remove('hidden');
       }
@@ -3626,13 +3628,13 @@
 
         return `
           <div class="bin-client-group">
-            <div class="flex items-center justify-between group rounded hover:bg-resolve-panel py-1 px-1.5 cursor-pointer ${isClientActive ? 'bin-active' : ''}">
+            <div class="flex items-center justify-between group rounded-lg hover:bg-white/[0.06] py-1.5 px-2 cursor-pointer transition-colors ${isClientActive ? 'bin-active' : ''}">
               <div class="flex items-center gap-1.5 truncate flex-1" onclick="selectTreeFilter('client', '${escapeHtml(client.name)}', null)">
-                <svg class="w-3.5 h-3.5 text-amber-500/80 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
-                <span class="font-bold truncate text-white">${escapeHtml(client.name)}</span>
+                <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+                <span class="font-semibold truncate text-white text-xs">${escapeHtml(client.name)}</span>
               </div>
               <div class="flex items-center gap-1">
-                <span class="text-[10px] text-resolve-dimText font-mono">${clientOrders.length}</span>
+                <span class="text-[10px] font-semibold text-zinc-400 bg-white/[0.05] px-1.5 py-0.2 rounded-full">${clientOrders.length}</span>
                 <!-- Acciones CRUD Cliente -->
                 <button onclick="event.stopPropagation(); openBrandModal('${escapeHtml(client.name)}')" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded">
                   +
@@ -3655,14 +3657,14 @@
                 return `
                   <div 
                     onclick="selectTreeFilter('brand', '${escapeHtml(client.name)}', '${escapeHtml(brand)}')" 
-                    class="flex items-center justify-between px-2 py-1 rounded cursor-pointer group hover:bg-resolve-panel text-stone-400 hover:text-white transition-colors ${isBrandActive ? 'bin-active' : ''}"
+                    class="flex items-center justify-between px-2 py-1 rounded-lg cursor-pointer group hover:bg-white/[0.05] text-zinc-400 hover:text-white transition-colors text-xs ${isBrandActive ? 'bin-active' : ''}"
                   >
                     <div class="flex items-center gap-1.5 truncate flex-1">
-                      <span class="text-stone-600">↳</span>
-                      <span class="truncate">${escapeHtml(brand)}</span>
+                      <span class="text-zinc-600">↳</span>
+                      <span class="truncate font-medium">${escapeHtml(brand)}</span>
                     </div>
                     <div class="flex items-center gap-1">
-                      <span class="text-[10px] text-stone-500">${brandOrders.length}</span>
+                      <span class="text-[10px] font-medium text-zinc-500">${brandOrders.length}</span>
                       <button onclick="event.stopPropagation(); openBrandModal('${escapeHtml(client.name)}', '${escapeHtml(brand)}')" title="Editar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-amber-400">
                         ✎
                       </button>
@@ -3775,75 +3777,75 @@
           let statusClass = getStatusBadgeClass(ot.status);
 
           return `
-          <div class="bg-resolve-surface border ${ot.urgent ? 'border-red-600/80 shadow-[0_0_12px_rgba(220,38,38,0.2)]' : 'border-resolve-border hover:border-resolve-accent/60'} rounded p-4 flex flex-col justify-between transition-all group">
+          <div class="bg-white/[0.025] hover:bg-white/[0.05] border ${ot.urgent ? 'border-rose-500/60 shadow-lg shadow-rose-950/20' : 'border-resolve-border hover:border-amber-400/50 hover:shadow-xl hover:shadow-black/60'} rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 group">
             
             <div>
               <!-- Cabecera de la Tarjeta OT -->
-              <div class="flex items-center justify-between pb-2 border-b border-resolve-border">
+              <div class="flex items-center justify-between pb-2.5 border-b border-resolve-border/60">
                 <div class="flex items-center gap-2">
-                  <span class="font-mono text-xs font-black text-white px-2 py-0.5 bg-resolve-panel rounded border border-resolve-border">
+                  <span class="font-mono text-xs font-bold text-white px-2 py-0.5 bg-black/40 rounded-md border border-resolve-border">
                     ${ot.id}
                   </span>
                   ${ot.ref ? `
-                    <span class="font-mono text-[11px] font-bold text-amber-400 px-1.5 py-0.5 bg-amber-500/10 rounded border border-amber-500/30 truncate max-w-[120px]" title="Referencia: ${escapeHtml(ot.ref)}">
+                    <span class="font-mono text-[11px] font-semibold text-amber-300 px-2 py-0.5 bg-amber-500/10 rounded-full border border-amber-500/25 truncate max-w-[120px]" title="Referencia: ${escapeHtml(ot.ref)}">
                       ${escapeHtml(ot.ref)}
                     </span>
                   ` : ''}
                   ${ot.urgent ? `
-                    <span class="text-[9px] font-mono font-bold bg-red-600 text-white px-1.5 py-0.5 rounded tracking-wide">
+                    <span class="text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full tracking-wider uppercase">
                       URGENTE
                     </span>
                   ` : ''}
                 </div>
-                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${statusClass}">
+                <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${statusClass}">
                   ${ot.status}
                 </span>
               </div>
 
               <!-- Contenido y Metadatos -->
               <div class="mt-3 cursor-pointer" onclick="openEnvelopeModal('${ot.id}')">
-                <div class="text-[11px] font-mono text-resolve-dimText uppercase truncate">
+                <div class="text-[11px] font-medium text-zinc-400 uppercase tracking-wide truncate">
                   ${escapeHtml(ot.client)} ${ot.brand ? '• ' + escapeHtml(ot.brand) : ''} ${ot.product && ot.product !== ot.brand ? '• ' + escapeHtml(ot.product) : ''}
                 </div>
-                <h3 class="font-mono font-bold text-sm text-white mt-1 group-hover:text-resolve-accent transition-colors leading-snug">
+                <h3 class="font-semibold text-sm text-zinc-100 mt-1 group-hover:text-amber-400 transition-colors leading-snug tracking-tight">
                   ${escapeHtml(ot.title)}
                 </h3>
-                <div class="text-[11px] font-mono text-stone-400 mt-1 flex items-center gap-1.5">
-                  <span class="text-resolve-dimText font-bold">Medio:</span>
-                  <span class="text-stone-300 truncate">${escapeHtml(ot.media || 'No especificado')}</span>
+                <div class="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
+                  <span class="text-zinc-500 font-medium">Medio:</span>
+                  <span class="text-zinc-300 truncate">${escapeHtml(ot.media || 'No especificado')}</span>
                 </div>
 
                 <!-- Último Relevo -->
-                <div class="mt-3 bg-resolve-panel/80 p-2.5 rounded border border-resolve-border/60 text-xs font-mono">
+                <div class="mt-3 bg-black/25 p-3 rounded-xl border border-white/[0.06] text-xs">
                   <div class="flex items-center justify-between text-[10px] text-resolve-dimText mb-1">
-                    <span class="font-bold text-resolve-accent">ÚLTIMO RELEVO</span>
-                    <span>${lastRoute ? (lastRoute.deliveryDate || lastRoute.entryDate) : '--'}</span>
+                    <span class="font-semibold text-amber-400 tracking-wider">ÚLTIMO RELEVO</span>
+                    <span class="font-mono text-zinc-500 text-[10px]">${lastRoute ? (lastRoute.deliveryDate || lastRoute.entryDate) : '--'}</span>
                   </div>
                   ${lastRoute ? `
-                    <div class="font-bold text-white text-[11px] flex items-center gap-1.5">
-                      <span class="text-amber-400">${escapeHtml(lastRoute.from)}</span>
-                      <span>→</span>
-                      <span class="text-cyan-400">${escapeHtml(lastRoute.to)}</span>
+                    <div class="font-semibold text-white text-[11px] flex items-center gap-1.5">
+                      <span class="text-amber-300">${escapeHtml(lastRoute.from)}</span>
+                      <span class="text-zinc-600">→</span>
+                      <span class="text-sky-300">${escapeHtml(lastRoute.to)}</span>
                     </div>
-                    <p class="text-[11px] text-stone-400 line-clamp-2 mt-0.5 italic">
+                    <p class="text-[11px] text-zinc-300 line-clamp-2 mt-0.5">
                       "${escapeHtml(lastRoute.task)}"
                     </p>
                   ` : `
-                    <span class="text-stone-500 italic">Sin movimientos registrados.</span>
+                    <span class="text-zinc-500 italic text-[11px]">Sin movimientos registrados.</span>
                   `}
                 </div>
               </div>
             </div>
 
             <!-- Footer Tarjeta (Media Pool Preview & Abrir) -->
-            <div class="mt-4 pt-2.5 border-t border-resolve-border/80 flex items-center justify-between text-xs font-mono">
-              <div class="flex items-center gap-1.5 text-resolve-dimText text-[11px]">
-                <svg class="w-3.5 h-3.5 text-resolve-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+            <div class="mt-4 pt-2.5 border-t border-resolve-border/60 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-1.5 text-zinc-400 text-[11px] font-medium">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                 <span>${totalFiles} items en Media Pool</span>
               </div>
-              <button onclick="openEnvelopeModal('${ot.id}')" class="px-2.5 py-1 bg-resolve-panel hover:bg-resolve-card text-white rounded border border-resolve-border font-bold text-xs flex items-center gap-1 transition-colors">
+              <button onclick="openEnvelopeModal('${ot.id}')" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-lg border border-resolve-border font-medium text-xs flex items-center gap-1.5 transition-all active:scale-[0.98]">
                 <span>Inspeccionar</span>
-                <span class="text-resolve-accent">→</span>
+                <span class="text-amber-400">→</span>
               </button>
             </div>
 
@@ -3861,43 +3863,43 @@
           let statusBadge = getStatusBadgeClass(ot.status);
 
           return `
-          <tr class="hover:bg-resolve-panel transition-colors cursor-pointer group" onclick="openEnvelopeModal('${ot.id}')">
+          <tr class="hover:bg-white/[0.04] transition-colors cursor-pointer group" onclick="openEnvelopeModal('${ot.id}')">
             <!-- N° OT -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
               <div class="flex items-center gap-1.5">
-                <span class="font-bold text-white px-2 py-0.5 bg-resolve-bg rounded border border-resolve-border group-hover:border-resolve-accent text-[11px]">
+                <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/40 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px]">
                   ${ot.id}
                 </span>
-                ${ot.urgent ? `<span class="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente"></span>` : ''}
+                ${ot.urgent ? `<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Urgente"></span>` : ''}
               </div>
             </td>
 
             <!-- ESTADO -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded border inline-block whitespace-nowrap ${statusBadge}">
+              <span class="text-[10px] font-medium px-2.5 py-0.5 rounded-full border inline-block whitespace-nowrap ${statusBadge}">
                 ${ot.status}
               </span>
             </td>
 
             <!-- REFERENCIA -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <span class="font-bold text-amber-400 text-[11px] truncate block max-w-[120px]" title="${escapeHtml(ot.ref || '')}">
+              <span class="font-mono font-semibold text-amber-300 text-[11px] truncate block max-w-[120px]" title="${escapeHtml(ot.ref || '')}">
                 ${escapeHtml(ot.ref || '--')}
               </span>
             </td>
 
             <!-- CLIENTE / MARCA -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <div class="font-bold text-white truncate max-w-[180px]">${escapeHtml(ot.client)}</div>
-              <div class="text-[10px] text-resolve-dimText truncate max-w-[180px]">${escapeHtml(ot.brand || ot.product || '--')}${ot.product && ot.brand && ot.product !== ot.brand ? ' • ' + escapeHtml(ot.product) : ''}</div>
+              <div class="font-semibold text-white truncate max-w-[180px]">${escapeHtml(ot.client)}</div>
+              <div class="text-[10px] text-zinc-400 truncate max-w-[180px]">${escapeHtml(ot.brand || ot.product || '--')}${ot.product && ot.brand && ot.product !== ot.brand ? ' • ' + escapeHtml(ot.product) : ''}</div>
             </td>
 
             <!-- TÍTULO & MEDIO -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <div class="font-bold text-stone-200 group-hover:text-resolve-accent transition-colors truncate max-w-sm">
+              <div class="font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors truncate max-w-sm">
                 ${escapeHtml(ot.title)}
               </div>
-              <div class="text-[10px] text-stone-400 truncate max-w-sm">
+              <div class="text-[10px] text-zinc-400 truncate max-w-sm">
                 ${escapeHtml(ot.media || 'Sin especificar')}
               </div>
             </td>
@@ -3905,27 +3907,27 @@
             <!-- ÚLTIMO RELEVO -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle">
               ${lastRoute ? `
-                <div class="text-[11px] font-bold">
-                  <span class="text-amber-400">${escapeHtml(lastRoute.from)}</span>
-                  <span class="text-stone-500">→</span>
-                  <span class="text-cyan-400">${escapeHtml(lastRoute.to)}</span>
+                <div class="text-[11px] font-semibold">
+                  <span class="text-amber-300">${escapeHtml(lastRoute.from)}</span>
+                  <span class="text-zinc-500">→</span>
+                  <span class="text-sky-300">${escapeHtml(lastRoute.to)}</span>
                 </div>
-                <div class="text-[10px] text-stone-400 truncate max-w-[190px] italic">
+                <div class="text-[10px] text-zinc-400 truncate max-w-[190px]">
                   ${escapeHtml(lastRoute.task || 'Sin comentarios')}
                 </div>
               ` : `
-                <span class="text-stone-600 text-[10px]">--</span>
+                <span class="text-zinc-600 text-[10px]">--</span>
               `}
             </td>
 
             <!-- FECHA ENTREGA -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle text-[11px] text-stone-300 whitespace-nowrap">
+            <td class="p-2.5 border-r border-resolve-border/60 align-middle text-[11px] text-zinc-300 font-mono whitespace-nowrap">
               ${lastRoute && lastRoute.deliveryDate ? lastRoute.deliveryDate : (ot.createdAt || '--')}
             </td>
 
             <!-- MEDIA POOL -->
             <td class="p-2.5 border-r border-resolve-border/60 align-middle text-center">
-              <span class="px-2 py-0.5 bg-resolve-bg text-resolve-dimText group-hover:text-amber-400 rounded text-[10px] border border-resolve-border/50 inline-flex items-center gap-1">
+              <span class="px-2 py-0.5 bg-black/40 text-zinc-400 group-hover:text-amber-400 rounded-md text-[10px] border border-resolve-border/60 inline-flex items-center gap-1">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                 <span>${totalFiles}</span>
               </span>
@@ -3935,10 +3937,10 @@
             <td class="p-2.5 align-middle text-center" onclick="event.stopPropagation()">
               <button 
                 onclick="openEnvelopeModal('${ot.id}')" 
-                class="px-2 py-1 bg-resolve-panel hover:bg-resolve-card text-white text-[10px] font-bold rounded border border-resolve-border transition-colors inline-flex items-center gap-1"
+                class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-white text-[10px] font-semibold rounded-lg border border-resolve-border transition-all active:scale-[0.98] inline-flex items-center gap-1"
               >
                 <span>Abrir</span>
-                <span class="text-resolve-accent">→</span>
+                <span class="text-amber-400">→</span>
               </button>
             </td>
           </tr>
@@ -4013,20 +4015,20 @@
 
       container.innerHTML = scheduledDays.map(d => {
         return d.matched.map(m => {
-          let pillColor = 'bg-resolve-bg text-stone-200 border-resolve-border hover:border-amber-400';
-          if (m.strip.shiftStatus === 'En Mesa') pillColor = 'bg-amber-950/60 text-amber-300 border-amber-700/70';
-          else if (m.strip.shiftStatus === 'Entregado') pillColor = 'bg-emerald-950/60 text-emerald-300 border-emerald-700/70';
-          else if (m.strip.shiftStatus === 'Detenido') pillColor = 'bg-red-950/60 text-red-300 border-red-700/70';
+          let pillColor = 'bg-white/[0.04] text-zinc-300 border-white/[0.08] hover:border-amber-400/50';
+          if (m.strip.shiftStatus === 'En Mesa') pillColor = 'bg-amber-500/10 text-amber-300 border-amber-500/25';
+          else if (m.strip.shiftStatus === 'Entregado') pillColor = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25';
+          else if (m.strip.shiftStatus === 'Detenido') pillColor = 'bg-rose-500/10 text-rose-300 border-rose-500/25';
 
           return `
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-mono ${pillColor}">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-medium ${pillColor}">
               <button
                 type="button"
                 onclick="jumpFromModalToStripboardDate('${d.dateStr}')"
                 title="Cerrar sobre e ir al Stripboard del ${d.shortLabel}"
-                class="font-bold hover:underline cursor-pointer"
+                class="font-semibold hover:underline cursor-pointer"
               >
-                ${d.shortLabel} • ${escapeHtml(m.strip.timeSlot || '')} (${escapeHtml(m.strip.assignee || 'Creativos')} • ${escapeHtml(m.strip.shiftStatus || 'Por Iniciar')})
+                ${d.shortLabel} • <span class="font-mono">${escapeHtml(m.strip.timeSlot || '')}</span> (${escapeHtml(m.strip.assignee || 'Creativos')} • ${escapeHtml(m.strip.shiftStatus || 'Por Iniciar')})
               </button>
               <button
                 type="button"
@@ -4122,7 +4124,7 @@
       if (!routes || routes.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="p-6 text-center text-resolve-dimText font-mono italic">
+            <td colspan="7" class="p-8 text-center text-zinc-400 italic font-medium">
               Sin relevos asentados. Pulsa "+ AGREGAR MOVIMIENTO" para registrar un pase.
             </td>
           </tr>
@@ -4139,54 +4141,54 @@
           else if (row.stamp === 'AJUSTES') stampColor = 'border-amber-500 text-amber-400';
 
           stampHtml = `
-            <span onclick="openStampModal(${index})" class="ink-stamp-box px-2 py-0.5 text-[11px] font-bold cursor-pointer inline-block ${stampColor}">
+            <span onclick="openStampModal(${index})" class="ink-stamp-box px-2.5 py-0.5 text-[11px] font-bold cursor-pointer inline-block ${stampColor} hover:scale-105 transition-transform">
               [ ${row.stamp} ]
             </span>
           `;
         } else {
           stampHtml = `
-            <button onclick="openStampModal(${index})" class="text-[10px] text-resolve-dimText hover:text-white underline">
+            <button onclick="openStampModal(${index})" class="text-[10px] text-zinc-400 hover:text-white font-medium underline cursor-pointer">
               + Sello
             </button>
           `;
         }
 
         return `
-          <tr class="hover:bg-resolve-card/60 transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
+          <tr class="hover:bg-white/[0.03] transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
             <!-- DE -->
-            <td class="p-2 border-r border-resolve-border align-top">
+            <td class="p-2.5 border-r border-resolve-border align-top">
               <input 
                 type="text" 
                 list="dept-options" 
                 value="${escapeHtml(row.from || '')}" 
                 onchange="updateRouteCell(${index}, 'from', this.value)" 
-                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 font-bold text-amber-400"
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 font-semibold text-amber-300 text-xs"
               />
             </td>
 
             <!-- PARA -->
-            <td class="p-2 border-r border-resolve-border align-top">
+            <td class="p-2.5 border-r border-resolve-border align-top">
               <input 
                 type="text" 
                 list="dept-options" 
                 value="${escapeHtml(row.to || '')}" 
                 onchange="updateRouteCell(${index}, 'to', this.value)" 
-                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 font-bold text-cyan-400"
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 font-semibold text-sky-300 text-xs"
               />
             </td>
 
             <!-- TAREA / DESCRIPCIÓN -->
-            <td class="p-2 border-r border-resolve-border align-top">
+            <td class="p-2.5 border-r border-resolve-border align-top">
               <textarea 
                 rows="2" 
                 onchange="updateRouteCell(${index}, 'task', this.value)" 
                 placeholder="Instrucción del relevo..." 
-                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-resolve-accent focus:ring-0 p-1 text-xs text-white leading-relaxed resize-y"
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 text-xs text-zinc-100 leading-relaxed resize-y font-sans"
               >${escapeHtml(row.task || '')}</textarea>
             </td>
 
             <!-- ENTRADA -->
-            <td class="p-2 border-r border-resolve-border align-top">
+            <td class="p-2.5 border-r border-resolve-border align-top">
               <div class="flex items-center gap-1">
                 <input 
                   type="datetime-local" 
@@ -4194,13 +4196,13 @@
                   onchange="updateRouteDateCell(${index}, 'entryDate', this.value)" 
                   onclick="try { this.showPicker(); } catch(e) {}"
                   style="color-scheme: dark;"
-                  class="w-full bg-resolve-panel/50 hover:bg-resolve-panel border border-resolve-border/60 hover:border-resolve-accent rounded px-2 py-1 text-[11px] text-stone-200 focus:border-resolve-accent focus:outline-none cursor-pointer"
+                  class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded-lg px-2 py-1 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
                 />
                 <button 
                   type="button" 
                   title="Poner fecha y hora actual" 
                   onclick="stampCurrentTime(${index}, 'entryDate')" 
-                  class="p-1 text-resolve-dimText hover:text-white hover:bg-resolve-card rounded transition-colors shrink-0"
+                  class="p-1 text-zinc-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors shrink-0"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </button>
@@ -4208,7 +4210,7 @@
             </td>
 
             <!-- ENTREGA -->
-            <td class="p-2 border-r border-resolve-border align-top">
+            <td class="p-2.5 border-r border-resolve-border align-top">
               <div class="flex items-center gap-1">
                 <input 
                   type="datetime-local" 
@@ -4216,13 +4218,13 @@
                   onchange="updateRouteDateCell(${index}, 'deliveryDate', this.value)" 
                   onclick="try { this.showPicker(); } catch(e) {}"
                   style="color-scheme: dark;"
-                  class="w-full bg-resolve-panel/50 hover:bg-resolve-panel border border-resolve-border/60 hover:border-resolve-accent rounded px-2 py-1 text-[11px] text-stone-200 focus:border-resolve-accent focus:outline-none cursor-pointer"
+                  class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded-lg px-2 py-1 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
                 />
                 <button 
                   type="button" 
                   title="Poner fecha y hora actual" 
                   onclick="stampCurrentTime(${index}, 'deliveryDate')" 
-                  class="p-1 text-resolve-dimText hover:text-white hover:bg-resolve-card rounded transition-colors shrink-0"
+                  class="p-1 text-zinc-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors shrink-0"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </button>
@@ -4230,7 +4232,7 @@
             </td>
 
             <!-- FIRMA / SELLO -->
-            <td class="p-2 border-r border-resolve-border align-middle text-center">
+            <td class="p-2.5 border-r border-resolve-border align-middle text-center">
               ${stampHtml}
             </td>
 
@@ -4507,7 +4509,7 @@
       if (!container) return;
 
       if (!files || files.length === 0) {
-        container.innerHTML = '<div class="p-8 text-center border border-resolve-border rounded bg-resolve-panel/40 font-mono text-xs text-resolve-dimText">El Media Pool de esta OT está vacío. Arrastra archivos arriba para cargarlos.</div>';
+        container.innerHTML = '<div class="p-8 text-center border border-resolve-border rounded-xl bg-white/[0.02] text-xs text-resolve-dimText font-medium">El Media Pool de esta OT está vacío. Arrastra archivos arriba para cargarlos.</div>';
         return;
       }
 
@@ -4516,25 +4518,25 @@
           const meta = getMediaMeta(file);
           const thumb = (meta.type === 'image' && file.url && file.url !== '#')
             ? `<img src="${file.url}" alt="${escapeHtml(file.name)}" class="w-full h-full object-cover">`
-            : `<div class="flex flex-col items-center text-center p-2"><span class="px-2 py-0.5 rounded font-bold text-xs" style="${meta.badgeStyle}">${meta.badge}</span><span class="text-[9px] text-resolve-dimText mt-1.5 uppercase font-bold">${escapeHtml(meta.subLabel)}</span></div>`;
+            : `<div class="flex flex-col items-center text-center p-2"><span class="px-2 py-0.5 rounded-lg font-semibold text-xs" style="${meta.badgeStyle}">${meta.badge}</span><span class="text-[9px] text-resolve-dimText mt-1.5 uppercase font-semibold">${escapeHtml(meta.subLabel)}</span></div>`;
           return `
-            <div class="bg-resolve-panel border border-resolve-border hover:border-resolve-accent rounded p-2 flex flex-col justify-between group transition-all">
-              <div class="h-24 bg-resolve-bg rounded border border-resolve-border/60 flex items-center justify-center overflow-hidden mb-2 relative">
+            <div class="bg-white/[0.03] hover:bg-white/[0.06] border border-resolve-border hover:border-amber-400/50 rounded-xl p-2.5 flex flex-col justify-between group transition-all">
+              <div class="h-24 bg-black/40 rounded-lg border border-resolve-border/60 flex items-center justify-center overflow-hidden mb-2 relative">
                 ${thumb}
-                <button onclick="removeMediaItem(${idx})" title="Eliminar del Media Pool" class="absolute top-1 right-1 p-1 bg-black/70 hover:bg-red-900 text-white rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                <button onclick="removeMediaItem(${idx})" title="Eliminar del Media Pool" class="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-900 text-white rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
               </div>
-              <div class="font-mono text-[11px]">
-                <div class="font-bold text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
                 <div class="text-resolve-dimText text-[10px] flex justify-between mt-1"><span>${file.size || 'Web'}</span><span>${file.date ? file.date.split(' ')[0] : ''}</span></div>
-                ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="mt-2 block text-center py-1 bg-resolve-card hover:bg-resolve-border text-resolve-accent font-bold text-[10px] rounded border border-resolve-border">Descargar</a>` : ''}
+                ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="mt-2 block text-center py-1 bg-white/[0.05] hover:bg-white/[0.10] text-amber-300 font-semibold text-[10px] rounded-lg border border-resolve-border transition-all">Descargar</a>` : ''}
               </div>
             </div>`;
         }).join('') + '</div>';
       } else {
         container.innerHTML = `
-          <div class="border border-resolve-border rounded overflow-hidden">
-            <table class="w-full text-left font-mono text-xs border-collapse">
-              <thead><tr class="bg-resolve-panel border-b border-resolve-border text-[11px] text-resolve-dimText">
+          <div class="border border-resolve-border rounded-xl overflow-hidden bg-resolve-surface">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead><tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
                 <th class="p-2">NOMBRE DEL ARCHIVO</th><th class="p-2 w-32">TIPO</th><th class="p-2 w-24">TAMAÑO</th><th class="p-2 w-36">FECHA SUBIDA</th><th class="p-2 w-28 text-center">ACCIONES</th>
               </tr></thead>
               <tbody class="divide-y divide-resolve-border bg-resolve-bg text-stone-200">
@@ -4671,9 +4673,9 @@
 
       if (!files || files.length === 0) {
         listContainer.innerHTML = `
-          <div class="p-6 text-center text-resolve-dimText font-mono text-xs border border-dashed border-resolve-border rounded">
-            <span class="font-bold text-stone-300">Sobre sin archivos adjuntos</span>
-            <p class="text-[10px] text-stone-500 mt-1">Arrastra archivos a la zona superior para importarlos.</p>
+          <div class="p-6 text-center text-resolve-dimText text-xs border border-dashed border-resolve-border rounded-xl font-medium">
+            <span class="font-semibold text-zinc-300">Sobre sin archivos adjuntos</span>
+            <p class="text-[10px] text-zinc-500 mt-1">Arrastra archivos a la zona superior para importarlos.</p>
           </div>`;
         renderInlineViewer();
         return;
@@ -4727,19 +4729,19 @@
 
     function buildMediaViewerHtml(file) {
       if (!file) {
-        return `<div class="h-full flex flex-col items-center justify-center p-8 text-center text-resolve-dimText font-mono">
-          <span class="text-xs font-bold text-stone-400">Monitor de Previsualización</span>
-          <span class="text-[10px] text-stone-500 mt-1">Selecciona una pieza a la izquierda para previsualizarla</span></div>`;
+        return `<div class="h-full flex flex-col items-center justify-center p-8 text-center text-resolve-dimText">
+          <span class="text-xs font-semibold text-zinc-300">Monitor de Previsualización</span>
+          <span class="text-[10px] text-zinc-500 mt-1">Selecciona una pieza a la izquierda para previsualizarla</span></div>`;
       }
       const meta = getMediaMeta(file);
       const url = file.url && file.url !== '#' ? file.url : '';
       const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
       const isVimeo = url.includes('vimeo.com');
-      const tabBtn = (active, fn, label) => `<button type="button" onclick="${fn}" class="px-2 py-0.5 rounded text-[10px] ${active ? 'bg-resolve-card text-white font-bold' : 'text-resolve-dimText hover:text-white'}">${label}</button>`;
+      const tabBtn = (active, fn, label) => `<button type="button" onclick="${fn}" class="px-2 py-0.5 rounded-md text-[10px] ${active ? 'bg-white/[0.12] text-white font-semibold' : 'text-resolve-dimText hover:text-white'}">${label}</button>`;
 
       // Imagen
       if (meta.type === 'image' && url) {
-        return `<div class="w-full h-full flex items-center justify-center bg-black/60 p-3 overflow-hidden"><img src="${url}" alt="${escapeHtml(file.name)}" class="max-h-full max-w-full object-contain rounded shadow-lg"></div>`;
+        return `<div class="w-full h-full flex items-center justify-center bg-black/60 p-3 overflow-hidden"><img src="${url}" alt="${escapeHtml(file.name)}" class="max-h-full max-w-full object-contain rounded-xl shadow-lg"></div>`;
       }
       // Video
       if (isYouTube || isVimeo) {
@@ -4748,31 +4750,31 @@
         return `<div class="w-full h-full bg-black"><iframe src="${embed}" class="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
       }
       if (meta.type === 'video' && url) {
-        return `<div class="w-full h-full flex items-center justify-center bg-black p-2"><video controls playsinline class="max-h-full max-w-full rounded"><source src="${url}"></video></div>`;
+        return `<div class="w-full h-full flex items-center justify-center bg-black p-2"><video controls playsinline class="max-h-full max-w-full rounded-xl"><source src="${url}"></video></div>`;
       }
       // PDF
       if (meta.type === 'pdf') {
-        if (!url) return `<div class="p-6 text-xs text-stone-500 font-mono">PDF sin enlace activo</div>`;
+        if (!url) return `<div class="p-6 text-xs text-zinc-500 font-medium">PDF sin enlace activo</div>`;
         return `<div class="w-full h-full flex flex-col bg-stone-950">
-          <div class="h-7 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0 font-mono">
-            <span class="text-[10px] text-stone-400">Si el PDF no se muestra, ábrelo en el visor nativo</span>
-            <a href="${url}" target="_blank" rel="noopener" class="px-2 py-0.5 bg-resolve-accent text-stone-950 font-bold rounded text-[10px]">Abrir PDF ↗</a>
+          <div class="h-8 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
+            <span class="text-[10px] text-zinc-400">Si el PDF no se muestra, ábrelo en el visor nativo</span>
+            <a href="${url}" target="_blank" rel="noopener" class="px-2.5 py-0.5 bg-gradient-to-b from-amber-400 to-amber-500 text-stone-950 font-semibold rounded-md text-[10px]">Abrir PDF ↗</a>
           </div>
           <object data="${url}" type="application/pdf" class="w-full flex-1" style="min-height:260px">
             <embed src="${url}" type="application/pdf" class="w-full h-full">
-            <div class="p-6 text-center text-xs text-stone-300 font-mono">Tu navegador no puede incrustar este PDF. <a href="${url}" target="_blank" class="text-amber-400 underline">Abrir en pestaña nueva</a></div>
+            <div class="p-6 text-center text-xs text-zinc-300 font-medium">Tu navegador no puede incrustar este PDF. <a href="${url}" target="_blank" class="text-amber-400 underline">Abrir en pestaña nueva</a></div>
           </object>
         </div>`;
       }
       // Markdown
       if (meta.type === 'markdown') {
         const raw = file.content != null ? file.content : '*(Sin contenido de texto disponible. Vuelve a importar el archivo.)*';
-        return `<div class="w-full h-full flex flex-col bg-resolve-bg font-mono">
+        return `<div class="w-full h-full flex flex-col bg-resolve-bg">
           <div class="h-8 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
             <div class="flex items-center gap-1">${tabBtn(inlineMarkdownViewMode === 'rendered', "setInlineMarkdownTab('rendered')", 'Renderizado')}${tabBtn(inlineMarkdownViewMode === 'raw', "setInlineMarkdownTab('raw')", 'Raw')}</div>
-            <button type="button" onclick="copyMediaCodeText(this.dataset.code, this)" data-code="${escapeHtml(raw)}" class="px-2 py-0.5 bg-resolve-card border border-resolve-border text-stone-300 rounded text-[10px]">Copiar</button>
+            <button type="button" onclick="copyMediaCodeText(this.dataset.code, this)" data-code="${escapeHtml(raw)}" class="px-2 py-0.5 bg-white/[0.05] border border-resolve-border text-zinc-300 rounded text-[10px]">Copiar</button>
           </div>
-          <div class="flex-1 overflow-y-auto p-4 select-text">${inlineMarkdownViewMode === 'rendered' ? formatMarkdown(raw) : '<pre class="text-[11px] text-stone-300 whitespace-pre-wrap">' + escapeHtml(raw) + '</pre>'}</div>
+          <div class="flex-1 overflow-y-auto p-4 select-text">${inlineMarkdownViewMode === 'rendered' ? formatMarkdown(raw) : '<pre class="text-[11px] text-zinc-300 font-mono whitespace-pre-wrap">' + escapeHtml(raw) + '</pre>'}</div>
         </div>`;
       }
       // Código
@@ -4780,20 +4782,20 @@
         const raw = file.content != null ? file.content : '// Sin contenido de texto disponible.\n// Vuelve a importar el archivo para previsualizarlo.';
         const lines = raw.split('\n');
         const isHtml = ['html', 'htm'].includes(meta.ext);
-        return `<div class="w-full h-full flex flex-col bg-resolve-bg font-mono">
+        return `<div class="w-full h-full flex flex-col bg-resolve-bg">
           <div class="h-8 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
             <div class="flex items-center gap-1.5">
               <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="${meta.badgeStyle}">${meta.badge}</span>
               <span class="text-[10px] text-resolve-dimText">${lines.length} líneas</span>
               ${isHtml ? tabBtn(inlineCodeViewMode === 'code', "setInlineCodeTab('code')", 'Código') + tabBtn(inlineCodeViewMode === 'render', "setInlineCodeTab('render')", 'Vista Web') : ''}
             </div>
-            <button type="button" onclick="copyMediaCodeText(this.dataset.code, this)" data-code="${escapeHtml(raw)}" class="px-2 py-0.5 bg-resolve-card border border-resolve-border text-stone-300 rounded text-[10px]">Copiar</button>
+            <button type="button" onclick="copyMediaCodeText(this.dataset.code, this)" data-code="${escapeHtml(raw)}" class="px-2 py-0.5 bg-white/[0.05] border border-resolve-border text-zinc-300 rounded text-[10px]">Copiar</button>
           </div>
           <div class="flex-1 overflow-hidden">
             ${isHtml && inlineCodeViewMode === 'render'
               ? `<iframe sandbox="allow-scripts" srcdoc="${escapeHtml(raw)}" class="w-full h-full bg-white border-0"></iframe>`
-              : `<div class="w-full h-full overflow-auto flex bg-black/80 text-xs select-text">
-                  <div class="py-2.5 px-2 bg-resolve-panel/60 border-r border-resolve-border text-stone-500 text-right select-none text-[10px] leading-5 shrink-0 min-w-[34px]">${lines.map((_, i) => '<div>' + (i + 1) + '</div>').join('')}</div>
+              : `<div class="w-full h-full overflow-auto flex bg-black/80 text-xs select-text font-mono">
+                  <div class="py-2.5 px-2 bg-resolve-panel/60 border-r border-resolve-border text-zinc-600 text-right select-none text-[10px] leading-5 shrink-0 min-w-[34px]">${lines.map((_, i) => '<div>' + (i + 1) + '</div>').join('')}</div>
                   <pre class="p-2.5 flex-1 text-[11px] text-emerald-400 leading-5 whitespace-pre"><code>${escapeHtml(raw)}</code></pre>
                 </div>`}
           </div>
@@ -4803,14 +4805,14 @@
       if (meta.type === 'font') {
         ensureFontLoaded(file);
         const id = fontSafeId(file);
-        const preset = (t, l) => `<button type="button" onclick="setInteractiveFontPreset(this.dataset.t)" data-t="${escapeHtml(t)}" class="px-1.5 py-0.5 rounded bg-resolve-panel hover:bg-resolve-card border border-resolve-border text-[9px] text-stone-300 whitespace-nowrap">${l}</button>`;
-        return `<div class="w-full h-full flex flex-col bg-resolve-bg font-mono">
+        const preset = (t, l) => `<button type="button" onclick="setInteractiveFontPreset(this.dataset.t)" data-t="${escapeHtml(t)}" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-[10px] text-zinc-300 whitespace-nowrap transition-colors">${l}</button>`;
+        return `<div class="w-full h-full flex flex-col bg-resolve-bg">
           <div class="h-9 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="${meta.badgeStyle}">${meta.badge}</span>
             <div class="flex items-center gap-2">
-              <span class="text-[10px] text-resolve-dimText">Tamaño</span>
+              <span class="text-[10px] text-resolve-dimText font-medium">Tamaño</span>
               <input type="range" min="12" max="72" value="${inlineFontSize}" oninput="setInlineFontSize(this.value)" class="w-24 accent-amber-500">
-              <span data-font-counter class="text-[10px] text-amber-400 font-bold w-9 text-right">${inlineFontSize}px</span>
+              <span data-font-counter class="text-[10px] text-amber-400 font-mono font-bold w-9 text-right">${inlineFontSize}px</span>
             </div>
           </div>
           <div class="h-8 px-3 bg-resolve-surface/70 border-b border-resolve-border flex items-center gap-1.5 overflow-x-auto shrink-0">
@@ -4820,38 +4822,38 @@
             ${preset('0123456789 !?@#$%&*()_+-=[]{};:,.<>/~', '0–9 y símbolos')}
           </div>
           <div class="flex-1 overflow-y-auto p-4 space-y-4">
-            <div data-font-sandbox contenteditable="true" class="specimen-${id} p-3.5 bg-black/60 border border-resolve-border rounded text-white focus:outline-none focus:border-amber-400 leading-snug" style="font-size:${inlineFontSize}px">El veloz murciélago hindú comía feliz cardillo y kiwi. 1234567890</div>
-            <div class="border border-resolve-border rounded p-3 bg-resolve-surface/40 space-y-2">
+            <div data-font-sandbox contenteditable="true" class="specimen-${id} p-3.5 bg-black/60 border border-resolve-border rounded-xl text-white focus:outline-none focus:border-amber-400 leading-snug" style="font-size:${inlineFontSize}px">El veloz murciélago hindú comía feliz cardillo y kiwi. 1234567890</div>
+            <div class="border border-resolve-border rounded-xl p-3 bg-resolve-surface/40 space-y-2">
               <div class="specimen-${id} text-2xl text-white truncate">Titular de campaña — 24</div>
               <div class="specimen-${id} text-lg text-amber-200/90 truncate">Subtitular descriptivo — 18</div>
-              <div class="specimen-${id} text-sm text-stone-300">Cuerpo de texto en 14px para evaluar legibilidad en impresos y pantallas.</div>
-              <div class="specimen-${id} text-xs text-stone-400 tracking-wider">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ 0123456789</div>
+              <div class="specimen-${id} text-sm text-zinc-300">Cuerpo de texto en 14px para evaluar legibilidad en impresos y pantallas.</div>
+              <div class="specimen-${id} text-xs text-zinc-500 tracking-wider">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ 0123456789</div>
             </div>
           </div>
         </div>`;
       }
       // Suites: Adobe, Affinity, Pages, Word
       if (meta.isSuite) {
-        return `<div class="w-full h-full flex items-center justify-center p-5 font-mono overflow-y-auto">
-          <div class="w-full max-w-sm bg-resolve-panel border border-resolve-border rounded-lg p-5 flex flex-col items-center text-center">
-            <div class="w-16 h-16 rounded-xl flex items-center justify-center text-lg font-black mb-3" style="${meta.badgeStyle}">${meta.badge}</div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider mb-1" style="${meta.badgeStyle}">${meta.suiteBrand}</span>
-            <div class="font-bold text-white text-sm mt-1 max-w-full truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+        return `<div class="w-full h-full flex items-center justify-center p-5 overflow-y-auto">
+          <div class="w-full max-w-sm bg-resolve-panel border border-resolve-border rounded-2xl p-5 flex flex-col items-center text-center shadow-lg">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-lg font-black mb-3 shadow-md" style="${meta.badgeStyle}">${meta.badge}</div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider mb-1" style="${meta.badgeStyle}">${meta.suiteBrand}</span>
+            <div class="font-semibold text-white text-sm mt-1 max-w-full truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
             <div class="text-[11px] text-resolve-dimText mb-3">${escapeHtml(meta.subLabel)} • ${file.size || ''}</div>
-            <div class="w-full bg-resolve-surface/70 border border-resolve-border rounded p-2.5 text-left text-[10px] mb-4 space-y-1">
-              <div class="flex justify-between text-resolve-dimText"><span>Formato</span><span class="text-white font-bold">.${meta.ext.toUpperCase()}</span></div>
-              <div class="flex justify-between text-resolve-dimText"><span>Importado</span><span class="text-stone-200">${file.date || '--'}</span></div>
-              <p class="text-[9px] text-stone-400 pt-1">Formato propietario: el navegador no puede renderizarlo. Ábrelo en su aplicación nativa; la pieza queda adjunta al sobre.</p>
+            <div class="w-full bg-black/30 border border-resolve-border rounded-xl p-3 text-left text-[10px] mb-4 space-y-1">
+              <div class="flex justify-between text-resolve-dimText"><span>Formato</span><span class="text-white font-mono font-bold">.${meta.ext.toUpperCase()}</span></div>
+              <div class="flex justify-between text-resolve-dimText"><span>Importado</span><span class="text-zinc-300 font-mono">${file.date || '--'}</span></div>
+              <p class="text-[9px] text-zinc-400 pt-1">Formato propietario: el navegador no puede renderizarlo. Ábrelo en su aplicación nativa; la pieza queda adjunta al sobre.</p>
             </div>
-            ${url ? `<a href="${url}" download="${escapeHtml(file.name)}" class="w-full py-2 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold text-xs rounded">Descargar / Abrir en app nativa</a>` : ''}
+            ${url ? `<a href="${url}" download="${escapeHtml(file.name)}" class="w-full py-2 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Descargar / Abrir en app nativa</a>` : ''}
           </div>
         </div>`;
       }
       // Genérico / enlace
-      return `<div class="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-resolve-panel/40 font-mono">
-        <div class="font-bold text-white text-xs mb-1 max-w-xs truncate">${escapeHtml(file.name)}</div>
+      return `<div class="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-white/[0.02]">
+        <div class="font-semibold text-white text-xs mb-1 max-w-xs truncate">${escapeHtml(file.name)}</div>
         <p class="text-[10px] text-resolve-dimText mb-3">Enlace web o archivo vinculado al sobre.</p>
-        ${url ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-resolve-accent text-stone-950 font-bold text-xs rounded">Abrir Recurso ↗</a>` : ''}
+        ${url ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Abrir Recurso ↗</a>` : ''}
       </div>`;
     }
 
@@ -4865,17 +4867,19 @@
 
       const meta = getMediaMeta(file);
       viewer.innerHTML = `
-        <div class="h-9 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0 font-mono">
+        <div class="h-9 px-3 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between shrink-0">
           <div class="flex items-center gap-2 truncate min-w-0">
-            <span class="w-2 h-2 rounded-full bg-resolve-accent shrink-0"></span>
-            <span class="font-bold text-white text-[11px] truncate">${escapeHtml(file.name)}</span>
-            <span class="text-[10px] text-resolve-dimText uppercase shrink-0">(${escapeHtml(meta.subLabel)})</span>
+            <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+            <span class="font-semibold text-white text-[11px] truncate">${escapeHtml(file.name)}</span>
+            <span class="text-[10px] text-resolve-dimText uppercase shrink-0 font-medium">(${escapeHtml(meta.subLabel)})</span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <button type="button" onclick="openMediaPreviewModal(${selectedInlineMediaIndex})" class="px-2 py-0.5 rounded bg-resolve-bg hover:bg-resolve-card border border-resolve-border text-amber-400 text-[10px] font-bold cursor-pointer" title="Pantalla completa">Ampliar</button>
-            ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded bg-resolve-bg hover:bg-resolve-card border border-resolve-border text-stone-300 hover:text-white text-[10px] font-bold">Descargar ↓</a>` : ''}
+            <button type="button" onclick="openMediaPreviewModal(${selectedInlineMediaIndex})" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-amber-300 text-[10px] font-semibold cursor-pointer transition-colors" title="Pantalla completa">Ampliar</button>
+            ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors">Descargar ↓</a>` : ''}
           </div>
         </div>
+        <div class="flex-1 overflow-hidden relative bg-black/40">${buildMediaViewerHtml(file)}</div>`;
+    }
         <div class="flex-1 overflow-hidden relative bg-black/40">${buildMediaViewerHtml(file)}</div>`;
     }
 
