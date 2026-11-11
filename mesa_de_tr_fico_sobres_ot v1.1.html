@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>El Marcante // Control de Tráfico • Sobres OT</title>
+  <title>Trafikeitor // Control de Tráfico • El Marcante</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -183,10 +186,10 @@
       </button>
 
       <div class="flex items-center gap-2.5">
-        <span class="w-3 h-3 rounded-sm bg-resolve-accent inline-block shadow-[0_0_8px_rgba(217,119,6,0.6)]"></span>
-        <span class="font-mono font-black text-sm tracking-widest text-white uppercase">EL MARCANTE</span>
+        <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-5 h-5 rounded-sm object-cover shadow-[0_0_8px_rgba(217,119,6,0.5)]">
+        <span class="font-mono font-black text-sm tracking-widest text-white uppercase">TRAFIKEITOR</span>
         <span class="text-stone-600 font-mono text-xs hidden sm:inline">//</span>
-        <span class="font-mono text-xs text-stone-300 hidden sm:inline tracking-wider">CONTROL DE TRÁFICO • OT</span>
+        <span class="font-mono text-xs text-stone-300 hidden sm:inline tracking-wider">EL MARCANTE • CONTROL DE TRÁFICO</span>
       </div>
       <!-- Selector de Módulo: Mesa de OTs vs Stripboard de Producción -->
       <nav class="hidden sm:flex items-center bg-resolve-bg p-0.5 rounded border border-resolve-border text-xs font-mono ml-2">
@@ -4391,9 +4394,7 @@
       indd:     { type:'adobe',    badge:'INDD', sub:'InDesign',        color:'#ff3366', brand:'ADOBE CREATIVE CLOUD' },
       prproj:   { type:'adobe',    badge:'PR',   sub:'Premiere Pro',    color:'#ea77ff', brand:'ADOBE CREATIVE CLOUD' },
       aep:      { type:'adobe',    badge:'AEP',  sub:'After Effects',   color:'#9999ff', brand:'ADOBE CREATIVE CLOUD' },
-      afdesign: { type:'affinity', badge:'DES',  sub:'Affinity Designer',  color:'#00d2d3', brand:'AFFINITY' },
-      afphoto:  { type:'affinity', badge:'PHO',  sub:'Affinity Photo',     color:'#7d5fff', brand:'AFFINITY' },
-      afpub:    { type:'affinity', badge:'PUB',  sub:'Affinity Publisher', color:'#ff6b6b', brand:'AFFINITY' },
+      af:       { type:"affinity", badge:"AF",   sub:"Affinity",          color:"#00d2d3", brand:"AFFINITY" },
       pages:    { type:'pages',    badge:'PAGES',sub:'Apple Pages',     color:'#f59e0b', brand:'APPLE iWORK' },
       key:      { type:'pages',    badge:'KEY',  sub:'Apple Keynote',   color:'#3b82f6', brand:'APPLE iWORK' },
       numbers:  { type:'pages',    badge:'NUM',  sub:'Apple Numbers',   color:'#10b981', brand:'APPLE iWORK' },
@@ -4525,7 +4526,7 @@
               <div class="font-mono text-[11px]">
                 <div class="font-bold text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
                 <div class="text-resolve-dimText text-[10px] flex justify-between mt-1"><span>${file.size || 'Web'}</span><span>${file.date ? file.date.split(' ')[0] : ''}</span></div>
-                ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="mt-2 block text-center py-1 bg-resolve-card hover:bg-resolve-border text-resolve-accent font-bold text-[10px] rounded border border-resolve-border">Abrir / Bajar</a>` : ''}
+                ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="mt-2 block text-center py-1 bg-resolve-card hover:bg-resolve-border text-resolve-accent font-bold text-[10px] rounded border border-resolve-border">Descargar</a>` : ''}
               </div>
             </div>`;
         }).join('') + '</div>';
@@ -4872,7 +4873,7 @@
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <button type="button" onclick="openMediaPreviewModal(${selectedInlineMediaIndex})" class="px-2 py-0.5 rounded bg-resolve-bg hover:bg-resolve-card border border-resolve-border text-amber-400 text-[10px] font-bold cursor-pointer" title="Pantalla completa">Ampliar</button>
-            ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded bg-resolve-bg hover:bg-resolve-card border border-resolve-border text-stone-300 hover:text-white text-[10px] font-bold">Abrir ↗</a>` : ''}
+            ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded bg-resolve-bg hover:bg-resolve-card border border-resolve-border text-stone-300 hover:text-white text-[10px] font-bold">Descargar ↓</a>` : ''}
           </div>
         </div>
         <div class="flex-1 overflow-hidden relative bg-black/40">${buildMediaViewerHtml(file)}</div>`;

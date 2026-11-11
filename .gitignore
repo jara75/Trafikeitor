@@ -1,5 +1,24 @@
+# Sistema operativo
 .DS_Store
+Thumbs.db
+
+# Dependencias
+node_modules/
+
+# Entorno y credenciales
+.env
+.env.local
+.env.*.local
+
+# Base de datos SQLite local
 trafico.db
 trafico.db-shm
 trafico.db-wal
+
+# Archivos subidos
 uploads/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
