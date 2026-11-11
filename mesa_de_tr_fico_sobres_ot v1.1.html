@@ -389,27 +389,72 @@
         <div id="envelopes-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Inyectado dinámicamente con JS -->
         </div>
-        <!-- VISTA EN LISTA (TABLA ESTILO DAVINCI RESOLVE / MACOS PRO) -->
-        <div id="envelopes-list-container" class="hidden border border-resolve-border rounded-xl bg-resolve-surface overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
-                <th class="p-2.5 border-r border-resolve-border w-28">N° OT</th>
-                <th class="p-2.5 border-r border-resolve-border w-32">ESTADO</th>
-                <th class="p-2.5 border-r border-resolve-border w-32">RESPONSABLE</th>
-                <th class="p-2.5 border-r border-resolve-border w-32">REFERENCIA</th>
-                <th class="p-2.5 border-r border-resolve-border w-44">CLIENTE / MARCA</th>
-                <th class="p-2.5 border-r border-resolve-border min-w-[200px]">TÍTULO DE LA PIEZA & MEDIO</th>
-                <th class="p-2.5 border-r border-resolve-border w-44">ÚLTIMO RELEVO</th>
-                <th class="p-2.5 border-r border-resolve-border w-32">FECHA ENTREGA</th>
-                <th class="p-2.5 border-r border-resolve-border w-20 text-center">POOL</th>
-                <th class="p-2.5 w-24 text-center">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-zinc-300">
-              <!-- Filas de la lista inyectadas con JS -->
-            </tbody>
-          </table>
+        <!-- VISTA EN LISTA (TABLA UNIFICADA DE 11 COLUMNAS • APPLE NUMBERS STYLE) -->
+        <div id="envelopes-list-container" class="hidden border border-resolve-border rounded-xl bg-resolve-surface overflow-hidden flex-col">
+          <!-- Toolbar Apple Numbers: Categorías / Agrupar y Ordenar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-black/30 border-b border-resolve-border text-xs shrink-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Categorías / Agrupar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                  Categorías:
+                </span>
+                <select id="trafico-group-select" onchange="setTableGroup(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Sin Agrupar</option>
+                  <option value="client">Agrupar por Cliente</option>
+                  <option value="status">Agrupar por Estado</option>
+                  <option value="responsible">Agrupar por Responsable</option>
+                  <option value="department">Agrupar por Departamento (Para:)</option>
+                </select>
+              </div>
+
+              <div class="h-3.5 w-px bg-resolve-border"></div>
+
+              <!-- Ordenar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Ordenar:</span>
+                <select id="trafico-sort-select" onchange="setTableSort(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Predeterminado</option>
+                  <option value="entryDate">Entrada</option>
+                  <option value="deliveryDate">Entrega</option>
+                  <option value="responsible">Responsable</option>
+                  <option value="status">Estado</option>
+                  <option value="department">Departamento</option>
+                </select>
+                <button type="button" onclick="toggleTableSortDirection()" class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-md border border-resolve-border text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer">
+                  <span id="trafico-sort-dir-label">▲ Asc</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-zinc-400 font-medium">
+              Tráfico • 11 Columnas Unificadas
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse min-w-[1100px]">
+              <thead>
+                <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
+                  <th class="p-2 border-r border-resolve-border w-24">No. OT</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Cliente</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Marca/Producto</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Medio</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Referencia</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[180px]">Descripción</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('entryDate')">Entrada ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('deliveryDate')">Entrega ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('status')">Estado ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('responsible')">Responsable ↕</th>
+                  <th class="p-2 min-w-[140px]">Notas</th>
+                </tr>
+              </thead>
+              <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-zinc-300">
+                <!-- Inyectado dinámicamente con JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Vista Vacía -->
@@ -626,29 +671,73 @@
       <main class="flex-1 flex flex-col bg-resolve-bg overflow-hidden">
         
         <!-- ============================================================== -->
-        <!-- VISTA 1: DÍA • TIRAS (STRIPBOARD DIARIO VERTICAL)              -->
+        <!-- VISTA 1: DÍA • TABLA UNIFICADA DE 11 COLUMNAS                  -->
         <!-- ============================================================== -->
         <div id="stripboard-day-view" class="flex-1 flex flex-col overflow-hidden">
-          <!-- Encabezado de columnas del Stripboard -->
-          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-resolve-dimText items-center shrink-0 font-semibold">
-            <div class="col-span-1 text-center">ORDEN</div>
-            <div class="col-span-2">HORARIO / TURNO</div>
-            <div class="col-span-2">N° OT / REF</div>
-            <div class="col-span-2">CLIENTE / PRODUCTO</div>
-            <div class="col-span-3">TAREA ASIGNADA AL TURNO</div>
-            <div class="col-span-1 text-center">RESPONSABLE</div>
-            <div class="col-span-1 text-right">ESTADO</div>
+          <!-- Toolbar Apple Numbers: Categorías / Agrupar y Ordenar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-black/30 border-b border-resolve-border text-xs shrink-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Categorías / Agrupar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                  Categorías:
+                </span>
+                <select id="stripboard-group-select" onchange="setTableGroup(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Sin Agrupar</option>
+                  <option value="client">Agrupar por Cliente</option>
+                  <option value="status">Agrupar por Estado</option>
+                  <option value="responsible">Agrupar por Responsable</option>
+                  <option value="department">Agrupar por Departamento (Para:)</option>
+                </select>
+              </div>
+
+              <div class="h-3.5 w-px bg-resolve-border"></div>
+
+              <!-- Ordenar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Ordenar:</span>
+                <select id="stripboard-sort-select" onchange="setTableSort(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Predeterminado</option>
+                  <option value="entryDate">Entrada</option>
+                  <option value="deliveryDate">Entrega</option>
+                  <option value="responsible">Responsable</option>
+                  <option value="status">Estado</option>
+                  <option value="department">Departamento</option>
+                </select>
+                <button type="button" onclick="toggleTableSortDirection()" class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-md border border-resolve-border text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer">
+                  <span id="stripboard-sort-dir-label">▲ Asc</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-zinc-400 font-medium">
+              Stripboard Día • 11 Columnas Unificadas
+            </div>
           </div>
 
-          <!-- Contenedor de Tiras del Stripboard -->
-          <div 
-            id="stripboard-strips-container" 
-            ondragover="handleContainerDragOver(event)" 
-            ondragleave="handleContainerDragLeave(event)" 
-            ondrop="handleContainerDrop(event)" 
-            class="flex-1 overflow-y-auto p-3 space-y-2 transition-colors"
-          >
-            <!-- Tiras inyectadas dinámicamente con JS -->
+          <!-- Contenedor de Tabla Unificada -->
+          <div class="flex-1 overflow-auto bg-resolve-bg">
+            <table class="w-full text-left text-xs border-collapse min-w-[1100px]">
+              <thead class="sticky top-0 z-10 bg-resolve-panel/95 backdrop-blur border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
+                <tr>
+                  <th class="p-2 border-r border-resolve-border w-24">No. OT</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Cliente</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Marca/Producto</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Medio</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Referencia</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[180px]">Descripción</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('entryDate')">Entrada ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('deliveryDate')">Entrega ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('status')">Estado ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('responsible')">Responsable ↕</th>
+                  <th class="p-2 min-w-[140px]">Notas</th>
+                </tr>
+              </thead>
+              <tbody id="stripboard-day-table-body" class="divide-y divide-resolve-border/70 text-zinc-300">
+                <!-- Inyectado dinámicamente con JS con renderUnifiedTableRows() -->
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -778,60 +867,62 @@
           </button>
         </div>
       </div>
-      <!-- Ficha de Encabezado Técnico de la OT: Cliente -> Marca -> Producto -> Medio -> Referencia -> Responsable -> Estado -->
-      <div class="bg-black/25 border-b border-resolve-border p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs shrink-0">
-        <!-- 1. Cliente -->
+      <!-- Ficha de Encabezado Técnico de la OT: 1. No. OT -> 2. Cliente -> 3. Marca/Producto -> 4. Medio -> 5. Referencia -> 6. Descripción -> 7. Estado -> 8. Responsable -->
+      <div class="bg-black/25 border-b border-resolve-border p-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 text-xs shrink-0">
+        <!-- 1. No. OT -->
         <div>
-          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Cliente / Bin</label>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">No. OT</label>
+          <input type="text" id="modal-ot-id-display" readonly class="w-full bg-black/50 border border-resolve-border rounded-lg px-2 py-1.5 text-amber-400 font-bold font-mono text-xs cursor-default">
+        </div>
+
+        <!-- 2. Cliente -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Cliente</label>
           <input type="text" id="modal-ot-client" onchange="updateActiveOtField('client', this.value)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
-        <!-- 2. Marca -->
+        <!-- 3. Marca/Producto -->
         <div>
-          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Marca</label>
-          <input type="text" id="modal-ot-brand" onchange="updateActiveOtField('brand', this.value)" placeholder="Ej: Club Premium" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
-        </div>
-
-        <!-- 3. Producto (separado de Marca) -->
-        <div>
-          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Producto</label>
-          <input type="text" id="modal-ot-product" onchange="updateActiveOtField('product', this.value)" placeholder="Ej: Nueva Botella Retornable" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Marca/Producto</label>
+          <input type="text" id="modal-ot-brand" onchange="updateActiveOtField('brand', this.value)" placeholder="Marca o Producto" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
         <!-- 4. Medio -->
         <div>
-          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Medio / Formato</label>
-          <input type="text" id="modal-ot-media" onchange="updateActiveOtField('media', this.value)" placeholder="Ej: TV 20'', Prensa..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Medio</label>
+          <input type="text" id="modal-ot-media" onchange="updateActiveOtField('media', this.value)" placeholder="Medio / Formato" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
         </div>
 
         <!-- 5. Referencia -->
         <div>
           <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Referencia</label>
-          <input type="text" id="modal-ot-ref" onchange="updateActiveOtField('ref', this.value)" placeholder="Ej: BOT-26-DIG" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-mono">
+          <input type="text" id="modal-ot-ref" onchange="updateActiveOtField('ref', this.value)" placeholder="Referencia" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-mono">
         </div>
 
-        <!-- 6. Responsable -->
+        <!-- 6. Descripción -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Descripción</label>
+          <input type="text" id="modal-ot-description" onchange="updateActiveOtField('title', this.value)" placeholder="Descripción de la pieza" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-100 font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+        </div>
+
+        <!-- 7. Estado -->
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Responsable</label>
-            <button type="button" onclick="handleOtResponsibleChange('__NEW_RESPONSIBLE__', 'modal-ot-responsible')" class="text-[10px] text-zinc-400 hover:text-cyan-400 font-medium underline cursor-pointer" title="Agregar nuevo responsable">
-              + Nuevo
-            </button>
+            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Estado</label>
+            <button type="button" onclick="openStatusManagerModal()" class="text-[10px] text-zinc-400 hover:text-amber-400 font-medium underline cursor-pointer" title="Editar y crear estados">+ Editar</button>
           </div>
-          <select id="modal-ot-responsible" onchange="handleOtResponsibleChange(this.value, 'modal-ot-responsible')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-cyan-300 font-semibold focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none text-xs transition-all cursor-pointer">
+          <select id="modal-ot-status" onchange="handleGlobalStatusChange(this.value, activeOtId)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none text-xs transition-all cursor-pointer">
             <!-- Inyectado dinámicamente con JS -->
           </select>
         </div>
 
-        <!-- 7. Estado (con botón de gestión y creación) -->
+        <!-- 8. Responsable -->
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Estado</label>
-            <button type="button" onclick="openStatusManagerModal()" class="text-[10px] text-zinc-400 hover:text-amber-400 font-medium underline cursor-pointer" title="Editar y crear estados">
-              + Editar
-            </button>
+            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Responsable</label>
+            <button type="button" onclick="handleGlobalResponsibleChange('__NEW_RESPONSIBLE__', activeOtId)" class="text-[10px] text-zinc-400 hover:text-cyan-400 font-medium underline cursor-pointer" title="Agregar nuevo responsable">+ Nuevo</button>
           </div>
-          <select id="modal-ot-status" onchange="handleOtStatusChange(this.value, 'modal-ot-status')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none text-xs transition-all cursor-pointer">
+          <select id="modal-ot-responsible" onchange="handleGlobalResponsibleChange(this.value, activeOtId)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2 py-1.5 text-cyan-300 font-semibold focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none text-xs transition-all cursor-pointer">
             <!-- Inyectado dinámicamente con JS -->
           </select>
         </div>
@@ -883,13 +974,14 @@
             <table class="w-full text-left text-xs border-collapse">
               <thead>
                 <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-resolve-dimText uppercase tracking-wider font-semibold">
-                  <th class="p-2.5 border-r border-resolve-border w-32">DE:</th>
-                  <th class="p-2.5 border-r border-resolve-border w-32">PARA:</th>
-                  <th class="p-2.5 border-r border-resolve-border min-w-[280px]">TAREA / OBSERVACIONES</th>
-                  <th class="p-2.5 border-r border-resolve-border w-48">ENTRADA</th>
-                  <th class="p-2.5 border-r border-resolve-border w-48">ENTREGA</th>
-                  <th class="p-2.5 border-r border-resolve-border w-28 text-center">FIRMA / SELLO</th>
-                  <th class="p-2.5 w-20 text-center">ACCIÓN</th>
+                  <th class="p-2 border-r border-resolve-border w-28">De:</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Para:</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[200px]">Descripción</th>
+                  <th class="p-2 border-r border-resolve-border w-36">Entrada</th>
+                  <th class="p-2 border-r border-resolve-border w-36">Entrega</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Firma</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[140px]">Notas</th>
+                  <th class="p-2 w-16 text-center">Acción</th>
                 </tr>
               </thead>
               <tbody id="route-sheet-rows" class="divide-y divide-resolve-border/60">
@@ -1450,8 +1542,9 @@
     const STATUSES_STORAGE_KEY = 'resolve_traffic_statuses_v2';
     const STRIPBOARD_STORAGE_KEY = 'resolve_traffic_stripboard_v2';
     const RESPONSIBLES_STORAGE_KEY = 'resolve_traffic_responsibles_v2';
+    const DEPARTMENTS_STORAGE_KEY = 'resolve_traffic_departments_v2';
 
-    // Responsables y Áreas por defecto del sistema (Nombres propios)
+    // Responsables por defecto del sistema (Nombres propios)
     const defaultResponsibles = [
       "Andrés J."
     ];
@@ -1500,16 +1593,17 @@
         list.push(clean);
         localStorage.setItem(RESPONSIBLES_STORAGE_KEY, JSON.stringify(list));
       }
-      updateDeptOptionsDatalist();
       renderResponsibleSelects();
       return clean;
     }
 
-    function updateDeptOptionsDatalist() {
-      const dl = document.getElementById('dept-options');
-      if (!dl) return;
-      const list = getResponsibles();
-      dl.innerHTML = list.map(r => `<option value="${escapeHtml(r)}"></option>`).join('');
+    function getResponsibleOptionsHtml(selectedVal = '') {
+      const responsibles = getResponsibles();
+      const options = responsibles.map(r => `<option value="${escapeHtml(r)}" ${r === selectedVal ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('');
+      return `${options}
+        <option disabled>──────────</option>
+        <option value="__NEW_RESPONSIBLE__">+ Nuevo</option>
+      `;
     }
 
     function renderResponsibleSelects() {
@@ -1519,11 +1613,7 @@
       const modalSelect = document.getElementById('modal-ot-responsible');
       if (modalSelect) {
         const prevVal = modalSelect.value;
-        modalSelect.innerHTML = `
-          ${responsibles.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('')}
-          <option disabled>──────────</option>
-          <option value="__NEW_RESPONSIBLE__">+ Nuevo</option>
-        `;
+        modalSelect.innerHTML = getResponsibleOptionsHtml(prevVal || 'Andrés J.');
         if (prevVal && prevVal !== '__NEW_RESPONSIBLE__') {
           modalSelect.value = prevVal;
         }
@@ -1533,32 +1623,32 @@
       const newSelect = document.getElementById('new-ot-responsible');
       if (newSelect) {
         const prevVal = newSelect.value || 'Andrés J.';
-        newSelect.innerHTML = `
-          ${responsibles.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('')}
-          <option disabled>──────────</option>
-          <option value="__NEW_RESPONSIBLE__">+ Nuevo</option>
-        `;
+        newSelect.innerHTML = getResponsibleOptionsHtml(prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : 'Andrés J.');
         newSelect.value = prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : 'Andrés J.';
       }
-
-      updateDeptOptionsDatalist();
     }
 
     function handleOtResponsibleChange(val, targetSelectId = 'modal-ot-responsible') {
+      handleGlobalResponsibleChange(val, activeOtId, targetSelectId);
+    }
+
+    function handleGlobalResponsibleChange(val, otId = null, targetSelectId = 'modal-ot-responsible') {
+      const targetId = otId || activeOtId;
+
       if (val === '__NEW_RESPONSIBLE__') {
         const newName = prompt("Nombre propio del nuevo responsable:");
         if (newName && newName.trim()) {
           const clean = addResponsible(newName.trim());
-          renderResponsibleSelects();
+          if (targetId) {
+            applyOtResponsibleUpdate(targetId, clean);
+          }
           const sel = document.getElementById(targetSelectId);
           if (sel) sel.value = clean;
-          if (targetSelectId === 'modal-ot-responsible' && activeOtId) {
-            updateActiveOtField('responsible', clean);
-          }
         } else {
-          if (targetSelectId === 'modal-ot-responsible') {
-            const ot = getOrders().find(o => o.id === activeOtId);
-            const sel = document.getElementById('modal-ot-responsible');
+          renderResponsibleSelects();
+          if (targetId) {
+            const ot = getOrders().find(o => o.id === targetId);
+            const sel = document.getElementById(targetSelectId);
             if (sel) sel.value = (ot && ot.responsible) || 'Andrés J.';
           } else {
             const sel = document.getElementById(targetSelectId);
@@ -1568,12 +1658,134 @@
         return;
       }
 
-      if (targetSelectId === 'modal-ot-responsible' && activeOtId) {
-        updateActiveOtField('responsible', val);
+      if (targetId) {
+        applyOtResponsibleUpdate(targetId, val);
       }
     }
 
-    // Estados por defecto del sistema (Orden exacto y predeterminado)
+    function applyOtResponsibleUpdate(otId, respName) {
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === otId);
+      if (ot) {
+        ot.responsible = respName;
+        saveOrders(orders);
+        renderResponsibleSelects();
+        const sel = document.getElementById('modal-ot-responsible');
+        if (sel && activeOtId === otId) sel.value = respName;
+        refreshAllViews();
+      }
+    }
+
+    // ==============================================================
+    // CATÁLOGO GLOBAL: DEPARTAMENTOS (DE / PARA)
+    // ==============================================================
+    const defaultDepartments = [
+      "Cliente",
+      "Tráfico",
+      "Cuentas",
+      "Creativos",
+      "Producción",
+      "Medios",
+      "Web",
+      "Desarrollo",
+      "Sistemas",
+      "Administrativo"
+    ];
+
+    function getDepartments() {
+      try {
+        const data = localStorage.getItem(DEPARTMENTS_STORAGE_KEY);
+        if (!data) {
+          localStorage.setItem(DEPARTMENTS_STORAGE_KEY, JSON.stringify(defaultDepartments));
+          return defaultDepartments;
+        }
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter(d => typeof d === 'string' && d.trim().length > 0);
+          defaultDepartments.forEach(def => {
+            if (!cleaned.some(d => d.toLowerCase() === def.toLowerCase())) {
+              cleaned.push(def);
+            }
+          });
+          return cleaned;
+        }
+        return defaultDepartments;
+      } catch (e) {
+        return defaultDepartments;
+      }
+    }
+
+    function addDepartment(name) {
+      if (!name || !name.trim()) return '';
+      const clean = name.trim();
+      const list = getDepartments();
+      if (!list.some(d => d.toLowerCase() === clean.toLowerCase())) {
+        list.push(clean);
+        localStorage.setItem(DEPARTMENTS_STORAGE_KEY, JSON.stringify(list));
+      }
+      updateDeptOptionsDatalist();
+      return clean;
+    }
+
+    function getDepartmentOptionsHtml(selectedVal = '') {
+      const depts = getDepartments();
+      const options = depts.map(d => `<option value="${escapeHtml(d)}" ${d === selectedVal ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+      return `${options}
+        <option disabled>──────────</option>
+        <option value="__NEW_DEPT__">+ Nuevo</option>
+      `;
+    }
+
+    function updateDeptOptionsDatalist() {
+      const dl = document.getElementById('dept-options');
+      if (!dl) return;
+      const list = getDepartments();
+      dl.innerHTML = list.map(r => `<option value="${escapeHtml(r)}"></option>`).join('');
+    }
+
+    function handleRouteDeptChange(index, field, val) {
+      if (!activeOtId) return;
+
+      if (val === '__NEW_DEPT__') {
+        const newDept = prompt("Nombre del nuevo departamento:");
+        if (newDept && newDept.trim()) {
+          const clean = addDepartment(newDept.trim());
+          updateRouteCell(index, field, clean);
+          const ot = getOrders().find(o => o.id === activeOtId);
+          if (ot) renderRouteSheetRows(ot.routes);
+        } else {
+          const ot = getOrders().find(o => o.id === activeOtId);
+          if (ot) renderRouteSheetRows(ot.routes);
+        }
+        return;
+      }
+
+      updateRouteCell(index, field, val);
+    }
+
+    function handleRouteSignChange(index, val) {
+      if (!activeOtId) return;
+
+      if (val === '__NEW_RESPONSIBLE__') {
+        const newName = prompt("Nombre propio del responsable que firma / entrega:");
+        if (newName && newName.trim()) {
+          const clean = addResponsible(newName.trim());
+          updateRouteCell(index, 'sign', clean);
+          const ot = getOrders().find(o => o.id === activeOtId);
+          if (ot) renderRouteSheetRows(ot.routes);
+        } else {
+          const ot = getOrders().find(o => o.id === activeOtId);
+          if (ot) renderRouteSheetRows(ot.routes);
+        }
+        return;
+      }
+
+      updateRouteCell(index, 'sign', val);
+    }
+
+    // ==============================================================
+    // CATÁLOGO GLOBAL: ESTADOS DE TRÁFICO (CRUD & PERSISTENCIA)
+    // ==============================================================
     const defaultStatuses = [
       { id: "st-1", name: "Tráfico", color: "amber" },
       { id: "st-2", name: "Recibido", color: "blue" },
@@ -1624,9 +1836,6 @@
       }
     }
 
-    // ==============================================================
-    // GESTIÓN DE ESTADOS DE TRÁFICO (CRUD & PERSISTENCIA)
-    // ==============================================================
     function getStatuses() {
       const data = localStorage.getItem(STATUSES_STORAGE_KEY);
       if (!data) {
@@ -1655,7 +1864,7 @@
       localStorage.setItem(STATUSES_STORAGE_KEY, JSON.stringify(statuses));
       renderStatusSelects();
       renderStatusManagerList();
-      renderTrafficDesk();
+      refreshAllViews();
       if (activeOtId) {
         const ot = getOrders().find(o => o.id === activeOtId);
         if (ot && document.getElementById('modal-ot-status')) {
@@ -1681,6 +1890,15 @@
       return colorMap[color] || colorMap.stone;
     }
 
+    function getStatusOptionsHtml(selectedVal = '') {
+      const statuses = getStatuses();
+      const options = statuses.map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}" ${st.name === selectedVal ? 'selected' : ''}>${escapeHtml(st.name)}</option>`).join('');
+      return `${options}
+        <option disabled>──────────</option>
+        <option value="__NEW__">+ Nuevo</option>
+      `;
+    }
+
     function renderStatusSelects() {
       const statuses = getStatuses();
 
@@ -1699,11 +1917,7 @@
       const modalSelect = document.getElementById('modal-ot-status');
       if (modalSelect) {
         const prevVal = modalSelect.value;
-        modalSelect.innerHTML = `
-          ${statuses.map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}">${escapeHtml(st.name)}</option>`).join('')}
-          <option disabled>──────────</option>
-          <option value="__NEW__">+ Nuevo</option>
-        `;
+        modalSelect.innerHTML = getStatusOptionsHtml(prevVal || 'Tráfico');
         if (prevVal && prevVal !== '__NEW__') {
           modalSelect.value = prevVal;
         }
@@ -1713,16 +1927,18 @@
       const newOtStatus = document.getElementById('new-ot-status');
       if (newOtStatus) {
         const prevVal = newOtStatus.value || 'Tráfico';
-        newOtStatus.innerHTML = `
-          ${statuses.map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}">${escapeHtml(st.name)}</option>`).join('')}
-          <option disabled>──────────</option>
-          <option value="__NEW__">+ Nuevo</option>
-        `;
+        newOtStatus.innerHTML = getStatusOptionsHtml(prevVal !== '__NEW__' ? prevVal : 'Tráfico');
         newOtStatus.value = prevVal !== '__NEW__' ? prevVal : 'Tráfico';
       }
     }
 
     function handleOtStatusChange(val, targetSelectId = 'modal-ot-status') {
+      handleGlobalStatusChange(val, activeOtId, targetSelectId);
+    }
+
+    function handleGlobalStatusChange(val, otId = null, targetSelectId = 'modal-ot-status') {
+      const targetId = otId || activeOtId;
+
       if (val === '__NEW__') {
         const newName = prompt("Nombre del nuevo estado personalizado:");
         if (newName && newName.trim()) {
@@ -1734,16 +1950,16 @@
             statuses.push(existing);
             saveStatuses(statuses);
           }
-          if (targetSelectId === 'modal-ot-status' && activeOtId) {
-            updateActiveOtField('status', existing.name);
+          if (targetId) {
+            applyOtStatusUpdate(targetId, existing.name);
           }
-          renderStatusSelects();
           const sel = document.getElementById(targetSelectId);
           if (sel) sel.value = existing.name;
         } else {
-          if (targetSelectId === 'modal-ot-status') {
-            const ot = getOrders().find(o => o.id === activeOtId);
-            const sel = document.getElementById('modal-ot-status');
+          renderStatusSelects();
+          if (targetId) {
+            const ot = getOrders().find(o => o.id === targetId);
+            const sel = document.getElementById(targetSelectId);
             if (sel) sel.value = (ot && ot.status) || 'Tráfico';
           } else {
             const sel = document.getElementById(targetSelectId);
@@ -1753,8 +1969,362 @@
         return;
       }
 
-      if (targetSelectId === 'modal-ot-status' && activeOtId) {
-        updateActiveOtField('status', val);
+      if (targetId) {
+        applyOtStatusUpdate(targetId, val);
+      }
+    }
+
+    function applyOtStatusUpdate(otId, statusName) {
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === otId);
+      if (ot) {
+        ot.status = statusName;
+        saveOrders(orders);
+        renderStatusSelects();
+        const sel = document.getElementById('modal-ot-status');
+        if (sel && activeOtId === otId) sel.value = statusName;
+        refreshAllViews();
+      }
+    }
+
+    // ==============================================================
+    // MOTOR DE ORDENAMIENTO, AGRUPACIÓN (APPLE NUMBERS) Y TABLA UNIFICADA
+    // ==============================================================
+    let currentTableSort = { field: 'none', dir: 'asc' };
+    let currentTableGroup = 'none';
+    const collapsedGroupKeys = new Set();
+
+    function setTableSort(field) {
+      if (currentTableSort.field === field) {
+        currentTableSort.dir = currentTableSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentTableSort.field = field;
+        currentTableSort.dir = 'asc';
+      }
+      syncSortAndGroupControls();
+      refreshAllViews();
+    }
+
+    function toggleTableSortDirection() {
+      currentTableSort.dir = currentTableSort.dir === 'asc' ? 'desc' : 'asc';
+      syncSortAndGroupControls();
+      refreshAllViews();
+    }
+
+    function setTableGroup(groupField) {
+      currentTableGroup = groupField;
+      collapsedGroupKeys.clear();
+      syncSortAndGroupControls();
+      refreshAllViews();
+    }
+
+    function toggleGroupCollapse(groupKey) {
+      if (collapsedGroupKeys.has(groupKey)) {
+        collapsedGroupKeys.delete(groupKey);
+      } else {
+        collapsedGroupKeys.add(groupKey);
+      }
+      refreshAllViews();
+    }
+
+    function syncSortAndGroupControls() {
+      const traficoGroup = document.getElementById('trafico-group-select');
+      const stripboardGroup = document.getElementById('stripboard-group-select');
+      if (traficoGroup) traficoGroup.value = currentTableGroup;
+      if (stripboardGroup) stripboardGroup.value = currentTableGroup;
+
+      const traficoSort = document.getElementById('trafico-sort-select');
+      const stripboardSort = document.getElementById('stripboard-sort-select');
+      if (traficoSort) traficoSort.value = currentTableSort.field;
+      if (stripboardSort) stripboardSort.value = currentTableSort.field;
+
+      const dirLabel = currentTableSort.dir === 'asc' ? '▲ Asc' : '▼ Desc';
+      const traficoDir = document.getElementById('trafico-sort-dir-label');
+      const stripboardDir = document.getElementById('stripboard-sort-dir-label');
+      if (traficoDir) traficoDir.innerText = dirLabel;
+      if (stripboardDir) stripboardDir.innerText = dirLabel;
+    }
+
+    function getActiveRoute(ot) {
+      if (!ot.routes || ot.routes.length === 0) {
+        ot.routes = [{
+          from: 'Tráfico',
+          to: ot.responsible || 'Andrés J.',
+          task: ot.title || ot.description || '',
+          entryDate: ot.createdAt || getNowFormatted(),
+          deliveryDate: '',
+          sign: ot.responsible || 'Andrés J.',
+          notes: '',
+          stamp: null,
+          completed: false
+        }];
+        return ot.routes[0];
+      }
+      const pending = ot.routes.find(r => !r.completed);
+      return pending || ot.routes[ot.routes.length - 1];
+    }
+
+    function sortOrdersList(list) {
+      if (currentTableSort.field === 'none') return [...list];
+
+      const statuses = getStatuses();
+      const statusOrder = {};
+      statuses.forEach((s, idx) => { statusOrder[s.name.toLowerCase()] = idx; });
+
+      const sorted = [...list].sort((a, b) => {
+        const routeA = getActiveRoute(a);
+        const routeB = getActiveRoute(b);
+        let valA = '';
+        let valB = '';
+
+        if (currentTableSort.field === 'entryDate') {
+          const timeA = new Date(toIsoDateTime(routeA.entryDate)).getTime() || 0;
+          const timeB = new Date(toIsoDateTime(routeB.entryDate)).getTime() || 0;
+          return currentTableSort.dir === 'asc' ? timeA - timeB : timeB - timeA;
+        } else if (currentTableSort.field === 'deliveryDate') {
+          const timeA = new Date(toIsoDateTime(routeA.deliveryDate)).getTime() || 0;
+          const timeB = new Date(toIsoDateTime(routeB.deliveryDate)).getTime() || 0;
+          return currentTableSort.dir === 'asc' ? timeA - timeB : timeB - timeA;
+        } else if (currentTableSort.field === 'responsible') {
+          valA = (a.responsible || '').toLowerCase();
+          valB = (b.responsible || '').toLowerCase();
+        } else if (currentTableSort.field === 'status') {
+          const idxA = statusOrder[(a.status || '').toLowerCase()] ?? 999;
+          const idxB = statusOrder[(b.status || '').toLowerCase()] ?? 999;
+          return currentTableSort.dir === 'asc' ? idxA - idxB : idxB - idxA;
+        } else if (currentTableSort.field === 'department') {
+          valA = (routeA.to || '').toLowerCase();
+          valB = (routeB.to || '').toLowerCase();
+        }
+
+        const cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+        return currentTableSort.dir === 'asc' ? cmp : -cmp;
+      });
+
+      return sorted;
+    }
+
+    function handleTableRowClick(event, otId) {
+      if (event.target.closest('input, select, textarea, button, a')) return;
+      openEnvelopeModal(otId);
+    }
+
+    function handleTableOtDateChange(otId, field, isoValue) {
+      const displayVal = fromIsoToDisplay(isoValue);
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === otId);
+      if (ot) {
+        const activeRoute = getActiveRoute(ot);
+        activeRoute[field] = displayVal;
+        saveOrders(orders);
+        refreshAllViews();
+        if (activeOtId === otId) {
+          renderRouteSheetRows(ot.routes);
+        }
+      }
+    }
+
+    function handleTableOtStatusChange(otId, val) {
+      handleGlobalStatusChange(val, otId);
+    }
+
+    function handleTableOtResponsibleChange(otId, val) {
+      handleGlobalResponsibleChange(val, otId);
+    }
+
+    function handleTableOtNotesChange(otId, val) {
+      const orders = getOrders();
+      const ot = orders.find(o => o.id === otId);
+      if (ot) {
+        const activeRoute = getActiveRoute(ot);
+        activeRoute.notes = val;
+        saveOrders(orders);
+        refreshAllViews();
+        if (activeOtId === otId) {
+          renderRouteSheetRows(ot.routes);
+        }
+      }
+    }
+
+    // COMPONENTE DE FILA ÚNICO COMPARTIDO (11 COLUMNAS EXACTAS)
+    function renderUnifiedOtRow(ot, activeRoute) {
+      const safeDesc = ot.title || ot.description || '';
+      const safeBrand = ot.brand || ot.product || '--';
+      const safeMedia = ot.media || '--';
+      const safeRef = ot.ref || '--';
+      const safeClient = ot.client || '--';
+      const routeNotes = activeRoute.notes || '';
+
+      return `
+        <tr 
+          class="hover:bg-white/[0.04] transition-colors cursor-pointer group" 
+          onclick="handleTableRowClick(event, '${ot.id}')"
+        >
+          <!-- 1. No. OT -->
+          <td class="p-2 border-r border-resolve-border align-middle">
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/50 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px] whitespace-nowrap">
+                ${ot.id}
+              </span>
+              ${ot.urgent ? `<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Urgente"></span>` : ''}
+            </div>
+          </td>
+
+          <!-- 2. Cliente -->
+          <td class="p-2 border-r border-resolve-border align-middle font-medium text-white truncate max-w-[150px]" title="${escapeHtml(safeClient)}">
+            ${escapeHtml(safeClient)}
+          </td>
+
+          <!-- 3. Marca/Producto -->
+          <td class="p-2 border-r border-resolve-border align-middle text-zinc-300 truncate max-w-[150px]" title="${escapeHtml(safeBrand)}">
+            ${escapeHtml(safeBrand)}
+          </td>
+
+          <!-- 4. Medio -->
+          <td class="p-2 border-r border-resolve-border align-middle text-zinc-300 truncate max-w-[130px]" title="${escapeHtml(safeMedia)}">
+            ${escapeHtml(safeMedia)}
+          </td>
+
+          <!-- 5. Referencia -->
+          <td class="p-2 border-r border-resolve-border align-middle">
+            <span class="font-mono font-semibold text-amber-300 text-[11px] px-1.5 py-0.5 bg-amber-500/10 rounded border border-amber-500/20 truncate block max-w-[120px]" title="Referencia: ${escapeHtml(safeRef)}">
+              ${escapeHtml(safeRef)}
+            </span>
+          </td>
+
+          <!-- 6. Descripción -->
+          <td class="p-2 border-r border-resolve-border align-middle font-normal text-zinc-100 group-hover:text-amber-300 transition-colors truncate max-w-[220px]" title="${escapeHtml(safeDesc)}">
+            ${escapeHtml(safeDesc)}
+          </td>
+
+          <!-- 7. Entrada -->
+          <td class="p-2 border-r border-resolve-border align-middle" onclick="event.stopPropagation()">
+            <input 
+              type="datetime-local" 
+              value="${toIsoDateTime(activeRoute.entryDate)}" 
+              onchange="handleTableOtDateChange('${ot.id}', 'entryDate', this.value)" 
+              onclick="try { this.showPicker(); } catch(e) {}"
+              style="color-scheme: dark;"
+              class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-0.5 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
+            />
+          </td>
+
+          <!-- 8. Entrega -->
+          <td class="p-2 border-r border-resolve-border align-middle" onclick="event.stopPropagation()">
+            <input 
+              type="datetime-local" 
+              value="${toIsoDateTime(activeRoute.deliveryDate)}" 
+              onchange="handleTableOtDateChange('${ot.id}', 'deliveryDate', this.value)" 
+              onclick="try { this.showPicker(); } catch(e) {}"
+              style="color-scheme: dark;"
+              class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-0.5 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
+            />
+          </td>
+
+          <!-- 9. Estado -->
+          <td class="p-2 border-r border-resolve-border align-middle" onclick="event.stopPropagation()">
+            <select 
+              onchange="handleTableOtStatusChange('${ot.id}', this.value)" 
+              class="w-full bg-black/50 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300 focus:border-amber-500/60 focus:outline-none cursor-pointer"
+            >
+              ${getStatusOptionsHtml(ot.status || 'Tráfico')}
+            </select>
+          </td>
+
+          <!-- 10. Responsable -->
+          <td class="p-2 border-r border-resolve-border align-middle" onclick="event.stopPropagation()">
+            <select 
+              onchange="handleTableOtResponsibleChange('${ot.id}', this.value)" 
+              class="w-full bg-black/50 border border-resolve-border hover:border-cyan-400/50 rounded px-1.5 py-0.5 text-[11px] font-semibold text-cyan-300 focus:border-cyan-500/60 focus:outline-none cursor-pointer"
+            >
+              ${getResponsibleOptionsHtml(ot.responsible || 'Andrés J.')}
+            </select>
+          </td>
+
+          <!-- 11. Notas -->
+          <td class="p-2 align-middle" onclick="event.stopPropagation()">
+            <input 
+              type="text" 
+              value="${escapeHtml(routeNotes)}" 
+              onchange="handleTableOtNotesChange('${ot.id}', this.value)" 
+              placeholder="Notas..." 
+              class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 text-[11px] text-zinc-300 px-1 py-0.5 leading-tight"
+            />
+          </td>
+        </tr>
+      `;
+    }
+
+    // RENDERIZADOR GENERAL DE TABLA (ORDENAMIENTO + CATEGORÍAS APPLE NUMBERS)
+    function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
+      if (!ordersList || ordersList.length === 0) {
+        return `
+          <tr>
+            <td colspan="11" class="p-8 text-center text-zinc-400 italic font-medium">
+              No hay órdenes de trabajo disponibles en esta vista.
+            </td>
+          </tr>
+        `;
+      }
+
+      const sorted = sortOrdersList(ordersList);
+
+      if (currentTableGroup === 'none') {
+        return sorted.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot))).join('');
+      }
+
+      const groups = new Map();
+      const groupFieldLabels = {
+        client: 'Cliente',
+        status: 'Estado',
+        responsible: 'Responsable',
+        department: 'Departamento'
+      };
+      const label = groupFieldLabels[currentTableGroup] || 'Grupo';
+
+      sorted.forEach(ot => {
+        const route = getActiveRoute(ot);
+        let key = '';
+        if (currentTableGroup === 'client') {
+          key = ot.client || 'Sin Cliente';
+        } else if (currentTableGroup === 'status') {
+          key = ot.status || 'Tráfico';
+        } else if (currentTableGroup === 'responsible') {
+          key = ot.responsible || 'Andrés J.';
+        } else if (currentTableGroup === 'department') {
+          key = route.to || 'Sin Departamento';
+        }
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(ot);
+      });
+
+      let html = '';
+      groups.forEach((items, groupKey) => {
+        const isCollapsed = collapsedGroupKeys.has(groupKey);
+        html += `
+          <tr class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none">
+            <td colspan="11" class="px-3 py-1.5 font-bold text-xs text-white" onclick="toggleGroupCollapse('${escapeHtml(groupKey)}')">
+              <div class="flex items-center gap-2">
+                <span class="text-amber-400 font-mono text-[11px] inline-block transition-transform duration-150 ${isCollapsed ? '' : 'rotate-90'}">▶</span>
+                <span class="text-zinc-400 text-[10px] uppercase tracking-wider">${label}:</span>
+                <span class="text-amber-300 font-semibold">${escapeHtml(groupKey)}</span>
+                <span class="text-[10px] font-mono text-zinc-400 font-normal ml-1">(${items.length} ${items.length === 1 ? 'OT' : 'OTs'})</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (!isCollapsed) {
+          html += items.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot))).join('');
+        }
+      });
+
+      return html;
+    }
+
+    function refreshAllViews() {
+      renderTrafficDesk();
+      if (currentMainView === 'stripboard') {
+        renderStripboard();
       }
     }
 
@@ -2324,11 +2894,31 @@
       const activeCount = otStrips.filter(s => s.shiftStatus === 'En Mesa').length;
       const doneCount = otStrips.filter(s => s.shiftStatus === 'Entregado').length;
 
-      document.getElementById('strip-count-total').innerText = otStrips.length;
-      document.getElementById('strip-count-active').innerText = activeCount;
-      document.getElementById('strip-count-done').innerText = doneCount;
+      const totalBadge = document.getElementById('strip-count-total');
+      if (totalBadge) totalBadge.innerText = otStrips.length;
+      const activeBadge = document.getElementById('strip-count-active');
+      if (activeBadge) activeBadge.innerText = activeCount;
+      const doneBadge = document.getElementById('strip-count-done');
+      if (doneBadge) doneBadge.innerText = doneCount;
 
       renderStripboardPendingPool();
+
+      // Render de Vista Día: Tabla Unificada de 11 Columnas
+      const dayTableBody = document.getElementById('stripboard-day-table-body');
+      if (dayTableBody) {
+        const scheduledIds = strips.filter(s => s.type === 'ot' && s.otId).map(s => s.otId);
+        let stripboardOrders = [];
+        if (scheduledIds.length > 0) {
+          stripboardOrders = scheduledIds.map(id => orders.find(o => o.id === id)).filter(Boolean);
+        } else {
+          stripboardOrders = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada');
+        }
+        if (stripboardOrders.length === 0) {
+          stripboardOrders = orders;
+        }
+        dayTableBody.innerHTML = renderUnifiedTableRows(stripboardOrders, 'stripboard');
+        syncSortAndGroupControls();
+      }
 
       // Renderizar también las vistas complementarias según el modo activo
       if (currentStripboardViewMode === 'week') {
@@ -2339,23 +2929,24 @@
         renderStripboardMonthView();
       }
 
-      if (!strips || strips.length === 0) {
-        container.innerHTML = `
-          <div class="p-12 text-center border border-dashed border-resolve-border rounded-2xl bg-white/[0.02] text-xs text-resolve-dimText flex flex-col items-center justify-center">
-            <svg class="w-10 h-10 text-stone-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            <span class="font-bold text-white text-sm">Arrastra OTs aquí o cárgales automáticamente</span>
-            <p class="text-[11px] text-resolve-dimText mt-1 max-w-sm">Puedes arrastrar cualquier OT desde la columna izquierda y soltarla en este tablero, o pulsar el botón para cargar todas las pendientes.</p>
-            <button onclick="autoPopulatePendingOts()" class="mt-4 px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg transition-all active:scale-[0.98] text-xs flex items-center gap-1.5 shadow-sm">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span>Cargar OTs Pendientes al Plan</span>
-            </button>
-          </div>
-        `;
-        return;
-      }
+      if (container) {
+        if (!strips || strips.length === 0) {
+          container.innerHTML = `
+            <div class="p-12 text-center border border-dashed border-resolve-border rounded-2xl bg-white/[0.02] text-xs text-resolve-dimText flex flex-col items-center justify-center">
+              <svg class="w-10 h-10 text-stone-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <span class="font-bold text-white text-sm">Arrastra OTs aquí o cárgales automáticamente</span>
+              <p class="text-[11px] text-resolve-dimText mt-1 max-w-sm">Puedes arrastrar cualquier OT desde la columna izquierda y soltarla en este tablero, o pulsar el botón para cargar todas las pendientes.</p>
+              <button onclick="autoPopulatePendingOts()" class="mt-4 px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg transition-all active:scale-[0.98] text-xs flex items-center gap-1.5 shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Cargar OTs Pendientes al Plan</span>
+              </button>
+            </div>
+          `;
+          return;
+        }
 
-      // Render de tiras horizontales arrastrables estilo Stripboard de Cine
-      container.innerHTML = strips.map((strip, idx) => {
+        // Render de tiras horizontales arrastrables estilo Stripboard de Cine
+        container.innerHTML = strips.map((strip, idx) => {
         if (strip.type === 'break') {
           return `
             <div 
@@ -2543,6 +3134,7 @@
           </div>
         `;
       }).join('');
+      }
     }
 
     let currentPoolFilter = 'all'; // 'all' | 'unscheduled' | 'scheduled'
@@ -3897,20 +4489,24 @@
         ],
         routes: [
           {
-            from: "Andrés J.",
-            to: "Andrés J.",
+            from: "Tráfico",
+            to: "Creativos",
             task: "Favor desarrollar los diálogos para el comercial de TV 20\" cerrando siempre con el Product Shot y el slogan de la marca en OFF. Incluir al final la locución legal: 'Prohibida su venta a menores de edad'.",
             entryDate: "21/05/2026 10:15",
             deliveryDate: "23/05/2026 15:00",
+            sign: "Andrés J.",
+            notes: "Prioridad alta por pauta en TV",
             stamp: "RECIBIDO",
             completed: false
           },
           {
-            from: "Andrés J.",
-            to: "Andrés J.",
+            from: "Creativos",
+            to: "Tráfico",
             task: "Se envían 2 guiones dialogados con minutero exacto.",
             entryDate: "23/05/2026 14:00",
             deliveryDate: "24/05/2026 10:00",
+            sign: "Andrés J.",
+            notes: "Listos para aprobación del cliente",
             stamp: "ENTREGADO",
             completed: true
           }
@@ -3933,11 +4529,13 @@
         mediaFiles: [],
         routes: [
           {
-            from: "Andrés J.",
-            to: "Andrés J.",
+            from: "Tráfico",
+            to: "Creativos",
             task: "Desarrollo de titulares y copy largo.",
             entryDate: "18/05/2026 11:30",
             deliveryDate: "19/05/2026 17:00",
+            sign: "Andrés J.",
+            notes: "Pendiente confirmación de fecha de publicación",
             stamp: "APROBADO",
             completed: true
           }
@@ -4034,6 +4632,29 @@
                 ot.responsible = 'Andrés J.';
               }
               modified = true;
+            }
+
+            // Normalización de rutas para catálogo de departamentos y campos unificados
+            if (!ot.routes || ot.routes.length === 0) {
+              ot.routes = [{
+                from: "Tráfico",
+                to: "Creativos",
+                task: ot.title || ot.description || "",
+                entryDate: ot.createdAt || getNowFormatted(),
+                deliveryDate: "",
+                sign: ot.responsible || "Andrés J.",
+                notes: "",
+                stamp: null,
+                completed: false
+              }];
+              modified = true;
+            } else {
+              ot.routes.forEach(r => {
+                if (!r.from || r.from === 'Andrés J.') { r.from = "Tráfico"; modified = true; }
+                if (!r.to || r.to === 'Andrés J.') { r.to = "Creativos"; modified = true; }
+                if (!r.sign) { r.sign = ot.responsible || "Andrés J."; modified = true; }
+                if (r.notes === undefined) { r.notes = ""; modified = true; }
+              });
             }
           });
           if (modified) {
@@ -4554,105 +5175,10 @@
         }).join('');
       }
 
-      // 2. RENDER VISTA EN LISTA (CONTROL DE TRÁFICO CON REFERENCIA)
+      // 2. RENDER VISTA EN LISTA (TABLA UNIFICADA DE 11 COLUMNAS CON APPLE NUMBERS CATEGORIES)
       if (listBody) {
-        listBody.innerHTML = filtered.map(ot => {
-          const lastRoute = ot.routes && ot.routes.length > 0 ? ot.routes[ot.routes.length - 1] : null;
-          const totalFiles = ot.mediaFiles ? ot.mediaFiles.length : 0;
-
-          let statusBadge = getStatusBadgeClass(ot.status);
-
-          return `
-          <tr class="hover:bg-white/[0.04] transition-colors cursor-pointer group" onclick="openEnvelopeModal('${ot.id}')">
-            <!-- N° OT -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <div class="flex items-center gap-1.5">
-                <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/40 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px]">
-                  ${ot.id}
-                </span>
-                ${ot.urgent ? `<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Urgente"></span>` : ''}
-              </div>
-            </td>
-
-            <!-- ESTADO -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <span class="text-[10px] font-medium px-2.5 py-0.5 rounded-full border inline-block whitespace-nowrap ${statusBadge}">
-                ${ot.status}
-              </span>
-            </td>
-
-            <!-- RESPONSABLE -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <span class="text-cyan-300 font-semibold text-[11px] truncate block max-w-[120px]">
-                ${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.'))}
-              </span>
-            </td>
-
-            <!-- REFERENCIA -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <span class="font-mono font-semibold text-amber-300 text-[11px] truncate block max-w-[120px]" title="${escapeHtml(ot.ref || '')}">
-                ${escapeHtml(ot.ref || '--')}
-              </span>
-            </td>
-
-            <!-- CLIENTE / MARCA -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <div class="font-semibold text-white truncate max-w-[180px]">${escapeHtml(ot.client)}</div>
-              <div class="text-[10px] text-zinc-400 truncate max-w-[180px]">${escapeHtml(ot.brand || ot.product || '--')}${ot.product && ot.brand && ot.product !== ot.brand ? ' • ' + escapeHtml(ot.product) : ''}</div>
-            </td>
-
-            <!-- TÍTULO & MEDIO -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              <div class="font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors truncate max-w-sm">
-                ${escapeHtml(ot.title)}
-              </div>
-              <div class="text-[10px] text-zinc-400 truncate max-w-sm">
-                ${escapeHtml(ot.media || 'Sin especificar')}
-              </div>
-            </td>
-
-            <!-- ÚLTIMO RELEVO -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle">
-              ${lastRoute ? `
-                <div class="text-[11px] font-semibold">
-                  <span class="text-amber-300">${escapeHtml(lastRoute.from)}</span>
-                  <span class="text-zinc-500">→</span>
-                  <span class="text-sky-300">${escapeHtml(lastRoute.to)}</span>
-                </div>
-                <div class="text-[10px] text-zinc-400 truncate max-w-[190px]">
-                  ${escapeHtml(lastRoute.task || 'Sin comentarios')}
-                </div>
-              ` : `
-                <span class="text-zinc-600 text-[10px]">--</span>
-              `}
-            </td>
-
-            <!-- FECHA ENTREGA -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle text-[11px] text-zinc-300 font-mono whitespace-nowrap">
-              ${lastRoute && lastRoute.deliveryDate ? lastRoute.deliveryDate : (ot.createdAt || '--')}
-            </td>
-
-            <!-- MEDIA POOL -->
-            <td class="p-2.5 border-r border-resolve-border/60 align-middle text-center">
-              <span class="px-2 py-0.5 bg-black/40 text-zinc-400 group-hover:text-amber-400 rounded-md text-[10px] border border-resolve-border/60 inline-flex items-center gap-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                <span>${totalFiles}</span>
-              </span>
-            </td>
-
-            <!-- ACCIONES -->
-            <td class="p-2.5 align-middle text-center" onclick="event.stopPropagation()">
-              <button 
-                onclick="openEnvelopeModal('${ot.id}')" 
-                class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-white text-[10px] font-semibold rounded-lg border border-resolve-border transition-all active:scale-[0.98] inline-flex items-center gap-1"
-              >
-                <span>Abrir</span>
-                <span class="text-amber-400">→</span>
-              </button>
-            </td>
-          </tr>
-        `;
-        }).join('');
+        listBody.innerHTML = renderUnifiedTableRows(filtered, 'trafico');
+        syncSortAndGroupControls();
       }
     }
 
@@ -4665,13 +5191,33 @@
       const ot = orders.find(o => o.id === otId);
       if (!ot) return;
 
-      document.getElementById('modal-ot-id').innerText = ot.id;
-      document.getElementById('modal-ot-title-header').innerText = ot.title;
-      document.getElementById('modal-ot-client').value = ot.client || '';
-      document.getElementById('modal-ot-brand').value = ot.brand || ot.product || '';
-      document.getElementById('modal-ot-product').value = ot.product || '';
-      document.getElementById('modal-ot-media').value = ot.media || '';
-      document.getElementById('modal-ot-ref').value = ot.ref || '';
+      if (document.getElementById('modal-ot-id-display')) {
+        document.getElementById('modal-ot-id-display').value = ot.id;
+      }
+      if (document.getElementById('modal-ot-id')) {
+        document.getElementById('modal-ot-id').innerText = ot.id;
+      }
+      if (document.getElementById('modal-ot-title-header')) {
+        document.getElementById('modal-ot-title-header').innerText = ot.title || ot.description || '';
+      }
+      if (document.getElementById('modal-ot-client')) {
+        document.getElementById('modal-ot-client').value = ot.client || '';
+      }
+      if (document.getElementById('modal-ot-brand')) {
+        document.getElementById('modal-ot-brand').value = ot.brand || ot.product || '';
+      }
+      if (document.getElementById('modal-ot-product')) {
+        document.getElementById('modal-ot-product').value = ot.product || '';
+      }
+      if (document.getElementById('modal-ot-media')) {
+        document.getElementById('modal-ot-media').value = ot.media || '';
+      }
+      if (document.getElementById('modal-ot-ref')) {
+        document.getElementById('modal-ot-ref').value = ot.ref || '';
+      }
+      if (document.getElementById('modal-ot-description')) {
+        document.getElementById('modal-ot-description').value = ot.title || ot.description || '';
+      }
       renderStatusSelects();
       renderResponsibleSelects();
       if (document.getElementById('modal-ot-status')) {
@@ -4814,7 +5360,11 @@
       if (!ot) return;
 
       ot[field] = value;
+      if (field === 'title') ot.description = value;
+      if (field === 'description') ot.title = value;
+      if (field === 'brand' && !ot.product) ot.product = value;
       saveOrders(orders);
+      refreshAllViews();
     }
 
     function deleteActiveOt() {
@@ -4835,7 +5385,7 @@
       if (!routes || routes.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="p-8 text-center text-zinc-400 italic font-medium">
+            <td colspan="8" class="p-8 text-center text-zinc-400 italic font-medium">
               Sin relevos asentados. Pulsa "+ AGREGAR MOVIMIENTO" para registrar un pase.
             </td>
           </tr>
@@ -4866,30 +5416,28 @@
 
         return `
           <tr class="hover:bg-white/[0.03] transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
-            <!-- DE -->
-            <td class="p-2.5 border-r border-resolve-border align-top">
-              <input 
-                type="text" 
-                list="dept-options" 
-                value="${escapeHtml(row.from || '')}" 
-                onchange="updateRouteCell(${index}, 'from', this.value)" 
-                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 font-semibold text-amber-300 text-xs"
-              />
+            <!-- 1. DE: -->
+            <td class="p-2 border-r border-resolve-border align-middle">
+              <select 
+                onchange="handleRouteDeptChange(${index}, 'from', this.value)" 
+                class="w-full bg-black/50 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-1 text-xs font-semibold text-amber-300 focus:border-amber-500/60 focus:outline-none cursor-pointer"
+              >
+                ${getDepartmentOptionsHtml(row.from || 'Tráfico')}
+              </select>
             </td>
 
-            <!-- PARA -->
-            <td class="p-2.5 border-r border-resolve-border align-top">
-              <input 
-                type="text" 
-                list="dept-options" 
-                value="${escapeHtml(row.to || '')}" 
-                onchange="updateRouteCell(${index}, 'to', this.value)" 
-                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 font-semibold text-sky-300 text-xs"
-              />
+            <!-- 2. PARA: -->
+            <td class="p-2 border-r border-resolve-border align-middle">
+              <select 
+                onchange="handleRouteDeptChange(${index}, 'to', this.value)" 
+                class="w-full bg-black/50 border border-resolve-border hover:border-sky-400/50 rounded px-1.5 py-1 text-xs font-semibold text-sky-300 focus:border-sky-500/60 focus:outline-none cursor-pointer"
+              >
+                ${getDepartmentOptionsHtml(row.to || 'Creativos')}
+              </select>
             </td>
 
-            <!-- TAREA / DESCRIPCIÓN -->
-            <td class="p-2.5 border-r border-resolve-border align-top">
+            <!-- 3. DESCRIPCIÓN -->
+            <td class="p-2 border-r border-resolve-border align-top">
               <textarea 
                 rows="2" 
                 onchange="updateRouteCell(${index}, 'task', this.value)" 
@@ -4898,8 +5446,8 @@
               >${escapeHtml(row.task || '')}</textarea>
             </td>
 
-            <!-- ENTRADA -->
-            <td class="p-2.5 border-r border-resolve-border align-top">
+            <!-- 4. ENTRADA -->
+            <td class="p-2 border-r border-resolve-border align-top">
               <div class="flex items-center gap-1">
                 <input 
                   type="datetime-local" 
@@ -4920,8 +5468,8 @@
               </div>
             </td>
 
-            <!-- ENTREGA -->
-            <td class="p-2.5 border-r border-resolve-border align-top">
+            <!-- 5. ENTREGA -->
+            <td class="p-2 border-r border-resolve-border align-top">
               <div class="flex items-center gap-1">
                 <input 
                   type="datetime-local" 
@@ -4942,9 +5490,29 @@
               </div>
             </td>
 
-            <!-- FIRMA / SELLO -->
-            <td class="p-2.5 border-r border-resolve-border align-middle text-center">
-              ${stampHtml}
+            <!-- 6. FIRMA -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <div class="flex flex-col gap-1">
+                <select 
+                  onchange="handleRouteSignChange(${index}, this.value)" 
+                  class="w-full bg-black/50 border border-resolve-border hover:border-cyan-400/50 rounded px-1.5 py-1 text-[11px] font-semibold text-cyan-300 focus:border-cyan-500/60 focus:outline-none cursor-pointer"
+                >
+                  ${getResponsibleOptionsHtml(row.sign || row.from || 'Andrés J.')}
+                </select>
+                <div class="text-center pt-0.5">
+                  ${stampHtml}
+                </div>
+              </div>
+            </td>
+
+            <!-- 7. NOTAS -->
+            <td class="p-2 border-r border-resolve-border align-top">
+              <textarea 
+                rows="2" 
+                onchange="updateRouteCell(${index}, 'notes', this.value)" 
+                placeholder="Notas o comentarios..." 
+                class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 text-xs text-zinc-300 leading-relaxed resize-y font-sans"
+              >${escapeHtml(row.notes || '')}</textarea>
             </td>
 
             <!-- ACCIONES -->
@@ -4971,12 +5539,12 @@
 
       if (!ot.routes) ot.routes = [];
 
-      let defaultFrom = "Andrés J.";
-      let defaultTo = ot.responsible || "Andrés J.";
+      let defaultFrom = "Tráfico";
+      let defaultTo = "Creativos";
       if (ot.routes.length > 0) {
         const last = ot.routes[ot.routes.length - 1];
-        defaultFrom = last.to || "Andrés J.";
-        defaultTo = last.from || "Andrés J.";
+        defaultFrom = last.to || "Tráfico";
+        defaultTo = last.from || "Creativos";
       }
 
       ot.routes.push({
@@ -4985,12 +5553,15 @@
         task: "",
         entryDate: getNowFormatted(),
         deliveryDate: "",
+        sign: ot.responsible || "Andrés J.",
+        notes: "",
         stamp: null,
         completed: false
       });
 
       saveOrders(orders);
       renderRouteSheetRows(ot.routes);
+      refreshAllViews();
     }
 
     function updateRouteCell(index, field, value) {
@@ -5001,6 +5572,7 @@
 
       ot.routes[index][field] = value;
       saveOrders(orders);
+      refreshAllViews();
     }
 
     function stampCurrentTime(index, field) {
@@ -5721,17 +6293,18 @@
       }
 
       const initialRoutes = [];
-      if (firstTask) {
-        initialRoutes.push({
-          from: "Andrés J.",
-          to: responsible !== '__NEW_RESPONSIBLE__' ? responsible : 'Andrés J.',
-          task: firstTask,
-          entryDate: getNowFormatted(),
-          deliveryDate: "",
-          stamp: "RECIBIDO",
-          completed: false
-        });
-      }
+      const respVal = (responsible && responsible !== '__NEW_RESPONSIBLE__') ? responsible : 'Andrés J.';
+      initialRoutes.push({
+        from: "Tráfico",
+        to: "Creativos",
+        task: firstTask || title || "",
+        entryDate: getNowFormatted(),
+        deliveryDate: "",
+        sign: respVal,
+        notes: "",
+        stamp: firstTask ? "RECIBIDO" : null,
+        completed: false
+      });
 
       const newOt = {
         id: newId,
@@ -5862,6 +6435,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       renderStatusSelects();
       renderResponsibleSelects();
+      syncSortAndGroupControls();
       renderBinTree();
       renderTrafficDesk();
       updateClientsDatalist();
