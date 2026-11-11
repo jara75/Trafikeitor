@@ -670,7 +670,7 @@
               <span class="font-semibold text-white uppercase tracking-wider">TIMELINE • GANTT DE TRÁFICO DIARIO (08:00 – 19:00)</span>
               <span id="stripboard-gantt-date-label" class="text-amber-400 font-semibold">--</span>
             </div>
-            <span>Pistas por Departamento • Pulsa ◀ / ▶ en un bloque para desplazar su turno 30 min o suelta una OT en una pista</span>
+            <span>Pistas por Departamento • Arrastra los bordes del clip para expandir/contraer tiempo (DaVinci Trim) o mueve el bloque</span>
           </div>
           <div id="stripboard-gantt-container" class="flex-1 overflow-auto p-3 select-none">
             <!-- Pistas de Timeline DaVinci Resolve inyectadas con JS -->
@@ -1593,7 +1593,7 @@
       if (hintEl) {
         if (mode === 'day') hintEl.innerText = 'Vista Día (Tiras) • Arrastra y suelta las tiras en la posición exacta del día';
         else if (mode === 'week') hintEl.innerText = 'Semana Laboral (Lunes a Sábado) • Arrastra tiras de un día a otro o desde la piscina de OTs pendientes';
-        else if (mode === 'gantt') hintEl.innerText = 'Timeline Gantt (08:00 a 19:00) • Arrastra OTs a una pista de departamento o desplaza bloques con ◀ / ▶';
+        else if (mode === 'gantt') hintEl.innerText = 'Timeline Gantt (08:00 a 19:00) • Arrastra los bordes del clip para expandir/contraer tiempo (DaVinci Trim) o arrastra entre pistas';
         else if (mode === 'month') hintEl.innerText = 'Calendario Mensual (Lunes a Sábado) • Hitos de entrega comprometida y carga de tiras por día';
       }
       if (periodLabelEl) {
@@ -2795,7 +2795,7 @@
       if (!strip) return;
 
       const { startMin, endMin } = parseTimeSlotToMinutes(strip.timeSlot, stripIdx);
-      const duration = Math.max(30, endMin - startMin);
+      const duration = Math.max(15, endMin - startMin);
       let newStart = startMin + deltaMinutes;
       if (newStart < GANTT_START_MIN) newStart = GANTT_START_MIN;
       if (newStart + duration > GANTT_END_MIN) newStart = GANTT_END_MIN - duration;
@@ -2803,6 +2803,127 @@
 
       strip.timeSlot = `${minutesToHHMM(newStart)} - ${minutesToHHMM(newEnd)}`;
       saveDayStrips(dateStr, strips);
+    }
+
+    // ==============================================================
+    // RECORTE / EXPANSIÓN DE CLIPS DE TIMELINE GANTT (DAVINCI RESOLVE TRIM)
+    // ==============================================================
+    function startGanttClipTrim(e, dateStr, stripIdx, edge) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const handle = e.currentTarget;
+      const clip = handle.closest('.gantt-clip');
+      if (!clip) return;
+
+      const lane = clip.closest('.gantt-track-lane');
+      if (!lane) return;
+
+      const strips = getDayStrips(dateStr);
+      const strip = strips[stripIdx];
+      if (!strip) return;
+
+      // Desactivar temporalmente el arrastre nativo de la fila para evitar conflicto con el recorte
+      clip.setAttribute('draggable', 'false');
+      clip.classList.add('ring-2', 'ring-amber-400', 'z-40', 'shadow-2xl');
+
+      const { startMin: initialStart, endMin: initialEnd } = parseTimeSlotToMinutes(strip.timeSlot, stripIdx);
+      let currentStart = initialStart;
+      let currentEnd = initialEnd;
+
+      // Crear o reutilizar HUD flotante estilo DaVinci Resolve Timecode
+      let hud = document.getElementById('gantt-trim-hud');
+      if (!hud) {
+        hud = document.createElement('div');
+        hud.id = 'gantt-trim-hud';
+        hud.className = 'fixed z-50 pointer-events-none px-2.5 py-1.5 rounded-lg bg-stone-950/95 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/50 shadow-2xl backdrop-blur-md flex items-center gap-2 select-none transition-opacity';
+        document.body.appendChild(hud);
+      }
+      hud.style.display = 'flex';
+      hud.style.opacity = '1';
+
+      const timeSlotSpan = clip.querySelector('.gantt-clip-timeslot');
+
+      function formatDuration(start, end) {
+        const total = Math.max(0, end - start);
+        const h = Math.floor(total / 60);
+        const m = total % 60;
+        return h > 0 ? `${h}h ${m > 0 ? m + 'm' : ''}` : `${m}m`;
+      }
+
+      function updateHudPosition(clientEvent) {
+        const durStr = formatDuration(currentStart, currentEnd);
+        const delta = edge === 'left' ? (initialStart - currentStart) : (currentEnd - initialEnd);
+        const deltaSign = delta > 0 ? `+${delta}m` : (delta < 0 ? `${delta}m` : '0m');
+        const deltaColor = delta > 0 ? 'text-emerald-400' : (delta < 0 ? 'text-amber-400' : 'text-zinc-400');
+
+        hud.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span>${minutesToHHMM(currentStart)} – ${minutesToHHMM(currentEnd)}</span>
+          <span class="text-zinc-400 font-sans text-[10px]">(${durStr})</span>
+          <span class="${deltaColor} font-bold text-[11px]">${deltaSign}</span>
+        `;
+        const hudX = Math.min(window.innerWidth - 240, Math.max(10, clientEvent.clientX - 110));
+        const hudY = Math.max(10, clientEvent.clientY - 44);
+        hud.style.left = `${hudX}px`;
+        hud.style.top = `${hudY}px`;
+      }
+
+      updateHudPosition(e);
+
+      function onMouseMove(moveEvent) {
+        const laneRect = lane.getBoundingClientRect();
+        if (laneRect.width <= 0) return;
+
+        const relX = moveEvent.clientX - laneRect.left;
+        const ratio = Math.max(0, Math.min(1, relX / laneRect.width));
+        const rawMinutes = GANTT_START_MIN + (ratio * GANTT_TOTAL_MIN);
+        
+        // Snapping en cuadrícula de 15 minutos (estilo NLE DaVinci Resolve)
+        const snapped = Math.round(rawMinutes / 15) * 15;
+
+        if (edge === 'left') {
+          // Ajuste de In-Point (mínimo 15 min de duración)
+          currentStart = Math.max(GANTT_START_MIN, Math.min(currentEnd - 15, snapped));
+        } else {
+          // Ajuste de Out-Point (mínimo 15 min de duración)
+          currentEnd = Math.max(currentStart + 15, Math.min(GANTT_END_MIN, snapped));
+        }
+
+        // Actualizar visualmente la posición y anchura del clip en tiempo real
+        const leftPct = ((currentStart - GANTT_START_MIN) / GANTT_TOTAL_MIN) * 100;
+        const widthPct = Math.max(2.2, ((currentEnd - currentStart) / GANTT_TOTAL_MIN) * 100);
+        clip.style.left = `${leftPct.toFixed(2)}%`;
+        clip.style.width = `${widthPct.toFixed(2)}%`;
+
+        if (timeSlotSpan) {
+          timeSlotSpan.innerText = `${minutesToHHMM(currentStart)} - ${minutesToHHMM(currentEnd)}`;
+        }
+
+        updateHudPosition(moveEvent);
+      }
+
+      function onMouseUp() {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+
+        clip.classList.remove('ring-2', 'ring-amber-400', 'z-40', 'shadow-2xl');
+        clip.setAttribute('draggable', 'true');
+
+        if (hud) {
+          hud.style.opacity = '0';
+          setTimeout(() => { if (hud) hud.style.display = 'none'; }, 200);
+        }
+
+        const newTimeSlot = `${minutesToHHMM(currentStart)} - ${minutesToHHMM(currentEnd)}`;
+        if (newTimeSlot !== strip.timeSlot) {
+          strip.timeSlot = newTimeSlot;
+          saveDayStrips(dateStr, strips);
+        }
+      }
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
     }
 
     function classifyDepartmentTrack(assignee) {
@@ -2834,8 +2955,6 @@
       const relX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
       const ratio = rect.width > 0 ? (relX / rect.width) : 0;
       const rawStartMin = GANTT_START_MIN + (ratio * GANTT_TOTAL_MIN);
-      const snappedStart = Math.max(GANTT_START_MIN, Math.min(GANTT_END_MIN - 90, Math.round(rawStartMin / 30) * 30));
-      const newSlot = `${minutesToHHMM(snappedStart)} - ${minutesToHHMM(snappedStart + 90)}`;
 
       clearStripDropIndicators();
 
@@ -2843,12 +2962,17 @@
         const strips = getDayStrips(currentStripboardDate);
         const strip = strips[dragState.sourceIndex];
         if (strip) {
+          const { startMin: oldStart, endMin: oldEnd } = parseTimeSlotToMinutes(strip.timeSlot, dragState.sourceIndex);
+          const currentDuration = Math.max(15, oldEnd - oldStart);
+          const snappedStart = Math.max(GANTT_START_MIN, Math.min(GANTT_END_MIN - currentDuration, Math.round(rawStartMin / 15) * 15));
           strip.assignee = targetDeptAssignee;
-          strip.timeSlot = newSlot;
+          strip.timeSlot = `${minutesToHHMM(snappedStart)} - ${minutesToHHMM(snappedStart + currentDuration)}`;
           saveDayStrips(currentStripboardDate, strips);
         }
       } else if (dragState.sourceType === 'pool-ot' && dragState.otId) {
         const strips = getDayStrips(currentStripboardDate);
+        const snappedStart = Math.max(GANTT_START_MIN, Math.min(GANTT_END_MIN - 90, Math.round(rawStartMin / 30) * 30));
+        const newSlot = `${minutesToHHMM(snappedStart)} - ${minutesToHHMM(snappedStart + 90)}`;
         insertOtStripOnDate(dragState.otId, currentStripboardDate, strips.length, targetDeptAssignee, newSlot);
       }
 
@@ -2895,22 +3019,33 @@
         const clipsHtml = trackStrips.map(({ strip, idx }) => {
           const { startMin, endMin } = parseTimeSlotToMinutes(strip.timeSlot, idx);
           const leftPct = ((startMin - GANTT_START_MIN) / GANTT_TOTAL_MIN) * 100;
-          const widthPct = Math.max(8, ((endMin - startMin) / GANTT_TOTAL_MIN) * 100);
+          const widthPct = Math.max(2.5, ((endMin - startMin) / GANTT_TOTAL_MIN) * 100);
           const ot = strip.otId ? orders.find(o => o.id === strip.otId) : null;
           const clientName = ot ? ot.client : (strip.client || '');
 
           return `
             <div
+              id="gantt-clip-${idx}"
               draggable="true"
               ondragstart="handleStripDragStart(event, ${idx}, '${currentStripboardDate}')"
               ondragend="handleStripDragEnd(event)"
               onclick="handleStripCardClick(event, '${strip.otId || ''}')"
               style="left: ${leftPct.toFixed(2)}%; width: ${widthPct.toFixed(2)}%;"
-              class="stripboard-row absolute top-2 bottom-2 rounded border-l-4 ${track.color} border border-resolve-border hover:border-amber-400 px-2 py-1 flex flex-col justify-between overflow-hidden shadow-md cursor-pointer hover:z-20 transition-colors"
+              class="gantt-clip stripboard-row absolute top-1.5 bottom-1.5 rounded-md border-l-4 ${track.color} border border-resolve-border hover:border-amber-400/80 px-2.5 py-1 flex flex-col justify-between overflow-hidden shadow-md cursor-pointer hover:z-20 transition-[border-color,background-color] group/clip select-none"
               title="Clic para abrir Sobre ${escapeHtml(strip.otId || 'LIBRE')} • ${escapeHtml(strip.timeSlot || '')} • ${escapeHtml(strip.task || '')}"
             >
+              <!-- DaVinci Trim Handle Izquierda (In-Point / Head) -->
+              <div
+                class="gantt-trim-handle gantt-trim-left absolute left-0 top-0 bottom-0 w-3 z-30 cursor-ew-resize flex items-center justify-center opacity-0 group-hover/clip:opacity-100 hover:!opacity-100 hover:bg-amber-400/30 active:bg-amber-400/50 transition-all rounded-l"
+                title="Arrastrar para recortar/expandir inicio (DaVinci Trim Head)"
+                onmousedown="startGanttClipTrim(event, '${currentStripboardDate}', ${idx}, 'left')"
+                onclick="event.stopPropagation()"
+              >
+                <div class="w-[2px] h-3.5 bg-amber-400/90 rounded-full shadow-[0_0_4px_rgba(245,158,11,0.6)] pointer-events-none"></div>
+              </div>
+
               <div class="flex items-center justify-between gap-1 text-[10px]">
-                <div class="flex items-center gap-1 truncate">
+                <div class="flex items-center gap-1 truncate min-w-0">
                   ${strip.otId ? `
                     <button
                       type="button"
@@ -2918,7 +3053,7 @@
                       onmousedown="pauseRowDrag(this); event.stopPropagation();"
                       onmouseup="resumeRowDrag(this)"
                       onclick="event.stopPropagation(); openEnvelopeModal('${strip.otId}')"
-                      class="font-black text-amber-400 hover:text-white underline truncate cursor-pointer"
+                      class="font-black text-amber-400 hover:text-white underline truncate cursor-pointer font-mono"
                     >
                       ${strip.otId}
                     </button>
@@ -2932,9 +3067,9 @@
                     data-no-open="true"
                     onmousedown="pauseRowDrag(this); event.stopPropagation();"
                     onmouseup="resumeRowDrag(this)"
-                    onclick="event.stopPropagation(); shiftStripTimeSlot('${currentStripboardDate}', ${idx}, -30)"
-                    title="Atrasar 30 min"
-                    class="px-1 hover:bg-black/40 rounded text-[9px] text-white cursor-pointer"
+                    onclick="event.stopPropagation(); shiftStripTimeSlot('${currentStripboardDate}', ${idx}, -15)"
+                    title="Atrasar 15 min"
+                    class="px-1 hover:bg-black/40 rounded text-[9px] text-zinc-300 hover:text-white cursor-pointer"
                   >◀</button>
                   <button
                     type="button"
@@ -2942,16 +3077,28 @@
                     data-no-open="true"
                     onmousedown="pauseRowDrag(this); event.stopPropagation();"
                     onmouseup="resumeRowDrag(this)"
-                    onclick="event.stopPropagation(); shiftStripTimeSlot('${currentStripboardDate}', ${idx}, 30)"
-                    title="Adelantar 30 min"
-                    class="px-1 hover:bg-black/40 rounded text-[9px] text-white cursor-pointer"
+                    onclick="event.stopPropagation(); shiftStripTimeSlot('${currentStripboardDate}', ${idx}, 15)"
+                    title="Adelantar 15 min"
+                    class="px-1 hover:bg-black/40 rounded text-[9px] text-zinc-300 hover:text-white cursor-pointer"
                   >▶</button>
                 </div>
               </div>
-              <div class="text-[10px] font-bold text-white truncate">${escapeHtml(strip.task || '')}</div>
-              <div class="flex items-center justify-between text-[9px] text-stone-300">
-                <span>${escapeHtml(strip.timeSlot || '')}</span>
-                <span class="font-bold">${escapeHtml(strip.shiftStatus || '')}</span>
+
+              <div class="text-[10px] font-semibold text-white truncate my-auto">${escapeHtml(strip.task || '')}</div>
+
+              <div class="flex items-center justify-between text-[9px] text-stone-300 pt-0.5">
+                <span class="gantt-clip-timeslot font-mono tracking-tight">${escapeHtml(strip.timeSlot || '')}</span>
+                <span class="font-semibold text-zinc-400 truncate ml-1">${escapeHtml(strip.shiftStatus || '')}</span>
+              </div>
+
+              <!-- DaVinci Trim Handle Derecha (Out-Point / Tail) -->
+              <div
+                class="gantt-trim-handle gantt-trim-right absolute right-0 top-0 bottom-0 w-3 z-30 cursor-ew-resize flex items-center justify-center opacity-0 group-hover/clip:opacity-100 hover:!opacity-100 hover:bg-amber-400/30 active:bg-amber-400/50 transition-all rounded-r"
+                title="Arrastrar para expandir/contraer fin (DaVinci Trim Tail)"
+                onmousedown="startGanttClipTrim(event, '${currentStripboardDate}', ${idx}, 'right')"
+                onclick="event.stopPropagation()"
+              >
+                <div class="w-[2px] h-3.5 bg-amber-400/90 rounded-full shadow-[0_0_4px_rgba(245,158,11,0.6)] pointer-events-none"></div>
               </div>
             </div>
           `;
