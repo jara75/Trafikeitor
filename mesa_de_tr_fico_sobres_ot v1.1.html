@@ -176,64 +176,65 @@
 <body class="h-full bg-resolve-bg text-resolve-lightText font-sans flex flex-col antialiased select-none overflow-hidden tracking-normal">
 
   <!-- TOP BAR: Control de Tráfico & Master Actions (macOS Pro Toolbar) -->
-  <header class="h-12 bg-resolve-panel/95 backdrop-blur-md border-b border-resolve-border px-3 sm:px-4 flex items-center justify-between z-30 shrink-0">
-    <div class="flex items-center gap-3">
+  <header class="h-10 bg-resolve-panel/95 backdrop-blur-md border-b border-resolve-border px-3 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-2.5">
       <!-- Toggle para colapsar la barra lateral desde la barra superior -->
       <button 
         onclick="toggleSidebar()" 
         title="Ocultar / Mostrar Bins (Sidebar)" 
-        class="p-1.5 rounded-lg hover:bg-white/[0.08] text-resolve-dimText hover:text-white transition-all border border-resolve-border"
+        class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/[0.08] text-resolve-dimText hover:text-white transition-all border border-resolve-border shrink-0 cursor-pointer"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
         </svg>
       </button>
 
-      <div class="flex items-center gap-2.5">
-        <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-5 h-5 rounded-md object-cover shadow-[0_1px_4px_rgba(0,0,0,0.6),0_0_8px_rgba(245,158,11,0.25)]">
-        <span class="font-bold text-sm tracking-tight text-white uppercase">TRAFIKEITOR</span>
-        <span class="text-zinc-600 text-xs hidden sm:inline">/</span>
-        <span class="text-xs text-zinc-400 font-medium hidden sm:inline tracking-normal">Control de Tráfico • El Marcante</span>
+      <div class="flex items-center gap-2 shrink-0">
+        <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-4 h-4 rounded-sm object-cover shadow-[0_1px_3px_rgba(0,0,0,0.5),0_0_6px_rgba(245,158,11,0.25)]">
+        <span class="font-bold text-xs tracking-tight text-white uppercase">TRAFIKEITOR</span>
+        <span class="text-zinc-600 text-[10px] hidden sm:inline">/</span>
+        <span class="text-[11px] text-zinc-400 font-normal hidden sm:inline tracking-normal">Control de Tráfico • El Marcante</span>
       </div>
+
       <!-- Selector de Módulo: Mesa de OTs vs Stripboard de Producción (macOS Segmented Bar) -->
-      <nav class="hidden sm:flex items-center bg-black/40 p-0.5 rounded-lg border border-resolve-border text-xs ml-2 shadow-inner">
+      <nav class="hidden sm:flex items-center bg-black/40 p-0.5 rounded-md border border-resolve-border text-[11px] ml-1 shadow-inner h-7">
         <button 
           id="nav-btn-desk" 
           onclick="switchMainView('desk')" 
-          class="px-3 py-1 rounded-md font-semibold transition-all bg-white/[0.12] text-white shadow-xs border border-white/[0.08] flex items-center gap-1.5"
+          class="h-6 px-2.5 rounded font-medium transition-all bg-white/[0.12] text-white shadow-xs border border-white/[0.08] flex items-center gap-1.5 cursor-pointer"
         >
-          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
           <span>Mesa de OTs</span>
         </button>
         <button 
           id="nav-btn-stripboard" 
           onclick="switchMainView('stripboard')" 
-          class="px-3 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white flex items-center gap-1.5"
+          class="h-6 px-2.5 rounded font-medium transition-all text-resolve-dimText hover:text-white flex items-center gap-1.5 cursor-pointer"
         >
-          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-          <span>Stripboard • Hoja de Tiempos</span>
-          <span id="stripboard-pending-badge" class="px-1.5 py-0.2 bg-white/[0.08] rounded-full text-[10px] text-amber-300 font-bold border border-white/[0.06]">0</span>
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <span>Stripboard</span>
+          <span id="stripboard-pending-badge" class="px-1.5 py-0.2 bg-white/[0.08] rounded-full text-[9px] text-amber-300 font-bold border border-white/[0.06]">0</span>
         </button>
       </nav>
     </div>
 
     <!-- Acciones Rápidas -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5">
       <!-- Respaldo / Restauración -->
-      <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border flex items-center gap-1.5 transition-all active:scale-[0.98] shadow-xs">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 transition-all active:scale-[0.98] shadow-xs cursor-pointer">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span class="hidden sm:inline">Backup</span>
       </button>
-      <label title="Restaurar Archivo JSON" class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] shadow-xs">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      <label title="Restaurar Archivo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] shadow-xs">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
         <span class="hidden sm:inline">Restaurar</span>
         <input type="file" id="import-input" accept=".json" onchange="importBackupData(event)" class="hidden">
       </label>
 
       <!-- Botón Nueva OT -->
-      <button onclick="openNewOtModal()" class="ml-1 px-3.5 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1.5 transition-all active:scale-[0.97]">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-        <span>NUEVA OT</span>
+      <button onclick="openNewOtModal()" class="h-7 px-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-[11px] rounded-md shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1 transition-all active:scale-[0.97] cursor-pointer">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        <span>Nueva OT</span>
       </button>
     </div>
   </header>
@@ -314,27 +315,27 @@
     <!-- PANEL CENTRAL: MESA DE TRABAJO (Sobres y Órdenes) -->
     <main class="flex-1 flex flex-col bg-resolve-bg overflow-hidden">
       <!-- SUB-HEADER DE TRÁFICO: BREADCRUMB, BUSCADOR Y SELECTOR DE VISTAS (macOS Action Bar) -->
-      <div class="h-11 px-4 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-3 shrink-0">
+      <div class="h-9 px-3 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-3 shrink-0">
         <!-- Breadcrumb & Cantidad -->
         <div class="flex items-center gap-2 min-w-0">
-          <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
-          <span id="current-bin-breadcrumb" class="text-xs font-semibold text-white truncate tracking-tight">Master Bin (Todas las OTs)</span>
-          <span id="current-bin-count" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-resolve-border shrink-0">0 OTs encontradas</span>
+          <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+          <span id="current-bin-breadcrumb" class="text-[11px] font-semibold text-white truncate tracking-tight">Master Bin (Todas las OTs)</span>
+          <span id="current-bin-count" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-resolve-border shrink-0">0 OTs</span>
         </div>
 
         <!-- Filtros, Búsqueda y Cambios de Vista -->
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2">
           <!-- Búsqueda rápida -->
           <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-resolve-dimText">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <span class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-resolve-dimText">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
             <input 
               type="text" 
               id="search-input" 
               oninput="renderTrafficDesk()" 
               placeholder="Buscar OT, ref, cliente..." 
-              class="w-44 sm:w-60 bg-black/30 border border-resolve-border rounded-lg pl-8 pr-2.5 py-1 text-xs text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none placeholder-zinc-500 transition-all"
+              class="h-6 w-40 sm:w-56 bg-black/30 border border-resolve-border rounded-md pl-6 pr-2 text-[11px] text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none placeholder-zinc-500 transition-all"
             />
           </div>
 
@@ -342,7 +343,7 @@
           <select 
             id="status-filter" 
             onchange="renderTrafficDesk()" 
-            class="bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1 text-xs text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-medium"
+            class="h-6 bg-black/30 border border-resolve-border rounded-md px-2 text-[11px] text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-medium cursor-pointer"
           >
             <option value="all">Todos los estados</option>
             <option value="En Tránsito">En Tránsito</option>
@@ -353,26 +354,26 @@
           </select>
 
           <!-- Separador -->
-          <div class="h-4 w-px bg-resolve-border"></div>
+          <div class="h-3.5 w-px bg-resolve-border"></div>
 
           <!-- Selector Cuadrícula / Lista (macOS Segmented Switch) -->
-          <div class="flex items-center bg-black/40 p-0.5 rounded-lg border border-resolve-border shadow-inner">
+          <div class="flex items-center bg-black/40 p-0.5 rounded-md border border-resolve-border shadow-inner h-6">
             <button 
               id="view-toggle-grid" 
               onclick="setMainDeskView('grid')" 
               title="Vista Cuadrícula de Sobres" 
-              class="px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs"
+              class="h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs cursor-pointer"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
               <span class="hidden sm:inline">Sobres</span>
             </button>
             <button 
               id="view-toggle-list" 
               onclick="setMainDeskView('list')" 
               title="Vista Lista de Tráfico" 
-              class="px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all text-resolve-dimText hover:text-white"
+              class="h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all text-resolve-dimText hover:text-white cursor-pointer"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
               <span class="hidden sm:inline">Lista</span>
             </button>
           </div>
@@ -443,66 +444,66 @@
   <div id="app-view-stripboard" class="hidden flex-1 flex flex-col bg-resolve-bg overflow-hidden relative">
     
     <!-- TOOLBAR DEL STRIPBOARD (macOS Action Bar) -->
-    <div class="stripboard-screen-header h-12 px-4 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
+    <div class="stripboard-screen-header h-9 px-3 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
       
       <!-- Navegación de Fecha del Plan -->
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button onclick="changeStripboardDay(-1)" title="Periodo Anterior" class="p-1 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border cursor-pointer transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="changeStripboardDay(-1)" title="Periodo Anterior" class="w-6 h-6 flex items-center justify-center hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md border border-resolve-border cursor-pointer transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <div class="flex items-center gap-1.5 bg-black/30 px-2.5 py-1 rounded-lg border border-resolve-border">
-          <span id="stripboard-period-label" class="text-[10px] text-zinc-400 uppercase font-semibold">Fecha:</span>
+        <div class="flex items-center gap-1 bg-black/30 px-2 h-6 rounded-md border border-resolve-border">
+          <span id="stripboard-period-label" class="text-[9px] text-zinc-400 uppercase font-semibold">Fecha:</span>
           <input 
             type="date" 
             id="stripboard-date-input" 
             onclick="if(this.showPicker) this.showPicker()"
             onchange="handleStripboardDateChange(this.value)" 
-            class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer"
+            class="bg-transparent text-white font-medium text-[11px] focus:outline-none cursor-pointer"
             style="color-scheme: dark;"
           />
         </div>
-        <button onclick="setStripboardToToday()" class="px-2.5 py-1 text-xs bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-lg border border-resolve-border font-semibold transition-all cursor-pointer">
+        <button onclick="setStripboardToToday()" class="h-6 px-2 text-[11px] bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-md border border-resolve-border font-medium transition-all cursor-pointer">
           Hoy
         </button>
-        <button onclick="changeStripboardDay(1)" title="Periodo Siguiente" class="p-1 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-lg border border-resolve-border cursor-pointer transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <button onclick="changeStripboardDay(1)" title="Periodo Siguiente" class="w-6 h-6 flex items-center justify-center hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md border border-resolve-border cursor-pointer transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
 
       <!-- Selector de Vistas del Stripboard (Día | Semana Lun-Sáb | Timeline Gantt | Mes Entregas) (macOS Segmented Bar) -->
-      <div class="flex items-center bg-black/40 border border-resolve-border rounded-lg p-0.5 text-[11px] shrink-0 shadow-inner">
+      <div class="flex items-center bg-black/40 border border-resolve-border rounded-md p-0.5 text-[11px] shrink-0 shadow-inner h-6">
         <button 
           id="sb-view-btn-day" 
           onclick="setStripboardViewMode('day')" 
-          class="px-2.5 py-1 rounded-md font-semibold transition-all bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] cursor-pointer"
+          class="h-5 px-2 rounded font-medium transition-all bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] cursor-pointer"
         >
-          Día • Tiras
+          Día
         </button>
         <button 
           id="sb-view-btn-week" 
           onclick="setStripboardViewMode('week')" 
-          class="px-2.5 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
+          class="h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
         >
-          Semana • Lun–Sáb
+          Semana
         </button>
         <button 
           id="sb-view-btn-gantt" 
           onclick="setStripboardViewMode('gantt')" 
-          class="px-2.5 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
+          class="h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
         >
-          Timeline • Gantt
+          Gantt
         </button>
         <button 
           id="sb-view-btn-month" 
           onclick="setStripboardViewMode('month')" 
-          class="px-2.5 py-1 rounded-md font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
+          class="h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
         >
-          Mes • Entregas
+          Mes
         </button>
       </div>
 
       <!-- Métricas / Resumen rápido -->
-      <div class="hidden xl:flex items-center gap-2.5 text-[11px] font-medium text-resolve-dimText shrink-0">
+      <div class="hidden xl:flex items-center gap-2 text-[11px] font-medium text-resolve-dimText shrink-0">
         <span>Tiras: <strong id="strip-count-total" class="text-white font-semibold">0</strong></span>
         <span>•</span>
         <span>En Mesa: <strong id="strip-count-active" class="text-amber-400 font-semibold">0</strong></span>
@@ -515,31 +516,31 @@
         <button 
           onclick="autoPopulatePendingOts()" 
           title="Cargar automáticamente las OTs pendientes al plan del día" 
-          class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-lg border border-amber-500/30 flex items-center gap-1 transition-all cursor-pointer"
+          class="h-6 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-medium text-[11px] rounded-md border border-amber-500/30 flex items-center gap-1 transition-all cursor-pointer"
         >
-          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           <span class="hidden lg:inline">Cargar Pendientes</span>
         </button>
         <button 
           onclick="addBreakStripPrompt()" 
           title="Añadir separador de descanso, reunión o corte" 
-          class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs rounded-lg border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
+          class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-[11px] rounded-md border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
         >
           <span>+ Separador</span>
         </button>
         <button 
           onclick="addCustomTaskStripPrompt()" 
           title="Añadir tira de tarea sin OT asociada" 
-          class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs rounded-lg border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
+          class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-[11px] rounded-md border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
         >
           <span>+ Tarea Libre</span>
         </button>
         <button 
           onclick="printStripboard()" 
           title="Imprimir Hoja de Tiempos Física" 
-          class="px-3 py-1 bg-white/[0.08] hover:bg-white/[0.15] text-white font-semibold text-xs rounded-lg border border-white/[0.12] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+          class="h-6 px-2.5 bg-white/[0.08] hover:bg-white/[0.15] text-white font-medium text-[11px] rounded-md border border-white/[0.12] flex items-center gap-1 transition-all shadow-xs cursor-pointer"
         >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           <span class="hidden md:inline">Imprimir</span>
         </button>
       </div>
@@ -1312,14 +1313,14 @@
       if (view === 'desk') {
         deskEl.classList.remove('hidden');
         stripboardEl.classList.add('hidden');
-        btnDesk.className = "px-2.5 py-1 rounded font-bold transition-colors bg-resolve-panel text-white shadow-xs flex items-center gap-1.5";
-        btnStripboard.className = "px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white flex items-center gap-1.5";
+        btnDesk.className = "h-6 px-2.5 rounded font-medium transition-all bg-white/[0.12] text-white shadow-xs border border-white/[0.08] flex items-center gap-1.5 cursor-pointer";
+        btnStripboard.className = "h-6 px-2.5 rounded font-medium transition-all text-resolve-dimText hover:text-white flex items-center gap-1.5 cursor-pointer";
         renderTrafficDesk();
       } else {
         deskEl.classList.add('hidden');
         stripboardEl.classList.remove('hidden');
-        btnStripboard.className = "px-2.5 py-1 rounded font-bold transition-colors bg-resolve-panel text-white shadow-xs flex items-center gap-1.5";
-        btnDesk.className = "px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white flex items-center gap-1.5";
+        btnStripboard.className = "h-6 px-2.5 rounded font-medium transition-all bg-white/[0.12] text-white shadow-xs border border-white/[0.08] flex items-center gap-1.5 cursor-pointer";
+        btnDesk.className = "h-6 px-2.5 rounded font-medium transition-all text-resolve-dimText hover:text-white flex items-center gap-1.5 cursor-pointer";
         initStripboard();
       }
     }
@@ -1580,9 +1581,9 @@
         }
         if (btnEl) {
           if (m === mode) {
-            btnEl.className = "px-2.5 py-1 rounded font-bold transition-colors bg-resolve-panel text-amber-400 shadow-xs cursor-pointer";
+            btnEl.className = "h-5 px-2 rounded font-medium transition-all bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] cursor-pointer";
           } else {
-            btnEl.className = "px-2.5 py-1 rounded transition-colors text-resolve-dimText hover:text-white cursor-pointer";
+            btnEl.className = "h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer";
           }
         }
       });
@@ -3317,13 +3318,13 @@
       const listContainer = document.getElementById('envelopes-list-container');
 
       if (mode === 'grid') {
-        btnGrid.className = "px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs";
-        btnList.className = "px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all text-resolve-dimText hover:text-white";
+        btnGrid.className = "h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs cursor-pointer";
+        btnList.className = "h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all text-resolve-dimText hover:text-white cursor-pointer";
         gridContainer.classList.remove('hidden');
         listContainer.classList.add('hidden');
       } else {
-        btnList.className = "px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs";
-        btnGrid.className = "px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all text-resolve-dimText hover:text-white";
+        btnList.className = "h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs cursor-pointer";
+        btnGrid.className = "h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all text-resolve-dimText hover:text-white cursor-pointer";
         gridContainer.classList.add('hidden');
         listContainer.classList.remove('hidden');
       }
@@ -4878,8 +4879,6 @@
             ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors">Descargar ↓</a>` : ''}
           </div>
         </div>
-        <div class="flex-1 overflow-hidden relative bg-black/40">${buildMediaViewerHtml(file)}</div>`;
-    }
         <div class="flex-1 overflow-hidden relative bg-black/40">${buildMediaViewerHtml(file)}</div>`;
     }
 
