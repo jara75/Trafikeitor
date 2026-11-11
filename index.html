@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trafikeitor v1.1 — El Marcante</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            resolve: {
+              bg: '#0d0e11',
+              panel: '#15161a',
+              surface: '#1b1c22',
+              card: '#22232a',
+              border: 'rgba(255, 255, 255, 0.08)',
+              lightText: '#f4f4f6',
+              dimText: '#9496a1',
+              accent: '#f59e0b',
+              accentHover: '#d97706',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['"SF Mono"', '"JetBrains Mono"', 'ui-monospace', 'Menlo', 'Monaco', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/client/styles.css">
+</head>
+<body class="h-full bg-resolve-bg text-resolve-lightText font-sans flex flex-col antialiased select-none overflow-hidden tracking-normal">
+
+  <!-- TOP BAR: Control de Tráfico & Master Actions (macOS Pro Toolbar) -->
+  <header class="h-10 bg-resolve-panel/95 backdrop-blur-md border-b border-resolve-border px-3 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-2.5">
+      <!-- Toggle para colapsar la barra lateral desde la barra superior -->
+      <button 
+        onclick="toggleSidebar()" 
+        title="Ocultar / Mostrar Bins (Sidebar)" 
+        class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/[0.08] text-resolve-dimText hover:text-white transition-all border border-resolve-border shrink-0 cursor-pointer"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+        </svg>
+      </button>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-4 h-4 rounded-sm object-cover shadow-[0_1px_3px_rgba(0,0,0,0.5),0_0_6px_rgba(245,158,11,0.25)]">
+        <span class="font-bold text-xs tracking-tight text-white uppercase">TRAFIKEITOR</span>
+        <span class="text-zinc-600 text-[10px] hidden sm:inline">/</span>
+        <span class="text-[11px] text-zinc-400 font-normal hidden sm:inline tracking-normal">Control de Tráfico • El Marcante</span>
+      </div>
+
+      <!-- Selector de Módulo: Mesa de OTs vs Stripboard de Producción (macOS Segmented Bar) -->
+      <nav class="hidden sm:flex items-center bg-black/40 p-0.5 rounded-md border border-resolve-border text-[11px] ml-1 shadow-inner h-7">
+        <button 
+          id="nav-btn-desk" 
+          onclick="switchMainView('desk')" 
+          class="h-6 px-2.5 rounded font-medium transition-all bg-white/[0.12] text-white shadow-xs border border-white/[0.08] flex items-center gap-1.5 cursor-pointer"
+        >
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span>Mesa de OTs</span>
+        </button>
+        <button 
+          id="nav-btn-stripboard" 
+          onclick="switchMainView('stripboard')" 
+          class="h-6 px-2.5 rounded font-medium transition-all text-resolve-dimText hover:text-white flex items-center gap-1.5 cursor-pointer"
+        >
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <span>Stripboard</span>
+          <span id="stripboard-pending-badge" class="px-1.5 py-0.2 bg-white/[0.08] rounded-full text-[9px] text-amber-300 font-bold border border-white/[0.06]">0</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="flex items-center gap-1.5">
+      <!-- Respaldo / Restauración -->
+      <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 transition-all active:scale-[0.98] shadow-xs cursor-pointer">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span class="hidden sm:inline">Backup</span>
+      </button>
+      <label title="Restaurar Archivo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] shadow-xs">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        <span class="hidden sm:inline">Restaurar</span>
+        <input type="file" id="import-input" accept=".json" onchange="importBackupData(event)" class="hidden">
+      </label>
+
+      <!-- Botón Nueva OT -->
+      <button onclick="openNewOtModal()" class="h-7 px-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-[11px] rounded-md shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1 transition-all active:scale-[0.97] cursor-pointer">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        <span>Nueva OT</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CUERPO PRINCIPAL: 2 COLUMNAS (Árbol estilo DaVinci | Mesa de OTs) -->
+  <div id="app-view-desk" class="flex-1 flex overflow-hidden relative">
+    
+    <!-- PANEL IZQUIERDO: ÁRBOL DE BINS (Cliente -> Marca -> Año / Carpeta) -->
+    <aside 
+      id="sidebar-bin-tree" 
+      class="w-72 md:w-80 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none transition-all duration-300 ease-in-out relative z-20 overflow-hidden"
+    >
+      
+      <!-- Encabezado de la barra lateral -->
+      <div class="h-9 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
+        <span class="text-[11px] uppercase tracking-wider text-resolve-dimText font-semibold flex items-center gap-1.5 truncate">
+          <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span class="truncate">Árbol de Bins</span>
+        </span>
+        <div class="flex items-center gap-1">
+          <button onclick="openClientModal(null)" title="Crear Nuevo Cliente" class="px-2 py-0.5 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-md text-[11px] font-medium border border-resolve-border flex items-center gap-1 transition-all">
+            <span>+</span> <span>Cliente</span>
+          </button>
+          <button onclick="toggleSidebar()" title="Colapsar panel" class="p-1 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Master Bin (Ver Todas) -->
+      <div class="p-2 border-b border-resolve-border/60 shrink-0">
+        <button onclick="selectTreeFilter('all', null, null)" id="bin-all" class="bin-item bin-active w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between text-zinc-300 hover:bg-white/[0.05] transition-colors">
+          <div class="flex items-center gap-2 truncate">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+            <span class="font-semibold truncate">Master Bin (Todas las OTs)</span>
+          </div>
+          <span class="text-[10px] font-semibold bg-white/[0.08] px-2 py-0.5 rounded-full text-zinc-300" id="badge-count-all">0</span>
+        </button>
+      </div>
+
+      <!-- Contenedor jerárquico del Árbol de Clientes y Marcas -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-1 text-xs" id="bin-tree-container">
+        <!-- Inyectado dinámicamente con JS -->
+      </div>
+
+      <!-- Resumen en pie de barra -->
+      <div class="p-2 bg-resolve-panel border-t border-resolve-border text-[11px] font-medium text-resolve-dimText flex items-center justify-between shrink-0">
+        <span id="tree-summary-clients">0 Clientes</span>
+        <span id="tree-summary-brands">0 Marcas</span>
+      </div>
+
+    </aside>
+
+    <!-- Rail ultraligero cuando está colapsado (sin texto invertido ni distorsionado) -->
+    <div 
+      id="sidebar-collapsed-rail" 
+      class="hidden w-10 bg-resolve-surface border-r border-resolve-border flex flex-col items-center py-2 shrink-0 select-none z-10"
+    >
+      <button 
+        onclick="toggleSidebar()" 
+        title="Desplegar Árbol de Bins" 
+        class="p-2 text-amber-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <div class="w-full border-t border-resolve-border my-2"></div>
+      <button 
+        onclick="selectTreeFilter('all', null, null)" 
+        title="Master Bin" 
+        class="p-2 text-resolve-dimText hover:text-white hover:bg-white/[0.08] rounded-md transition-colors"
+      >
+        <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+      </button>
+    </div>
+
+    <!-- PANEL CENTRAL: MESA DE TRABAJO (Sobres y Órdenes) -->
+    <main class="flex-1 flex flex-col bg-resolve-bg overflow-hidden">
+      <!-- SUB-HEADER DE TRÁFICO: BREADCRUMB, BUSCADOR Y SELECTOR DE VISTAS (macOS Action Bar) -->
+      <div class="h-9 px-3 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-3 shrink-0">
+        <!-- Breadcrumb & Cantidad -->
+        <div class="flex items-center gap-2 min-w-0">
+          <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+          <span id="current-bin-breadcrumb" class="text-[11px] font-semibold text-white truncate tracking-tight">Master Bin (Todas las OTs)</span>
+          <span id="current-bin-count" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-resolve-border shrink-0">0 OTs</span>
+        </div>
+
+        <!-- Filtros, Búsqueda y Cambios de Vista -->
+        <div class="flex items-center gap-2">
+          <!-- Búsqueda rápida -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-resolve-dimText">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
+            <input 
+              type="text" 
+              id="search-input" 
+              oninput="renderTrafficDesk()" 
+              placeholder="Buscar OT, ref, cliente..." 
+              class="h-6 w-40 sm:w-56 bg-black/30 border border-resolve-border rounded-md pl-6 pr-2 text-[11px] text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none placeholder-zinc-500 transition-all"
+            />
+          </div>
+
+          <!-- Filtro por Estado -->
+          <select 
+            id="status-filter" 
+            onchange="renderTrafficDesk()" 
+            class="h-6 bg-black/30 border border-resolve-border rounded-md px-2 text-[11px] text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-medium cursor-pointer"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="Tráfico">Tráfico</option>
+            <option value="Recibido">Recibido</option>
+            <option value="Desarrollo">Desarrollo</option>
+            <option value="Cliente">Cliente</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Facturación">Facturación</option>
+            <option value="Cerrado">Cerrado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+
+          <!-- Separador -->
+          <div class="h-3.5 w-px bg-resolve-border"></div>
+
+          <!-- Selector Cuadrícula / Lista (macOS Segmented Switch) -->
+          <div class="flex items-center bg-black/40 p-0.5 rounded-md border border-resolve-border shadow-inner h-6">
+            <button 
+              id="view-toggle-grid" 
+              onclick="setMainDeskView('grid')" 
+              title="Vista Cuadrícula de Sobres" 
+              class="h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all bg-white/[0.12] text-white border border-white/[0.08] shadow-xs cursor-pointer"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+              <span class="hidden sm:inline">Sobres</span>
+            </button>
+            <button 
+              id="view-toggle-list" 
+              onclick="setMainDeskView('list')" 
+              title="Vista Lista de Tráfico" 
+              class="h-5 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all text-resolve-dimText hover:text-white cursor-pointer"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+              <span class="hidden sm:inline">Lista</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÁREA DE CONTENIDO (CON SCROLL) -->
+      <div class="flex-1 overflow-y-auto p-4 flex flex-col relative">
+        <!-- VISTA EN CUADRÍCULA (GRID DE SOBRES OT) -->
+        <div id="envelopes-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Inyectado dinámicamente con JS -->
+        </div>
+        <!-- VISTA EN LISTA (TABLA UNIFICADA DE 11 COLUMNAS • APPLE NUMBERS STYLE) -->
+        <div id="envelopes-list-container" class="hidden border border-resolve-border rounded-xl bg-resolve-surface overflow-hidden flex-col">
+          <!-- Toolbar Apple Numbers: Categorías / Agrupar y Ordenar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-black/30 border-b border-resolve-border text-xs shrink-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Categorías / Agrupar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                  Categorías:
+                </span>
+                <select id="trafico-group-select" onchange="setTableGroup(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Sin Agrupar</option>
+                  <option value="client">Agrupar por Cliente</option>
+                  <option value="status">Agrupar por Estado</option>
+                  <option value="responsible">Agrupar por Responsable</option>
+                  <option value="department">Agrupar por Departamento (Para:)</option>
+                </select>
+              </div>
+
+              <div class="h-3.5 w-px bg-resolve-border"></div>
+
+              <!-- Ordenar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Ordenar:</span>
+                <select id="trafico-sort-select" onchange="setTableSort(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Predeterminado</option>
+                  <option value="entryDate">Entrada</option>
+                  <option value="deliveryDate">Entrega</option>
+                  <option value="responsible">Responsable</option>
+                  <option value="status">Estado</option>
+                  <option value="department">Departamento</option>
+                </select>
+                <button type="button" onclick="toggleTableSortDirection()" class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-md border border-resolve-border text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer">
+                  <span id="trafico-sort-dir-label">▲ Asc</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-zinc-400 font-medium">
+              Tráfico • 11 Columnas Unificadas
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse min-w-[1100px]">
+              <thead>
+                <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
+                  <th class="p-2 border-r border-resolve-border w-24">No. OT</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Cliente</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Marca/Producto</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Medio</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Referencia</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[180px]">Descripción</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('entryDate')">Entrada ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('deliveryDate')">Entrega ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('status')">Estado ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('responsible')">Responsable ↕</th>
+                  <th class="p-2 min-w-[140px]">Notas</th>
+                </tr>
+              </thead>
+              <tbody id="envelopes-list-body" class="divide-y divide-resolve-border/70 text-zinc-300" ondragover="handleTableContainerDragOver(event)" ondrop="handleTableContainerDrop(event, 'trafico')">
+                <!-- Inyectado dinámicamente con JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Vista Vacía -->
+        <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/[0.04] border border-resolve-border flex items-center justify-center text-zinc-400 mb-3 shadow-inner">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h4 class="font-bold text-white text-sm">No hay Órdenes de Trabajo en este Bin</h4>
+          <p class="text-xs text-resolve-dimText mt-1 max-w-sm">No se encontraron OTs con los filtros activos. Crea una nueva OT o selecciona otro Bin.</p>
+          <button onclick="openNewOtModal()" class="mt-4 px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] flex items-center gap-1.5">
+            <span>+ Crear Nueva OT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FOOTER DE LA MESA: STATUS BAR -->
+      <footer class="h-7 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between text-[11px] font-medium text-resolve-dimText shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.6)]"></span>
+            <span class="text-zinc-300">Mesa de Tráfico Sincronizada</span>
+          </span>
+          <span>•</span>
+          <span id="footer-active-count">0 Activas en Tráfico</span>
+        </div>
+        <div class="text-[10px] text-zinc-500">
+          Trafikeitor // Control de Tráfico • El Marcante
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MÓDULO STRIPBOARD: HOJA DE TIEMPOS Y PLAN DIARIO DE PRODUCCIÓN       -->
+  <!-- ==================================================================== -->
+  <div id="app-view-stripboard" class="hidden flex-1 flex flex-col bg-resolve-bg overflow-hidden relative">
+    
+    <!-- TOOLBAR DEL STRIPBOARD (macOS Action Bar) -->
+    <div class="stripboard-screen-header h-9 px-3 bg-resolve-surface border-b border-resolve-border flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
+      
+      <!-- Navegación de Fecha del Plan -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="changeStripboardDay(-1)" title="Periodo Anterior" class="w-6 h-6 flex items-center justify-center hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md border border-resolve-border cursor-pointer transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="flex items-center gap-1 bg-black/30 px-2 h-6 rounded-md border border-resolve-border">
+          <span id="stripboard-period-label" class="text-[9px] text-zinc-400 uppercase font-semibold">Fecha:</span>
+          <input 
+            type="date" 
+            id="stripboard-date-input" 
+            onclick="if(this.showPicker) this.showPicker()"
+            onchange="handleStripboardDateChange(this.value)" 
+            class="bg-transparent text-white font-medium text-[11px] focus:outline-none cursor-pointer"
+            style="color-scheme: dark;"
+          />
+        </div>
+        <button onclick="setStripboardToToday()" class="h-6 px-2 text-[11px] bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-md border border-resolve-border font-medium transition-all cursor-pointer">
+          Hoy
+        </button>
+        <button onclick="changeStripboardDay(1)" title="Periodo Siguiente" class="w-6 h-6 flex items-center justify-center hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md border border-resolve-border cursor-pointer transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Selector de Vistas del Stripboard (Día | Semana Lun-Sáb | Timeline Gantt | Mes Entregas) (macOS Segmented Bar) -->
+      <div class="flex items-center bg-black/40 border border-resolve-border rounded-md p-0.5 text-[11px] shrink-0 shadow-inner h-6">
+        <button 
+          id="sb-view-btn-day" 
+          onclick="setStripboardViewMode('day')" 
+          class="h-5 px-2 rounded font-medium transition-all bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] cursor-pointer"
+        >
+          Día
+        </button>
+        <button 
+          id="sb-view-btn-week" 
+          onclick="setStripboardViewMode('week')" 
+          class="h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
+        >
+          Semana
+        </button>
+        <button 
+          id="sb-view-btn-gantt" 
+          onclick="setStripboardViewMode('gantt')" 
+          class="h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
+        >
+          Gantt
+        </button>
+        <button 
+          id="sb-view-btn-month" 
+          onclick="setStripboardViewMode('month')" 
+          class="h-5 px-2 rounded font-medium transition-all text-resolve-dimText hover:text-white cursor-pointer"
+        >
+          Mes
+        </button>
+      </div>
+
+      <!-- Métricas / Resumen rápido -->
+      <div class="hidden xl:flex items-center gap-2 text-[11px] font-medium text-resolve-dimText shrink-0">
+        <span>Tiras: <strong id="strip-count-total" class="text-white font-semibold">0</strong></span>
+        <span>•</span>
+        <span>En Mesa: <strong id="strip-count-active" class="text-amber-400 font-semibold">0</strong></span>
+        <span>•</span>
+        <span>Entregadas: <strong id="strip-count-done" class="text-emerald-400 font-semibold">0</strong></span>
+      </div>
+
+      <!-- Acciones del Stripboard -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button 
+          onclick="autoPopulatePendingOts()" 
+          title="Cargar automáticamente las OTs pendientes al plan del día" 
+          class="h-6 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-medium text-[11px] rounded-md border border-amber-500/30 flex items-center gap-1 transition-all cursor-pointer"
+        >
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span class="hidden lg:inline">Cargar Pendientes</span>
+        </button>
+        <button 
+          onclick="addBreakStripPrompt()" 
+          title="Añadir separador de descanso, reunión o corte" 
+          class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-[11px] rounded-md border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
+        >
+          <span>+ Separador</span>
+        </button>
+        <button 
+          onclick="addCustomTaskStripPrompt()" 
+          title="Añadir tira de tarea sin OT asociada" 
+          class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-[11px] rounded-md border border-resolve-border flex items-center gap-1 transition-all cursor-pointer"
+        >
+          <span>+ Tarea Libre</span>
+        </button>
+        <button 
+          onclick="printStripboard()" 
+          title="Imprimir Hoja de Tiempos Física" 
+          class="h-6 px-2.5 bg-white/[0.08] hover:bg-white/[0.15] text-white font-medium text-[11px] rounded-md border border-white/[0.12] flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span class="hidden md:inline">Imprimir</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FORMATO DE IMPRESIÓN (MEMBRETE OFICIAL EL MARCANTE) -->
+    <div class="stripboard-print-header p-6 pb-4 border-b-2 border-black font-mono">
+      <div class="flex justify-between items-start border-b border-black pb-3 mb-3">
+        <div>
+          <h1 class="text-xl font-black uppercase tracking-wider">EL MARCANTE // CONTROL DE TRÁFICO</h1>
+          <h2 class="text-sm font-bold tracking-widest text-stone-800">HOJA DE TIEMPOS Y PLAN DE TRABAJO DIARIO (STRIPBOARD)</h2>
+        </div>
+        <div class="text-right text-xs">
+          <div>FECHA: <strong id="print-date-display">--</strong></div>
+          <div>EMISIÓN: <strong>CONTROL DEPARTAMENTAL</strong></div>
+        </div>
+      </div>
+      <div class="text-[11px] grid grid-cols-3 gap-4">
+        <div>SUPERVISOR DE TRÁFICO: ___________________</div>
+        <div>VISTO BUENO D.G.C.: ___________________</div>
+        <div class="text-right">TURNO: MAÑANA / TARDE</div>
+      </div>
+    </div>
+
+    <!-- CUERPO DEL STRIPBOARD: 2 COLUMNAS (POOL PENDIENTES | TABLERO DE TIRAS) -->
+    <div class="flex-1 flex overflow-hidden">
+      
+      <!-- COLUMNA IZQUIERDA: POOL DE OTS PENDIENTES DE ASIGNAR -->
+      <aside id="stripboard-pool-panel" class="w-72 lg:w-80 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 overflow-hidden no-print">
+        <div class="h-10 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
+          <span class="text-[11px] uppercase tracking-wider text-resolve-dimText font-semibold flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span>OTs Pendientes de Asignar</span>
+          </span>
+          <span id="stripboard-pool-count" class="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.08] text-amber-300 font-bold border border-white/[0.06]">0</span>
+        </div>
+
+        <!-- Buscador y Filtro de Estado de Programación de Pendientes -->
+        <div class="p-2 border-b border-resolve-border space-y-1.5 shrink-0">
+          <input 
+            type="text" 
+            id="stripboard-pool-search" 
+            oninput="renderStripboardPendingPool()" 
+            placeholder="Filtrar por OT, cliente, título..." 
+            class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1 text-xs text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none placeholder-zinc-500 transition-all"
+          />
+          <div class="grid grid-cols-3 gap-1 bg-black/40 p-0.5 rounded-lg border border-resolve-border text-[10px] font-medium shadow-inner">
+            <button
+              id="pool-filter-btn-all"
+              onclick="setStripboardPoolFilter('all')"
+              class="py-1 rounded font-semibold bg-white/[0.12] text-amber-300 shadow-xs border border-white/[0.08] transition-all cursor-pointer"
+            >
+              Todas
+            </button>
+            <button
+              id="pool-filter-btn-unscheduled"
+              onclick="setStripboardPoolFilter('unscheduled')"
+              class="py-1 rounded text-resolve-dimText hover:text-white transition-colors cursor-pointer"
+            >
+              Sin Agendar
+            </button>
+            <button
+              id="pool-filter-btn-scheduled"
+              onclick="setStripboardPoolFilter('scheduled')"
+              class="py-1 rounded text-resolve-dimText hover:text-white transition-colors cursor-pointer"
+            >
+              En Plan
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista scrolleable de OTs -->
+        <div id="stripboard-pending-list" class="flex-1 overflow-y-auto p-2 space-y-2 text-xs">
+          <!-- Inyectado dinámicamente con JS -->
+        </div>
+      </aside>
+
+      <!-- COLUMNA DERECHA: EL TABLERO DE TIRAS Y VISTAS DEL STRIPBOARD -->
+      <main class="flex-1 flex flex-col bg-resolve-bg overflow-hidden">
+        
+        <!-- ============================================================== -->
+        <!-- VISTA 1: DÍA • TABLA UNIFICADA DE 11 COLUMNAS                  -->
+        <!-- ============================================================== -->
+        <div id="stripboard-day-view" class="flex-1 flex flex-col overflow-hidden">
+          <!-- Toolbar Apple Numbers: Categorías / Agrupar y Ordenar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-black/30 border-b border-resolve-border text-xs shrink-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Categorías / Agrupar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                  Categorías:
+                </span>
+                <select id="stripboard-group-select" onchange="setTableGroup(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Sin Agrupar</option>
+                  <option value="client">Agrupar por Cliente</option>
+                  <option value="status">Agrupar por Estado</option>
+                  <option value="responsible">Agrupar por Responsable</option>
+                  <option value="department">Agrupar por Departamento (Para:)</option>
+                </select>
+              </div>
+
+              <div class="h-3.5 w-px bg-resolve-border"></div>
+
+              <!-- Ordenar por -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Ordenar:</span>
+                <select id="stripboard-sort-select" onchange="setTableSort(this.value)" class="h-6 bg-black/50 border border-resolve-border rounded-md px-2 text-[11px] text-white font-medium focus:border-amber-500/60 focus:outline-none cursor-pointer">
+                  <option value="none">Predeterminado</option>
+                  <option value="entryDate">Entrada</option>
+                  <option value="deliveryDate">Entrega</option>
+                  <option value="responsible">Responsable</option>
+                  <option value="status">Estado</option>
+                  <option value="department">Departamento</option>
+                </select>
+                <button type="button" onclick="toggleTableSortDirection()" class="h-6 px-2 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-md border border-resolve-border text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer">
+                  <span id="stripboard-sort-dir-label">▲ Asc</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-zinc-400 font-medium">
+              Stripboard Día • 11 Columnas Unificadas
+            </div>
+          </div>
+
+          <!-- Contenedor de Tabla Unificada -->
+          <div class="flex-1 overflow-auto bg-resolve-bg">
+            <table class="w-full text-left text-xs border-collapse min-w-[1100px]">
+              <thead class="sticky top-0 z-10 bg-resolve-panel/95 backdrop-blur border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
+                <tr>
+                  <th class="p-2 border-r border-resolve-border w-24">No. OT</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Cliente</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Marca/Producto</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Medio</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Referencia</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[180px]">Descripción</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('entryDate')">Entrada ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-36 cursor-pointer hover:text-amber-400" onclick="setTableSort('deliveryDate')">Entrega ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('status')">Estado ↕</th>
+                  <th class="p-2 border-r border-resolve-border w-32 cursor-pointer hover:text-amber-400" onclick="setTableSort('responsible')">Responsable ↕</th>
+                  <th class="p-2 min-w-[140px]">Notas</th>
+                </tr>
+              </thead>
+              <tbody id="stripboard-day-table-body" class="divide-y divide-resolve-border/70 text-zinc-300" ondragover="handleTableContainerDragOver(event)" ondrop="handleTableContainerDrop(event, 'stripboard')">
+                <!-- Inyectado dinámicamente con JS con renderUnifiedTableRows() -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VISTA 2: SEMANA • LUNES–SÁBADO (COLUMNAS VERTICALES SEMANALES) -->
+        <!-- ============================================================== -->
+        <div id="stripboard-week-view" class="hidden flex-1 flex flex-col overflow-hidden">
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] text-resolve-dimText shrink-0">
+            <span id="stripboard-week-range-label" class="font-semibold text-white uppercase tracking-wider">SEMANA LABORAL: LUNES A SÁBADO</span>
+            <span>Arrastra tiras entre días (Lun–Sáb) o suelta OTs pendientes directamente en la columna del día</span>
+          </div>
+          <div id="stripboard-week-grid" class="flex-1 grid grid-cols-6 divide-x divide-resolve-border overflow-x-auto overflow-y-hidden bg-resolve-bg">
+            <!-- 6 Columnas (Lunes a Sábado) inyectadas con JS -->
+          </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VISTA 3: TIMELINE • GANTT DIARIO POR DEPARTAMENTO (08:00-19:00)-->
+        <!-- ============================================================== -->
+        <div id="stripboard-gantt-view" class="hidden flex-1 flex flex-col overflow-hidden">
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] text-resolve-dimText shrink-0">
+            <div class="flex items-center gap-3">
+              <span class="font-semibold text-white uppercase tracking-wider">TIMELINE • GANTT DE TRÁFICO DIARIO (08:00 – 19:00)</span>
+              <span id="stripboard-gantt-date-label" class="text-amber-400 font-semibold">--</span>
+            </div>
+            <span>Pistas por Departamento • Arrastra los bordes del clip para expandir/contraer tiempo (DaVinci Trim) o mueve el bloque</span>
+          </div>
+          <div id="stripboard-gantt-container" class="flex-1 overflow-auto p-3 select-none">
+            <!-- Pistas de Timeline DaVinci Resolve inyectadas con JS -->
+          </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VISTA 4: MES • ENTREGAS Y CARGA MENSUAL (LUNES A SÁBADO)       -->
+        <!-- ============================================================== -->
+        <div id="stripboard-month-view" class="hidden flex-1 flex flex-col overflow-hidden">
+          <div class="h-9 px-4 bg-resolve-panel/80 border-b border-resolve-border flex items-center justify-between text-[11px] text-resolve-dimText shrink-0">
+            <div class="flex items-center gap-3">
+              <span id="stripboard-month-title" class="font-semibold text-white uppercase tracking-wider">MES</span>
+              <span class="flex items-center gap-1.5 text-[10px]">
+                <span class="w-2 h-2 rounded-xs bg-red-500 inline-block"></span>
+                <span>Entrega Comprometida (Hoja de Ruta)</span>
+              </span>
+              <span class="flex items-center gap-1.5 text-[10px]">
+                <span class="w-2 h-2 rounded-xs bg-amber-500 inline-block"></span>
+                <span>Tira en Plan Diario</span>
+              </span>
+            </div>
+            <span>Haz clic en cualquier día para abrir su Stripboard o suelta una OT sobre el día para agendarla</span>
+          </div>
+
+          <!-- Cabecera Lunes a Sábado -->
+          <div class="grid grid-cols-6 border-b border-resolve-border bg-resolve-surface text-[10px] uppercase tracking-wider text-resolve-dimText font-semibold text-center py-1.5 shrink-0">
+            <div>LUNES</div>
+            <div>MARTES</div>
+            <div>MIÉRCOLES</div>
+            <div>JUEVES</div>
+            <div>VIERNES</div>
+            <div>SÁBADO</div>
+          </div>
+
+          <!-- Cuadrícula Mensual Lunes–Sábado -->
+          <div id="stripboard-month-grid" class="flex-1 grid grid-cols-6 auto-rows-fr divide-x divide-y divide-resolve-border overflow-y-auto bg-resolve-bg text-xs">
+            <!-- Celdas del mes inyectadas con JS -->
+          </div>
+        </div>
+
+        <!-- Pie del Stripboard -->
+        <div class="h-9 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between text-xs text-resolve-dimText shrink-0 no-print">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+            <span id="stripboard-footer-hint">Stripboard de Producción • Arrastra y suelta las tiras en la posición del día</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="clearTodayStripboard()" class="text-stone-500 hover:text-red-400 text-[11px] transition-colors cursor-pointer">
+              Vaciar plan del día activo
+            </button>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+
+  <!-- MODAL PRINCIPAL: SOBRE DE TRÁFICO OT (DETALLE COMPLETO) -->
+  <div id="envelope-modal" onclick="if(event.target === this) closeEnvelopeModal()" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="w-full max-w-7xl xl:max-w-[1450px] 2xl:max-w-[1600px] h-[94vh] bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/90 flex flex-col overflow-hidden text-xs">
+      
+      <!-- Encabezado del Sobre (macOS Sheet Header) -->
+      <div class="h-12 px-4 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <button
+            id="modal-btn-back-stripboard"
+            onclick="closeEnvelopeModal()"
+            class="hidden px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-amber-500/40 text-amber-300 font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+            title="Cerrar Sobre y volver al Stripboard"
+          >
+            <span>← Volver al Stripboard</span>
+          </button>
+          <span id="modal-ot-id" class="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs font-mono shrink-0">OT-26-000</span>
+          <h2 id="modal-ot-title-header" class="font-bold text-white text-sm truncate max-w-lg lg:max-w-2xl tracking-tight">Título de la Pieza</h2>
+          <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0 ml-2">
+            <input type="checkbox" id="modal-ot-urgent" onchange="updateActiveOtField('urgent', this.checked)" class="accent-red-500 rounded">
+            <span class="text-rose-400 font-semibold">Urgente</span>
+          </label>
+        </div>
+
+        <!-- Pestañas internas del Sobre y Botón Cerrar (macOS Segmented Tabs) -->
+        <div class="flex items-center gap-2">
+          <div class="flex items-center bg-black/40 p-0.5 rounded-lg border border-resolve-border text-xs shadow-inner">
+            <button id="tab-btn-hoja-ruta" onclick="switchOtTab('hoja-ruta')" class="px-3 py-1 rounded-md transition-all bg-white/[0.12] text-white font-semibold shadow-xs border border-white/[0.08] cursor-pointer">
+              Hoja de Ruta (Pases)
+            </button>
+            <button id="tab-btn-media-pool" onclick="switchOtTab('media-pool')" class="px-3 py-1 rounded-md transition-all text-resolve-dimText hover:text-white font-medium flex items-center gap-1.5 cursor-pointer">
+              <span>Media Pool</span>
+              <span id="tab-badge-files" class="px-1.5 py-0.2 bg-white/[0.08] rounded-full text-[10px] text-amber-300 font-bold border border-white/[0.06]">0</span>
+            </button>
+            <button id="tab-btn-brief" onclick="switchOtTab('brief')" class="px-3 py-1 rounded-md transition-all text-resolve-dimText hover:text-white font-medium cursor-pointer">
+              Brief & Legales
+            </button>
+          </div>
+          <button onclick="closeEnvelopeModal()" title="Cerrar Sobre (Esc)" class="p-1.5 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg border border-resolve-border ml-1 cursor-pointer transition-colors">
+            ✕
+          </button>
+        </div>
+      </div>
+      <!-- Ficha de Encabezado Técnico de la OT: 1. No. OT -> 2. Cliente -> 3. Marca/Producto -> 4. Medio -> 5. Referencia -> 6. Descripción -> 7. Estado -> 8. Responsable -->
+      <div class="bg-black/25 border-b border-resolve-border p-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 text-xs shrink-0">
+        <!-- 1. No. OT -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">No. OT</label>
+          <input type="text" id="modal-ot-id-display" readonly class="w-full bg-black/50 border border-resolve-border rounded-lg px-2 py-1.5 text-amber-400 font-bold font-mono text-xs cursor-default">
+        </div>
+
+        <!-- 2. Cliente -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Cliente</label>
+          <input type="text" id="modal-ot-client" onchange="updateActiveOtField('client', this.value)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+        </div>
+
+        <!-- 3. Marca/Producto -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Marca/Producto</label>
+          <input type="text" id="modal-ot-brand" onchange="updateActiveOtField('brand', this.value)" placeholder="Marca o Producto" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+        </div>
+
+        <!-- 4. Medio -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Medio</label>
+          <input type="text" id="modal-ot-media" onchange="updateActiveOtField('media', this.value)" placeholder="Medio / Formato" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+        </div>
+
+        <!-- 5. Referencia -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Referencia</label>
+          <input type="text" id="modal-ot-ref" onchange="updateActiveOtField('ref', this.value)" placeholder="Referencia" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all font-mono">
+        </div>
+
+        <!-- 6. Descripción -->
+        <div>
+          <label class="text-[10px] uppercase text-zinc-400 font-semibold block mb-1">Descripción</label>
+          <input type="text" id="modal-ot-description" onchange="updateActiveOtField('title', this.value)" placeholder="Descripción de la pieza" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-100 font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+        </div>
+
+        <!-- 7. Estado -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Estado</label>
+            <button type="button" onclick="openStatusManagerModal()" class="text-[10px] text-zinc-400 hover:text-amber-400 font-medium underline cursor-pointer" title="Editar y crear estados">+ Editar</button>
+          </div>
+          <select id="modal-ot-status" onchange="handleGlobalStatusChange(this.value, activeOtId)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none text-xs transition-all cursor-pointer">
+            <!-- Inyectado dinámicamente con JS -->
+          </select>
+        </div>
+
+        <!-- 8. Responsable -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[10px] uppercase text-zinc-400 font-semibold">Responsable</label>
+            <button type="button" onclick="handleGlobalResponsibleChange('__NEW_RESPONSIBLE__', activeOtId)" class="text-[10px] text-zinc-400 hover:text-cyan-400 font-medium underline cursor-pointer" title="Agregar nuevo responsable">+ Nuevo</button>
+          </div>
+          <select id="modal-ot-responsible" onchange="handleGlobalResponsibleChange(this.value, activeOtId)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2 py-1.5 text-cyan-300 font-semibold focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none text-xs transition-all cursor-pointer">
+            <!-- Inyectado dinámicamente con JS -->
+          </select>
+        </div>
+      </div>
+
+      <!-- BARRA TESTIGO DE DÍAS ASIGNADOS EN EL STRIPBOARD -->
+      <div class="bg-resolve-panel/90 border-b border-resolve-border px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] shrink-0">
+        <div class="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+          <span class="text-[10px] uppercase tracking-wider text-resolve-dimText font-semibold shrink-0">Días en Stripboard:</span>
+          <div id="modal-ot-stripboard-days" class="flex items-center gap-1.5 flex-wrap">
+            <!-- Píldoras testigo inyectadas dinámicamente con JS -->
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <input
+            type="date"
+            id="modal-schedule-date-input"
+            onclick="if(this.showPicker) this.showPicker()"
+            style="color-scheme: dark;"
+            class="bg-black/40 border border-resolve-border rounded-lg px-2 py-0.5 text-[11px] text-white font-semibold focus:border-amber-500/60 focus:outline-none cursor-pointer"
+          />
+          <button
+            type="button"
+            onclick="scheduleActiveOtFromModal()"
+            class="px-2.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold rounded-lg text-[11px] transition-all cursor-pointer"
+          >
+            + Agendar Día
+          </button>
+        </div>
+      </div>
+
+      <!-- CUERPO PRINCIPAL DEL MODAL (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-4">
+        
+        <!-- PESTAÑA 1: HOJA DE RUTA (BITÁCORA DE RELEVOS) -->
+        <div id="ot-tab-hoja-ruta" class="space-y-3">
+          <div class="flex items-center justify-between pb-1">
+            <div>
+              <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos</h3>
+              <p class="text-[11px] text-resolve-dimText">Historial físico y digital de pases entre departamentos.</p>
+            </div>
+            <button onclick="addNewRouteRow()" class="px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1.5 transition-all active:scale-[0.98]">
+              <span>+ AGREGAR MOVIMIENTO</span>
+            </button>
+          </div>
+
+          <!-- Tabla de Relevos -->
+          <div class="border border-resolve-border rounded-xl bg-black/20 overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-resolve-dimText uppercase tracking-wider font-semibold">
+                  <th class="p-2 border-r border-resolve-border w-28">De:</th>
+                  <th class="p-2 border-r border-resolve-border w-28">Para:</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[200px]">Descripción</th>
+                  <th class="p-2 border-r border-resolve-border w-36">Entrada</th>
+                  <th class="p-2 border-r border-resolve-border w-36">Entrega</th>
+                  <th class="p-2 border-r border-resolve-border w-32">Firma</th>
+                  <th class="p-2 border-r border-resolve-border min-w-[140px]">Notas</th>
+                  <th class="p-2 w-16 text-center">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="route-sheet-rows" class="divide-y divide-resolve-border/60">
+                <!-- Filas de la hoja de ruta inyectadas con JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- CONTENIDO FÍSICO DEL SOBRE Y MONITOR DE PREVISUALIZACIÓN       -->
+          <!-- ============================================================== -->
+          <div class="pt-3 border-t border-resolve-border">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <div>
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                  <span>Contenido dentro del Sobre (Previsualización Directa)</span>
+                  <span id="inline-envelope-files-count" class="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.06] text-amber-300 text-[10px] font-bold">0 piezas</span>
+                </h3>
+                <p class="text-[11px] text-resolve-dimText">Selecciona cualquier foto, boceto, video o PDF adjunto al sobre para previsualizarlo aquí mismo sin cambiar de pestaña.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="promptAddMediaLink()" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-lg border border-resolve-border text-xs font-medium transition-all cursor-pointer">
+                  + Enlace Web / Video
+                </button>
+                <label class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold rounded-lg border border-amber-500/30 text-xs flex items-center gap-1.5 cursor-pointer transition-all">
+                  <span>+ Importar Piezas</span>
+                  <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+              <!-- Lista de Piezas dentro del Sobre (5 columnas) con Zona de Soltar / Importar directa -->
+              <div class="lg:col-span-5 flex flex-col gap-2 max-h-[410px]">
+                <div 
+                  id="envelope-inline-dropzone"
+                  ondragover="handleInlineDropzoneOver(event)"
+                  ondragleave="handleInlineDropzoneLeave(event)"
+                  ondrop="handleInlineDropzoneDrop(event)"
+                  onclick="this.querySelector('input').click()"
+                  class="border-2 border-dashed border-resolve-border hover:border-amber-400/60 rounded-xl p-3 bg-white/[0.02] hover:bg-white/[0.05] text-center transition-all cursor-pointer flex flex-col items-center justify-center shrink-0"
+                  title="Arrastra o haz clic para importar fotos, PDFs, tipografías, código o suites de diseño"
+                >
+                  <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
+                  <div class="flex items-center gap-1.5 text-amber-400 font-semibold text-[11px]">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Arrastra archivos aquí o haz clic para importar</span>
+                  </div>
+                  <span class="text-[9px] text-resolve-dimText mt-0.5">Fotos, PDF, Código (HTML/JS), Fuentes (.ttf/.otf), Pages, Word, Adobe (.ai/.psd), Affinity</span>
+                </div>
+
+                <div id="envelope-inline-files-list" class="flex-1 bg-black/20 border border-resolve-border rounded-xl p-2 overflow-y-auto space-y-1.5">
+                  <!-- Inyectado dinámicamente con JS -->
+                </div>
+              </div>
+
+              <!-- Monitor de Previsualización Integrado (Source Viewer - 7 columnas) -->
+              <div id="envelope-inline-viewer" class="lg:col-span-7 bg-black/30 border border-resolve-border rounded-xl flex flex-col overflow-hidden min-h-[340px] max-h-[410px]">
+                <!-- Inyectado dinámicamente con JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PESTAÑA 2: MEDIA POOL -->
+        <div id="ot-tab-media-pool" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-white text-xs uppercase tracking-wider">Media Pool de la Orden</h3>
+              <p class="text-[11px] text-resolve-dimText">Imágenes, referencias, bocetos, PDFs y enlaces a Drive/Figma vinculados a esta OT.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="promptAddMediaLink()" class="px-2.5 py-1 bg-resolve-card hover:bg-resolve-border text-white rounded border border-resolve-border text-xs flex items-center gap-1 transition-colors">
+                <span>+ Enlace URL</span>
+              </button>
+              <label class="px-2.5 py-1 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded border border-amber-400 text-xs flex items-center gap-1 cursor-pointer transition-colors">
+                <span>Subir Archivo</span>
+                <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
+              </label>
+              <div class="h-4 w-px bg-resolve-border mx-1"></div>
+              <div class="flex items-center bg-resolve-bg p-0.5 rounded border border-resolve-border">
+                <button id="btn-view-grid" onclick="setMediaPoolView('grid')" class="p-1 rounded bg-resolve-panel text-white hover:text-white" title="Cuadrícula">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                </button>
+                <button id="btn-view-list" onclick="setMediaPoolView('list')" class="p-1 rounded text-resolve-dimText hover:text-white" title="Lista">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dropzone -->
+          <div 
+            id="file-dropzone"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleFileDrop(event)"
+            class="file-dropzone border-2 border-dashed border-resolve-border rounded-lg p-6 flex flex-col items-center justify-center text-center bg-resolve-bg/50 hover:bg-resolve-bg transition-colors cursor-pointer"
+            onclick="this.querySelector('input').click()"
+          >
+            <input type="file" multiple onchange="handleMediaPoolUpload(event)" class="hidden">
+            <svg class="w-8 h-8 text-resolve-dimText mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <span class="text-xs text-white font-bold">Arrastra archivos aquí o haz clic para explorar</span>
+            <span class="text-[10px] text-resolve-dimText mt-1">Imágenes, PDFs, bocetos o documentos de referencia</span>
+          </div>
+
+          <!-- Media Pool Items -->
+          <div id="media-pool-container">
+            <!-- Render dinámico JS -->
+          </div>
+        </div>
+
+        <!-- PESTAÑA 3: BRIEF & LEGALES -->
+        <div id="ot-tab-brief" class="hidden space-y-4">
+          <div>
+            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Brief Creativo & Objetivos de la Pieza</label>
+            <textarea 
+              id="modal-ot-brief" 
+              rows="6" 
+              onchange="updateActiveOtField('brief', this.value)" 
+              placeholder="Escribe el brief, tono de comunicación, lineamientos creativos..." 
+              class="w-full bg-resolve-bg border border-resolve-border rounded p-3 text-white focus:border-resolve-accent focus:outline-none text-xs leading-relaxed"
+            ></textarea>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-resolve-dimText font-bold mb-1">Textos Legales / Advertencias Obligatorias</label>
+            <textarea 
+              id="modal-ot-legal" 
+              rows="4" 
+              onchange="updateActiveOtField('legalText', this.value)" 
+              placeholder="Letras chicas, disclaimers, registros sanitarios, locución final de ley..." 
+              class="w-full bg-resolve-bg border border-resolve-border rounded p-3 text-white focus:border-resolve-accent focus:outline-none text-xs leading-relaxed"
+            ></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie del Sobre -->
+      <div class="h-12 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between shrink-0">
+        <button onclick="deleteActiveOt()" class="px-3 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 rounded flex items-center gap-1.5 transition-colors cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          <span>Eliminar OT</span>
+        </button>
+        <button onclick="closeEnvelopeModal()" class="px-4 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded transition-colors cursor-pointer">
+          Cerrar Sobre
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL VISOR AMPLIADO DE PIEZAS Y DOCUMENTOS (SOURCE VIEWER / SALA DE PROYECCIÓN) -->
+  <div id="media-preview-modal" onclick="if(event.target === this) closeMediaPreviewModal()" class="fixed inset-0 bg-black/85 backdrop-blur-xl z-[60] hidden flex items-center justify-center p-3 sm:p-6">
+    <div class="w-full max-w-6xl h-[88vh] bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/90 flex flex-col overflow-hidden text-xs">
+      <div class="h-11 px-4 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.06] text-amber-300 font-bold text-[10px]">VISOR DE PIEZA</span>
+          <span id="media-preview-modal-title" class="font-semibold text-white truncate">Archivo</span>
+          <span id="media-preview-modal-meta" class="text-[10px] text-resolve-dimText hidden sm:inline"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="stepSelectedMediaItem(-1)" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white rounded-lg border border-resolve-border font-medium cursor-pointer transition-all">
+            ◀ Anterior
+          </button>
+          <button type="button" onclick="stepSelectedMediaItem(1)" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white rounded-lg border border-resolve-border font-medium cursor-pointer transition-all">
+            Siguiente ▶
+          </button>
+          <button type="button" onclick="closeMediaPreviewModal()" class="px-3 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 cursor-pointer ml-1 transition-all active:scale-[0.98]">
+            ← Volver al Sobre
+          </button>
+        </div>
+      </div>
+      <div id="media-preview-modal-body" class="flex-1 bg-black/40 overflow-auto flex items-center justify-center p-4">
+        <!-- Contenido del visor ampliado inyectado con JS -->
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- MODAL PARA GESTIONAR / EDITAR / CREAR ESTADOS DE TRÁFICO -->
+  <div id="status-manager-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-6 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 class="font-semibold text-white uppercase text-xs tracking-wider flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <span>Gestión de Estados de Tráfico</span>
+        </h4>
+        <button onclick="closeStatusManagerModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
+      </div>
+
+      <p class="text-[11px] text-resolve-dimText mb-3">
+        Crea nuevos estados o renombra los existentes. Los cambios se actualizarán en cascada en todas las OTs.
+      </p>
+
+      <!-- Lista de Estados Existentes -->
+      <div class="mb-4">
+        <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-2">Estados configurados:</label>
+        <div id="status-manager-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <!-- Render dinámico JS -->
+        </div>
+      </div>
+
+      <!-- Formulario para Agregar Nuevo Estado -->
+      <form onsubmit="handleCreateStatus(event)" class="pt-3 border-t border-resolve-border space-y-2.5">
+        <label class="block text-[10px] uppercase text-zinc-400 font-semibold">+ Crear Nuevo Estado</label>
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            id="new-status-name" 
+            required 
+            placeholder="Ej: En Aprobación Cliente..." 
+            class="flex-1 bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none"
+          />
+          <select id="new-status-color" class="bg-black/40 border border-resolve-border rounded-lg px-2 py-1.5 text-zinc-200 text-xs font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+            <option value="amber">Ámbar</option>
+            <option value="blue">Azul</option>
+            <option value="cyan">Celeste</option>
+            <option value="purple">Púrpura</option>
+            <option value="emerald">Verde</option>
+            <option value="red">Rojo</option>
+            <option value="yellow">Amarillo</option>
+            <option value="stone">Gris</option>
+          </select>
+          <button type="submit" class="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] shrink-0">
+            + Añadir
+          </button>
+        </div>
+      </form>
+
+      <div class="flex justify-end pt-3 border-t border-resolve-border mt-3">
+        <button type="button" onclick="closeStatusManagerModal()" class="px-4 py-1.5 bg-white/[0.06] text-white font-semibold rounded-lg border border-resolve-border hover:bg-white/[0.10] transition-colors">
+          Listo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE SELLOS DE TINTA (CONTROL DE TRÁFICO) -->
+  <div id="stamp-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 class="font-semibold text-white uppercase text-xs tracking-wider flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+          <span>Aplicar Sello de Relevo</span>
+        </h4>
+        <button onclick="closeStampModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
+      </div>
+
+      <p class="text-[11px] text-resolve-dimText mb-3">Selecciona el estado con el que se sella este pase en la hoja de ruta:</p>
+
+      <div class="grid grid-cols-2 gap-2.5 mb-4">
+        <button onclick="applyStamp('RECIBIDO')" class="ink-stamp-box p-2.5 text-center border-red-500 text-red-400 hover:bg-red-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
+          [ RECIBIDO ]
+        </button>
+        <button onclick="applyStamp('ENTREGADO')" class="ink-stamp-box p-2.5 text-center border-blue-500 text-blue-400 hover:bg-blue-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
+          [ ENTREGADO ]
+        </button>
+        <button onclick="applyStamp('APROBADO')" class="ink-stamp-box p-2.5 text-center border-emerald-500 text-emerald-400 hover:bg-emerald-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
+          [ APROBADO ]
+        </button>
+        <button onclick="applyStamp('AJUSTES')" class="ink-stamp-box p-2.5 text-center border-amber-500 text-amber-400 hover:bg-amber-950/30 rounded-lg font-bold transition-all hover:scale-[1.02]">
+          [ AJUSTES ]
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between pt-2.5 border-t border-resolve-border">
+        <button onclick="clearCurrentStamp()" class="text-resolve-dimText hover:text-rose-400 text-[11px] transition-colors">
+          Quitar sello
+        </button>
+        <button onclick="closeStampModal()" class="px-3 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PARA NUEVA ORDEN DE TRABAJO (NUEVA OT) -->
+  <div id="new-ot-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-6 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 class="font-semibold text-white uppercase text-xs tracking-wider flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <span>Nueva Orden de Trabajo (Sobre OT)</span>
+        </h4>
+        <button onclick="closeNewOtModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
+      </div>
+
+      <form onsubmit="handleCreateOt(event)" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">N° de Orden:</label>
+            <input type="text" id="new-id-input" class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-400 font-bold font-mono" readonly>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Referencia / Código Campaña</label>
+            <input type="text" id="new-ref-input" placeholder="Ej: BOT-26-DIG" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-300 font-semibold font-mono focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Cliente *</label>
+            <input type="text" id="new-client-input" required list="clients-datalist" oninput="syncNewOtBrandSuggestions()" placeholder="Seleccionar..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Marca *</label>
+            <input type="text" id="new-brand-input" required list="brands-datalist" placeholder="Ej: Club Premium" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Producto</label>
+            <input type="text" id="new-product-input" placeholder="Ej: Línea Retornable" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Responsable y Estado Inicial -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Responsable *</label>
+            <select id="new-ot-responsible" onchange="handleOtResponsibleChange(this.value, 'new-ot-responsible')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-cyan-300 font-semibold focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none cursor-pointer">
+              <!-- Inyectado dinámicamente con JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Estado Inicial *</label>
+            <select id="new-ot-status" onchange="handleOtStatusChange(this.value, 'new-ot-status')" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none cursor-pointer">
+              <!-- Inyectado dinámicamente con JS -->
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Medio / Medidas</label>
+          <input type="text" id="new-media-input" placeholder="Ej: TV 20'', Prensa 1 Pag..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Título de la Pieza o Campaña *</label>
+          <input type="text" id="new-title-input" required placeholder="Ej: Comercial TV Lanzamiento Nueva Botella" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Primer Relevo / Instrucción Inicial</label>
+          <textarea id="new-first-task-input" rows="2" placeholder="Ej: Favor redactar guion de TV de 20 segundos..." class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none resize-none"></textarea>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="new-urgent-input" class="accent-red-500 rounded">
+          <label for="new-urgent-input" class="text-rose-400 font-semibold text-[11px] cursor-pointer">Marcar esta Orden como Prioridad URGENTE</label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-resolve-border">
+          <button type="button" onclick="closeNewOtModal()" class="px-3.5 py-1.5 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">Cancelar</button>
+          <button type="submit" class="px-4 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Crear y Abrir Sobre OT</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Datalist para autocompletar clientes, marcas y áreas -->
+  <datalist id="clients-datalist"></datalist>
+  <datalist id="brands-datalist"></datalist>
+  <datalist id="dept-options">
+    <option value="Andrés J."></option>
+  </datalist>
+
+  <!-- MODAL PARA CREAR / EDITAR CLIENTE -->
+  <div id="client-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 id="client-modal-title" class="font-semibold text-white uppercase text-xs tracking-wider">Nuevo Cliente</h4>
+        <button onclick="closeClientModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
+      </div>
+      <form onsubmit="handleSaveClient(event)" class="space-y-3">
+        <input type="hidden" id="edit-client-id">
+        <div>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre del Cliente *</label>
+          <input type="text" id="client-modal-name" required placeholder="Ej: Compañía de Alimentos" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+        </div>
+        <div class="flex justify-end gap-2 pt-2.5 border-t border-resolve-border">
+          <button type="button" onclick="closeClientModal()" class="px-3.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">Cancelar</button>
+          <button type="submit" class="px-3.5 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL PARA CREAR / EDITAR MARCA -->
+  <div id="brand-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
+        <h4 id="brand-modal-title" class="font-semibold text-white uppercase text-xs tracking-wider">Nueva Marca</h4>
+        <button onclick="closeBrandModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors">✕</button>
+      </div>
+      <form onsubmit="handleSaveBrand(event)" class="space-y-3">
+        <input type="hidden" id="brand-client-name">
+        <input type="hidden" id="edit-brand-old-name">
+        <div>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Cliente Vinculado</label>
+          <input type="text" id="brand-client-display" readonly class="w-full bg-black/30 border border-resolve-border rounded-lg px-2.5 py-1.5 text-amber-400 font-semibold">
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre de la Marca / Producto *</label>
+          <input type="text" id="brand-modal-name" required placeholder="Ej: Bebida Energética" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none">
+        </div>
+        <div class="flex justify-end gap-2 pt-2.5 border-t border-resolve-border">
+          <button type="button" onclick="closeBrandModal()" class="px-3.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-lg border border-resolve-border transition-colors">Cancelar</button>
+          <button type="submit" class="px-3.5 py-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98]">Guardar Marca</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL PARA CREAR / EDITAR TAREA LIBRE (macOS Sheet) -->
+  <div id="custom-task-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs flex flex-col gap-4">
+      <!-- Encabezado del modal -->
+      <div class="flex items-center justify-between border-b border-resolve-border pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+          <h3 id="custom-task-modal-title" class="text-sm font-bold text-white tracking-tight">Tarea Libre • Plan de Trabajo</h3>
+        </div>
+        <button 
+          type="button" 
+          onclick="closeCustomTaskModal()" 
+          class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulario de la tarea libre -->
+      <form id="custom-task-form" onsubmit="saveCustomTaskModal(event)" class="space-y-3.5">
+        <!-- Título / Descripción -->
+        <div>
+          <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+            Descripción de la Tarea <span class="text-amber-400">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="custom-task-title-input" 
+            required 
+            placeholder="ej: Reunión de Tráfico, Presentación a Cliente, Standby..."
+            class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-2 text-white text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all placeholder-zinc-500"
+          />
+        </div>
+
+        <!-- Responsable / Asignado a -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-[11px] font-medium text-zinc-300">
+              Responsable / Área Asignada <span class="text-amber-400">*</span>
+            </label>
+            <span class="text-[10px] text-zinc-500">Escribe o crea un nuevo nombre</span>
+          </div>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="custom-task-assignee-input" 
+              list="dept-options" 
+              required 
+              placeholder="Selecciona o escribe un responsable..."
+              class="w-full bg-black/40 border border-resolve-border rounded-lg pl-3 pr-8 py-2 text-cyan-300 font-semibold text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all placeholder-zinc-500"
+            />
+            <span class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-zinc-500 text-[10px]">▼</span>
+          </div>
+          <!-- Píldoras rápidas de responsables sugeridos -->
+          <div class="flex flex-wrap gap-1 mt-1.5" id="custom-task-quick-responsibles">
+            <!-- Píldoras dinámicas generadas por JS -->
+          </div>
+        </div>
+
+        <!-- Fila doble: Franja Horaria & Estado -->
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Horario -->
+          <div>
+            <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+              Horario / Turno
+            </label>
+            <input 
+              type="text" 
+              id="custom-task-timeslot-input" 
+              value="08:30 - 09:30" 
+              placeholder="08:30 - 09:30" 
+              class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 font-mono text-zinc-200 text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all"
+            />
+          </div>
+
+          <!-- Estado del Turno -->
+          <div>
+            <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+              Estado de la Tarea
+            </label>
+            <select 
+              id="custom-task-status-input" 
+              class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 font-medium text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all cursor-pointer"
+            >
+              <option value="Por Iniciar">Por Iniciar</option>
+              <option value="En Mesa">En Mesa</option>
+              <option value="Entregado">Entregado</option>
+              <option value="Detenido">Detenido</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Cliente / Proyecto (opcional) -->
+        <div>
+          <label class="block text-[11px] font-medium text-zinc-300 mb-1">
+            Cliente / Proyecto Asociado
+          </label>
+          <input 
+            type="text" 
+            id="custom-task-client-input" 
+            list="clients-datalist"
+            value="Interno" 
+            placeholder="Interno" 
+            class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 text-zinc-200 text-xs focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all placeholder-zinc-500"
+          />
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex items-center justify-between pt-3 border-t border-resolve-border mt-4">
+          <button 
+            type="button" 
+            id="custom-task-delete-btn" 
+            onclick="deleteCustomTaskFromModal()" 
+            class="hidden px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-semibold text-xs transition-colors cursor-pointer"
+          >
+            Eliminar
+          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button 
+              type="button" 
+              onclick="closeCustomTaskModal()" 
+              class="px-3.5 py-1.5 rounded-lg border border-resolve-border bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              class="px-4 py-1.5 rounded-lg bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              Guardar Tarea
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- JAVASCRIPT: LÓGICA DE ÁRBOL, PERSISTENCIA Y MEDIA POOL               -->
+  <!-- ==================================================================== -->
+  <script type="module" src="/src/client/main.js"></script>
+</body>
+</html>

@@ -434,6 +434,7 @@ app.post("/api/studio/open-native", async (c) => {
 // 9. SERVIR ARCHIVOS SUBIDOS, ASSETS E INYECTAR EL PUENTE EN EL PROTOTIPO MAESTRO
 app.use('/uploads/*', serveStatic({ root: './' }));
 app.use('/assets/*', serveStatic({ root: './' }));
+app.use('/src/*', serveStatic({ root: './' }));
 app.get('/favicon.ico', (c) => {
   const iconPath = path.resolve('./assets/favicon-32x32.png');
   if (fs.existsSync(iconPath)) {
@@ -443,6 +444,10 @@ app.get('/favicon.ico', (c) => {
   return c.text('', 404);
 });
 app.get('/', (c) => {
+  if (fs.existsSync('./index.html')) {
+    const html = fs.readFileSync('./index.html', 'utf-8');
+    return c.html(html);
+  }
   if (fs.existsSync('./mesa_de_tr_fico_sobres_ot v1.1.html')) {
     let html = fs.readFileSync('./mesa_de_tr_fico_sobres_ot v1.1.html', 'utf-8');
     html = html.replace('</body>', '<script src="/client-bridge.js"></script></body>');

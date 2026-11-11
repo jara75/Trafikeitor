@@ -1,0 +1,145 @@
+/* Estilos de Impresión: Hoja de Tiempos y Stripboard de Producción */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  header, #sidebar-bin-tree, #sidebar-collapsed-rail, #app-view-desk, #stripboard-pool-panel, .no-print, #envelope-modal, #new-ot-modal, #client-modal, #brand-modal, #stamp-modal, #status-manager-modal {
+    display: none !important;
+  }
+  #app-view-stripboard {
+    display: block !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  .stripboard-print-header {
+    display: block !important;
+  }
+  .stripboard-screen-header {
+    display: none !important;
+  }
+  .strip-item-print {
+    border: 1px solid #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-inside: avoid;
+    margin-bottom: 4px !important;
+  }
+  .strip-item-print * {
+    color: #000000 !important;
+    background: transparent !important;
+  }
+}
+@media screen {
+  .stripboard-print-header {
+    display: none !important;
+  }
+}
+
+/* Stripboard Drag & Drop (Estilo Producción de Cine) */
+.stripboard-row {
+  user-select: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease, background-color 0.12s ease;
+  position: relative;
+}
+.stripboard-row.dragging {
+  opacity: 0.3;
+  transform: scale(0.99);
+  border-style: dashed !important;
+}
+.stripboard-row.drop-before::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.95);
+  border-radius: 2px;
+  z-index: 40;
+  pointer-events: none;
+}
+.stripboard-row.drop-after::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.95);
+  border-radius: 2px;
+  z-index: 40;
+  pointer-events: none;
+}
+#stripboard-strips-container.drag-over-empty {
+  background-color: rgba(217, 119, 6, 0.04);
+}
+tr.stripboard-row.drop-before {
+  border-top: 2px solid #f59e0b !important;
+  box-shadow: inset 0 2px 0 0 #f59e0b;
+}
+tr.stripboard-row.drop-after {
+  border-bottom: 2px solid #f59e0b !important;
+  box-shadow: inset 0 -2px 0 0 #f59e0b;
+}
+tr.stripboard-row.dragging {
+  opacity: 0.35;
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+/* Apple Pro macOS dark scrollbars & typography rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+.bin-active {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-left: 2.5px solid #f59e0b !important;
+  color: #ffffff !important;
+}
+.ink-stamp-box {
+  font-family: 'Special Elite', monospace;
+  letter-spacing: 0.1em;
+  border: 2px dashed currentColor;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+  mix-blend-mode: lighten;
+  user-select: none;
+}
+.file-dropzone.dragover {
+  border-color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+/* Eliminar el icono de calendario de los campos de fecha */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
