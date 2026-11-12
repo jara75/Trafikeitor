@@ -103,10 +103,10 @@ export const state = {
     brand: null
   },
   currentTableSort: {
-    field: 'none',                      // 'none' | 'otNumber' | 'client' | 'brand' | 'inDate' | 'outDate' | 'status' | 'responsible' | 'department'
+    field: 'otNumber',                  // 'none' | 'otNumber' | 'client' | 'brand' | 'inDate' | 'outDate' | 'status' | 'responsible' | 'department'
     dir: 'asc'                          // 'asc' | 'desc'
   },
-  currentTableGroup: 'none',            // 'none' | 'client' | 'status' | 'responsible' | 'department'
+  currentTableGroup: 'client',          // 'none' | 'client' | 'status' | 'responsible' | 'department'
   collapsedGroupKeys: new Set(),
   activeOtId: null,
   activeOtTab: 'route',                 // 'route' | 'media' | 'specs'

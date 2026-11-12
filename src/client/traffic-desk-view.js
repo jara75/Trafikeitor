@@ -38,6 +38,36 @@ import {
 } from './data-bridge.js';
 
 // ============================================================================
+// PALETA DE COLORES DISTINTIVA POR CLIENTE (RECONOCIMIENTO VISUAL INMEDIATO)
+// ============================================================================
+export const CLIENT_COLOR_PALETTE = [
+  { name: 'emerald', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', badge: 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60', dot: 'bg-emerald-400' },
+  { name: 'sky',     text: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     badge: 'bg-sky-950/40 text-sky-300 border-sky-700/60',         dot: 'bg-sky-400' },
+  { name: 'violet',  text: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/30',  badge: 'bg-violet-950/40 text-violet-300 border-violet-700/60', dot: 'bg-violet-400' },
+  { name: 'amber',   text: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   badge: 'bg-amber-950/40 text-amber-300 border-amber-700/60',   dot: 'bg-amber-400' },
+  { name: 'rose',    text: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/30',    badge: 'bg-rose-950/40 text-rose-300 border-rose-700/60',       dot: 'bg-rose-400' },
+  { name: 'cyan',    text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',    badge: 'bg-cyan-950/40 text-cyan-300 border-cyan-700/60',       dot: 'bg-cyan-400' },
+  { name: 'fuchsia', text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', badge: 'bg-fuchsia-950/40 text-fuchsia-300 border-fuchsia-700/60', dot: 'bg-fuchsia-400' },
+  { name: 'lime',    text: 'text-lime-400',    bg: 'bg-lime-500/10',    border: 'border-lime-500/30',    badge: 'bg-lime-950/40 text-lime-300 border-lime-700/60',       dot: 'bg-lime-400' },
+  { name: 'orange',  text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/30',  badge: 'bg-orange-950/40 text-orange-300 border-orange-700/60', dot: 'bg-orange-400' },
+  { name: 'teal',    text: 'text-teal-400',    bg: 'bg-teal-500/10',    border: 'border-teal-500/30',    badge: 'bg-teal-950/40 text-teal-300 border-teal-700/60',       dot: 'bg-teal-400' }
+];
+
+export function getClientColorClasses(clientName) {
+  if (!clientName || clientName === '--' || clientName === 'Interno') {
+    return CLIENT_COLOR_PALETTE[3]; // Ámbar por defecto
+  }
+  let hash = 0;
+  const str = String(clientName).trim().toLowerCase();
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+  }
+  const index = Math.abs(hash) % CLIENT_COLOR_PALETTE.length;
+  return CLIENT_COLOR_PALETTE[index];
+}
+
+
+// ============================================================================
 // GESTIÓN DE ORDENAMIENTO Y AGRUPACIÓN (ESTILO APPLE NUMBERS)
 // ============================================================================
 
@@ -637,6 +667,8 @@ export function renderResponsibleSelects() {
 // ============================================================================
 
 export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
+  const isStripboard = viewContext === 'stripboard';
+  const clientColor = getClientColorClasses(ot.client);
   const safeDesc = ot.title || ot.description || '';
   const safeBrand = ot.brand || ot.product || '--';
   const safeMedia = ot.media || '--';
@@ -646,25 +678,35 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
   const routeEntry = activeRoute ? activeRoute.entryDate : '';
   const routeDelivery = activeRoute ? activeRoute.deliveryDate : '';
 
+  const dragAttrs = isStripboard ? `
+    draggable="true"
+    ondragstart="handleUnifiedRowDragStart(event, '${ot.id}', '${viewContext}')"
+    ondragover="handleUnifiedRowDragOver(event, '${ot.id}', '${viewContext}')"
+    ondragleave="handleUnifiedRowDragLeave(event)"
+    ondrop="handleUnifiedRowDrop(event, '${ot.id}', '${viewContext}')"
+    ondragend="handleUnifiedRowDragEnd(event)"
+  ` : '';
+
+  const gripHtml = isStripboard ? `
+    <span class="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-amber-400 transition-colors select-none p-0.5 shrink-0" title="Arrastrar para reorganizar">
+      <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M7 4a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm6-12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+      </svg>
+    </span>
+  ` : '';
+
+  const rowCursorClass = isStripboard ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
+
   return `
     <tr 
-      draggable="true"
-      ondragstart="handleUnifiedRowDragStart(event, '${ot.id}', '${viewContext}')"
-      ondragover="handleUnifiedRowDragOver(event, '${ot.id}', '${viewContext}')"
-      ondragleave="handleUnifiedRowDragLeave(event)"
-      ondrop="handleUnifiedRowDrop(event, '${ot.id}', '${viewContext}')"
-      ondragend="handleUnifiedRowDragEnd(event)"
-      class="stripboard-row hover:bg-white/[0.04] transition-colors cursor-grab active:cursor-grabbing group" 
+      ${dragAttrs}
+      class="stripboard-row hover:bg-white/[0.04] transition-colors ${rowCursorClass} group" 
       onclick="handleTableRowClick(event, '${ot.id}')"
     >
       <!-- 1. No. OT -->
       <td class="p-2 border-r border-resolve-border align-middle">
         <div class="flex items-center gap-1.5">
-          <span class="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-amber-400 transition-colors select-none p-0.5 shrink-0" title="Arrastrar para reorganizar">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M7 4a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm6-12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-            </svg>
-          </span>
+          ${gripHtml}
           <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/50 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px] whitespace-nowrap">
             ${ot.id}
           </span>
@@ -673,8 +715,11 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
       </td>
 
       <!-- 2. Cliente -->
-      <td class="p-2 border-r border-resolve-border align-middle font-medium text-white truncate max-w-[150px]" title="${escapeHtml(safeClient)}">
-        ${escapeHtml(safeClient)}
+      <td class="p-2 border-r border-resolve-border align-middle font-medium truncate max-w-[150px]" title="${escapeHtml(safeClient)}">
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md ${clientColor.badge} font-semibold text-[11px] truncate border max-w-full">
+          <span class="w-1.5 h-1.5 rounded-full ${clientColor.dot} shrink-0"></span>
+          <span class="truncate">${escapeHtml(safeClient)}</span>
+        </span>
       </td>
 
       <!-- 3. Marca/Producto -->
@@ -806,18 +851,34 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
   let html = '';
   groups.forEach((items, groupKey) => {
     const isCollapsed = state.collapsedGroupKeys.has(groupKey);
-    html += `
-      <tr 
-        class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none"
+    const isStripboard = viewContext === 'stripboard';
+    const dragAttrs = isStripboard ? `
         ondragover="handleCategoryRowDragOver(event)"
         ondragleave="handleCategoryRowDragLeave(event)"
         ondrop="handleCategoryRowDrop(event, '${escapeHtml(groupKey)}', '${viewContext}')"
+    ` : '';
+
+    let groupTitleHtml = `<span class="text-amber-300 font-semibold">${escapeHtml(groupKey)}</span>`;
+    if (state.currentTableGroup === 'client') {
+      const clientColor = getClientColorClasses(groupKey);
+      groupTitleHtml = `
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${clientColor.badge} font-bold text-xs border">
+          <span class="w-1.5 h-1.5 rounded-full ${clientColor.dot}"></span>
+          ${escapeHtml(groupKey)}
+        </span>
+      `;
+    }
+
+    html += `
+      <tr 
+        class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none"
+        ${dragAttrs}
       >
         <td colspan="11" class="px-3 py-1.5 font-bold text-xs text-white" onclick="toggleGroupCollapse('${escapeHtml(groupKey)}')">
           <div class="flex items-center gap-2">
             <span class="text-amber-400 font-mono text-[11px] inline-block transition-transform duration-150 ${isCollapsed ? '' : 'rotate-90'}">▶</span>
             <span class="text-zinc-400 text-[10px] uppercase tracking-wider">${label}:</span>
-            <span class="text-amber-300 font-semibold">${escapeHtml(groupKey)}</span>
+            ${groupTitleHtml}
             <span class="text-[10px] font-mono text-zinc-400 font-normal ml-1">(${items.length} ${items.length === 1 ? 'OT' : 'OTs'})</span>
           </div>
         </td>
@@ -857,6 +918,7 @@ export function renderBinTree() {
   if (summaryBrands) summaryBrands.innerText = `${totalBrands} Marcas`;
 
   container.innerHTML = clients.map(client => {
+    const clientColor = getClientColorClasses(client.name);
     const clientOrders = orders.filter(o => (o.client || '').toLowerCase() === client.name.toLowerCase());
     const isClientActive = (state.selectedTreeFilter.type === 'client' && state.selectedTreeFilter.client === client.name);
 
@@ -864,11 +926,11 @@ export function renderBinTree() {
       <div class="bin-client-group">
         <div class="flex items-center justify-between group rounded-lg hover:bg-white/[0.06] py-1.5 px-2 cursor-pointer transition-colors ${isClientActive ? 'bin-active' : ''}">
           <div class="flex items-center gap-1.5 truncate flex-1" onclick="selectTreeFilter('client', '${escapeHtml(client.name)}', null)">
-            <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+            <svg class="w-3.5 h-3.5 ${clientColor.text} shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
             <span class="font-semibold truncate text-white text-xs">${escapeHtml(client.name)}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-[10px] font-semibold text-zinc-400 bg-white/[0.05] px-1.5 py-0.2 rounded-full">${clientOrders.length}</span>
+            <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.05] px-1.5 py-0.2 rounded-full border border-white/[0.04]">${clientOrders.length}</span>
             <!-- Acciones CRUD Cliente -->
             <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}' });" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded">
               +
@@ -1013,6 +1075,7 @@ export function renderTrafficDesk() {
   // 1. RENDER VISTA EN TARJETAS (CUADRÍCULA)
   if (grid) {
     grid.innerHTML = filtered.map(ot => {
+      const clientColor = getClientColorClasses(ot.client);
       const lastRoute = ot.routes && ot.routes.length > 0 ? ot.routes[ot.routes.length - 1] : null;
       const totalFiles = ot.mediaFiles ? ot.mediaFiles.length : 0;
       let statusClass = getStatusBadgeClass(ot.status);
@@ -1044,8 +1107,13 @@ export function renderTrafficDesk() {
 
           <!-- Contenido y Metadatos -->
           <div class="mt-3 cursor-pointer" onclick="handleTableRowClick(event, '${ot.id}')">
-            <div class="text-[11px] font-medium text-zinc-400 uppercase tracking-wide truncate">
-              ${escapeHtml(ot.client || '')} ${ot.brand ? '• ' + escapeHtml(ot.brand) : ''} ${ot.product && ot.product !== ot.brand ? '• ' + escapeHtml(ot.product) : ''}
+            <div class="flex items-center gap-1.5 truncate mb-1">
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${clientColor.badge} font-bold text-[10px] tracking-wide uppercase border shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full ${clientColor.dot}"></span>
+                ${escapeHtml(ot.client || '')}
+              </span>
+              ${ot.brand ? `<span class="text-[11px] font-medium text-zinc-400 uppercase tracking-wide truncate">• ${escapeHtml(ot.brand)}</span>` : ''}
+              ${ot.product && ot.product !== ot.brand ? `<span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wide truncate">• ${escapeHtml(ot.product)}</span>` : ''}
             </div>
             <h3 class="font-semibold text-sm text-zinc-100 mt-1 group-hover:text-amber-400 transition-colors leading-snug tracking-tight">
               ${escapeHtml(ot.title || ot.description || '')}
@@ -1141,12 +1209,10 @@ export function toggleSidebar() {
   state.isSidebarCollapsed = !state.isSidebarCollapsed;
 
   if (state.isSidebarCollapsed) {
-    sidebar.classList.add('-ml-72', 'md:-ml-80');
-    sidebar.classList.remove('w-72', 'md:w-80');
+    sidebar.classList.add('hidden');
     rail.classList.remove('hidden');
   } else {
-    sidebar.classList.remove('-ml-72', 'md:-ml-80');
-    sidebar.classList.add('w-72', 'md:w-80');
+    sidebar.classList.remove('hidden');
     rail.classList.add('hidden');
   }
 }
@@ -1209,5 +1275,6 @@ if (typeof window !== 'undefined') {
   window.refreshAllViews = refreshAllViews;
   window.handleGlobalStatusChange = handleGlobalStatusChange;
   window.handleGlobalResponsibleChange = handleGlobalResponsibleChange;
+  window.getClientColorClasses = getClientColorClasses;
 }
 

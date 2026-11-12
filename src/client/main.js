@@ -12,7 +12,9 @@ import {
 
 import {
   bootstrap,
-  scheduleSync
+  scheduleSync,
+  getCurrentUser,
+  escapeHtml
 } from './data-bridge.js';
 
 import {
@@ -343,6 +345,209 @@ function setupEventDelegation() {
 }
 
 // ============================================================================
+// GESTIÓN DE SESIÓN, USUARIOS Y TESTIGO DE SINCRONIZACIÓN SQLITE
+// ============================================================================
+
+export function updateSyncBadge(stateText, isSaving) {
+  if (typeof document === 'undefined') return;
+  const badge = document.getElementById('sqlite-sync-badge');
+  if (!badge) return;
+
+  if (isSaving) {
+    badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] font-semibold text-amber-300';
+    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span><span id="sqlite-sync-text">${escapeHtml(stateText || 'Guardando en SQLite...')}</span>`;
+  } else {
+    badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-semibold text-emerald-300';
+    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span id="sqlite-sync-text">${escapeHtml(stateText || 'SQLite Activo')}</span>`;
+  }
+}
+
+export function updateUserPill(user) {
+  if (typeof document === 'undefined') return;
+  const container = document.getElementById('header-user-container');
+  if (!container) return;
+
+  if (user) {
+    const firstName = (user.name || 'Director').split(' ')[0];
+    container.innerHTML = `
+      <button 
+        id="elmarcante-user-btn" 
+        type="button" 
+        class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-rose-500/10 text-zinc-300 hover:text-rose-300 rounded-lg border border-white/[0.08] hover:border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+        title="Sesión activa: ${escapeHtml(user.email || user.name)} (Clic para cerrar sesión)"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span>Salir (${escapeHtml(firstName)})</span>
+      </button>
+    `;
+    const btn = document.getElementById('elmarcante-user-btn');
+    if (btn) {
+      btn.onclick = async () => {
+        if (!confirm('¿Cerrar sesión en El Marcante?')) return;
+        try {
+          await fetch('/api/auth/sign-out', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({}),
+          });
+        } catch (e) {}
+        await fetch('/api/logout-force', { method: 'POST', credentials: 'include' }).catch(() => {});
+        window.location.reload();
+      };
+    }
+  } else {
+    container.innerHTML = `
+      <button 
+        id="elmarcante-login-btn" 
+        type="button" 
+        onclick="showAuthGate(true)" 
+        class="px-2.5 py-1 text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+        <span>Iniciar Sesión</span>
+      </button>
+    `;
+  }
+}
+
+export function showAuthGate(hasAnyUsers = true) {
+  if (typeof document === 'undefined') return;
+
+  let gate = document.getElementById('elmarcante-auth-gate');
+  if (gate) gate.remove();
+
+  gate = document.createElement('div');
+  gate.id = 'elmarcante-auth-gate';
+  gate.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-xl p-4 select-none';
+
+  let isRegisterMode = !hasAnyUsers;
+
+  const renderGateForm = () => {
+    gate.innerHTML = `
+      <div class="w-full max-w-md bg-[#16171b]/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/90 p-7 text-xs text-zinc-200">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-4 mb-5">
+          <div class="flex items-center gap-2.5">
+            <img src="/assets/favicon-32x32.png" alt="Trafikeitor" class="w-6 h-6 rounded-md object-cover shadow-[0_1px_4px_rgba(0,0,0,0.6),0_0_8px_rgba(245,158,11,0.25)]">
+            <div>
+              <h1 class="font-bold text-sm tracking-tight text-white uppercase">TRAFIKEITOR</h1>
+              <p class="text-[10px] text-zinc-400 font-medium">CONTROL DE TRÁFICO • EL MARCANTE</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] text-amber-300 font-semibold">
+            ${isRegisterMode ? 'ACTIVAR CUENTA' : 'BETTER AUTH'}
+          </span>
+        </div>
+
+        <p class="text-[11px] text-zinc-400 mb-4 leading-relaxed font-normal">
+          ${isRegisterMode
+            ? 'Bienvenido, Director. Crea tu cuenta maestra para proteger tus Órdenes de Trabajo, el Media Pool y tu Stripboard en SQLite.'
+            : 'Ingresa tus credenciales para abrir la Mesa de Tráfico y sincronizar con la base de datos.'}
+        </p>
+
+        <form id="elmarcante-auth-form" class="space-y-3.5">
+          ${isRegisterMode ? `
+            <div>
+              <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre del Director *</label>
+              <input type="text" id="auth-name" required value="Andrés Jaramillo" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+            </div>
+          ` : ''}
+
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Correo Electrónico *</label>
+            <input type="email" id="auth-email" required placeholder="contacto@marcanter.com" value="contacto@marcanter.com" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+          </div>
+
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Contraseña (mín. 8 caracteres) *</label>
+            <input type="password" id="auth-password" required minlength="8" placeholder="••••••••" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+          </div>
+
+          <div id="auth-error-msg" class="hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-medium"></div>
+
+          <button type="submit" id="auth-submit-btn" class="w-full py-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold uppercase tracking-wider rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] cursor-pointer text-xs">
+            ${isRegisterMode ? 'Crear Cuenta Maestra y Entrar' : 'Entrar al Estudio'}
+          </button>
+        </form>
+
+        <div class="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-400">
+          <span>${isRegisterMode ? '¿Ya tienes cuenta creada?' : '¿Necesitas registrar un usuario?'}</span>
+          <button type="button" id="auth-toggle-mode" class="text-amber-400 hover:underline font-semibold cursor-pointer">
+            ${isRegisterMode ? 'Iniciar Sesión' : 'Crear Cuenta'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    gate.querySelector('#auth-toggle-mode').onclick = () => {
+      isRegisterMode = !isRegisterMode;
+      renderGateForm();
+    };
+
+    gate.querySelector('#elmarcante-auth-form').onsubmit = async (ev) => {
+      ev.preventDefault();
+      const errEl = gate.querySelector('#auth-error-msg');
+      const btnEl = gate.querySelector('#auth-submit-btn');
+      errEl.classList.add('hidden');
+      btnEl.disabled = true;
+      btnEl.innerText = 'Verificando...';
+
+      const email = gate.querySelector('#auth-email').value.trim();
+      const password = gate.querySelector('#auth-password').value;
+      const nameInput = gate.querySelector('#auth-name');
+      const name = nameInput ? nameInput.value.trim() : 'Director';
+
+      try {
+        const endpoint = isRegisterMode ? '/api/auth/sign-up/email' : '/api/auth/sign-in/email';
+        const payload = isRegisterMode ? { name, email, password } : { email, password };
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) {
+          throw new Error(data.message || data.error?.message || 'Credenciales inválidas o error de acceso.');
+        }
+
+        gate.remove();
+        await bootstrap();
+        updateUserPill(getCurrentUser());
+        refreshAllViews();
+      } catch (err) {
+        errEl.innerText = err.message || 'Error al autenticar';
+        errEl.classList.remove('hidden');
+        btnEl.disabled = false;
+        btnEl.innerText = isRegisterMode ? 'Crear Cuenta Maestra y Entrar' : 'Entrar al Estudio';
+      }
+    };
+  };
+
+  renderGateForm();
+  document.body.appendChild(gate);
+}
+
+// Suscripción a eventos de sincronización y autenticación
+on('sync:status', (e) => {
+  if (!e || !e.detail) return;
+  updateSyncBadge(e.detail.text, e.detail.isSaving);
+  if (e.detail.user) updateUserPill(e.detail.user);
+});
+
+on('data:ready', (e) => {
+  if (!e || !e.detail) return;
+  if (e.detail.user) updateUserPill(e.detail.user);
+  if (e.detail.authRequired) showAuthGate(true);
+});
+
+on('auth:required', (e) => {
+  showAuthGate(e && e.detail ? e.detail.hasUsers : true);
+});
+
+// ============================================================================
 // ARRANQUE E HIDRATACIÓN INICIAL (BOOTSTRAP)
 // ============================================================================
 
@@ -357,6 +562,8 @@ async function initializeApp() {
   } catch (err) {
     console.warn('Iniciando en modo offline / almacenamiento local:', err);
   }
+
+  updateUserPill(getCurrentUser());
 
   // 2. Renderizar componentes iniciales
   renderStatusSelects();
@@ -382,5 +589,8 @@ if (typeof document !== 'undefined') {
 // Exposición en window para compatibilidad
 if (typeof window !== 'undefined') {
   window.switchMainView = switchMainView;
+  window.showAuthGate = showAuthGate;
+  window.updateUserPill = updateUserPill;
+  window.updateSyncBadge = updateSyncBadge;
 }
 
