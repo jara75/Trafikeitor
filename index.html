@@ -131,11 +131,11 @@
           <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
           <span class="truncate">CLIENTES & MARCAS</span>
         </span>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1.5">
           <button onclick="openClientModal(null)" title="Crear Nuevo Cliente" class="px-2 py-0.5 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-md text-[11px] font-medium border border-resolve-border flex items-center gap-1 transition-all cursor-pointer">
             <span>+</span> <span>Cliente</span>
           </button>
-          <button onclick="toggleSidebar()" title="Colapsar panel de Clientes" class="px-2 py-0.5 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md transition-colors text-xs font-mono font-bold border border-resolve-border/60 cursor-pointer">
+          <button onclick="toggleSidebar()" title="Colapsar panel de Clientes" class="w-6 h-6 bg-amber-400 hover:bg-amber-300 active:scale-95 text-stone-950 font-black text-xs rounded flex items-center justify-center transition-all cursor-pointer shadow-xs select-none">
             &lt;
           </button>
         </div>
@@ -173,7 +173,7 @@
       <button 
         onclick="toggleSidebar()" 
         title="Expandir panel de Clientes" 
-        class="p-2 text-amber-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors text-xs font-mono font-bold cursor-pointer"
+        class="w-6 h-6 bg-amber-400 hover:bg-amber-300 active:scale-95 text-stone-950 font-black text-xs rounded flex items-center justify-center transition-all cursor-pointer shadow-xs select-none"
       >
         &gt;
       </button>
