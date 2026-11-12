@@ -96,9 +96,12 @@
                 <p class="text-[10px] text-zinc-400 font-medium">CONTROL DE TRÁFICO • EL MARCANTE</p>
               </div>
             </div>
-            <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] text-amber-300 font-semibold">
-              ${isRegisterMode ? 'ACTIVAR CUENTA' : 'BETTER AUTH'}
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] text-amber-300 font-semibold">
+                ${isRegisterMode ? 'ACTIVAR CUENTA' : 'BETTER AUTH'}
+              </span>
+              <button type="button" id="auth-close-btn" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="Cerrar (Esc)">✕</button>
+            </div>
           </div>
 
           <p class="text-[11px] text-zinc-400 mb-4 leading-relaxed font-normal">
@@ -122,7 +125,28 @@
 
             <div>
               <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Contraseña (mín. 8 caracteres) *</label>
-              <input type="password" id="auth-password" required minlength="8" placeholder="••••••••" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+              <div class="relative flex items-center">
+                <input 
+                  type="password" 
+                  id="auth-password" 
+                  required 
+                  minlength="8" 
+                  placeholder="••••••••" 
+                  class="w-full bg-black/40 border border-white/[0.10] rounded-lg pl-3 pr-10 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all"
+                >
+                <button 
+                  type="button" 
+                  id="auth-toggle-pwd-btn" 
+                  class="absolute right-2 text-zinc-400 hover:text-amber-400 p-1 rounded transition-colors cursor-pointer select-none flex items-center justify-center" 
+                  title="Mostrar u ocultar contraseña"
+                  tabindex="-1"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div id="auth-error-msg" class="hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-medium"></div>
@@ -145,6 +169,30 @@
         isRegisterMode = !isRegisterMode;
         renderGateForm();
       };
+
+      const pwdInput = gate.querySelector('#auth-password');
+      const togglePwdBtn = gate.querySelector('#auth-toggle-pwd-btn');
+      if (togglePwdBtn && pwdInput) {
+        togglePwdBtn.onclick = () => {
+          const isPassword = pwdInput.type === 'password';
+          pwdInput.type = isPassword ? 'text' : 'password';
+          togglePwdBtn.innerHTML = isPassword ? `
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>
+            </svg>
+          ` : `
+            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          `;
+        };
+      }
+
+      const closeBtn = gate.querySelector('#auth-close-btn');
+      if (closeBtn) {
+        closeBtn.onclick = () => gate.remove();
+      }
 
       gate.querySelector('#elmarcante-auth-form').onsubmit = async (ev) => {
         ev.preventDefault();
