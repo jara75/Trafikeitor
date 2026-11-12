@@ -156,9 +156,6 @@ export function handleTableRowClick(event, otId) {
     return;
   }
   emit('modal:open-envelope', { otId });
-  if (typeof window !== 'undefined' && typeof window.openEnvelopeModal === 'function') {
-    window.openEnvelopeModal(otId);
-  }
 }
 
 export function handleUnifiedRowDragStart(e, otId, viewContext) {
@@ -873,10 +870,10 @@ export function renderBinTree() {
           <div class="flex items-center gap-1">
             <span class="text-[10px] font-semibold text-zinc-400 bg-white/[0.05] px-1.5 py-0.2 rounded-full">${clientOrders.length}</span>
             <!-- Acciones CRUD Cliente -->
-            <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}' }); if (typeof openBrandModal === 'function') openBrandModal('${escapeHtml(client.name)}');" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded">
+            <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}' });" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded">
               +
             </button>
-            <button onclick="event.stopPropagation(); emit('modal:open-client', { clientId: '${client.id}' }); if (typeof openClientModal === 'function') openClientModal('${client.id}');" title="Editar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-amber-400 rounded">
+            <button onclick="event.stopPropagation(); emit('modal:open-client', { clientId: '${client.id}' });" title="Editar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-amber-400 rounded">
               ✎
             </button>
             <button onclick="event.stopPropagation(); if (confirm('¿Eliminar cliente ${escapeHtml(client.name)}?')) { deleteClient('${client.id}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-red-400 rounded">
@@ -902,7 +899,7 @@ export function renderBinTree() {
                 </div>
                 <div class="flex items-center gap-1">
                   <span class="text-[10px] font-medium text-zinc-500">${brandOrders.length}</span>
-                  <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}', brand: '${escapeHtml(brand)}' }); if (typeof openBrandModal === 'function') openBrandModal('${escapeHtml(client.name)}', '${escapeHtml(brand)}');" title="Editar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-amber-400">
+                  <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}', brand: '${escapeHtml(brand)}' });" title="Editar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-amber-400">
                     ✎
                   </button>
                   <button onclick="event.stopPropagation(); if (confirm('¿Eliminar marca ${escapeHtml(brand)}?')) { deleteBrand('${escapeHtml(client.name)}', '${escapeHtml(brand)}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-red-400">
@@ -1165,6 +1162,11 @@ export function refreshAllViews() {
 
 // Escuchar eventos globales de sincronización y mutación
 on('data:sync', () => {
+  renderBinTree();
+  renderTrafficDesk();
+});
+
+on('data:ready', () => {
   renderBinTree();
   renderTrafficDesk();
 });

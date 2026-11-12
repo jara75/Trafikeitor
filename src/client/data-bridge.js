@@ -360,6 +360,7 @@ export async function bootstrap() {
     return { ok: true, source: 'local', user: null };
   } finally {
     isBootstrapping = false;
+    emit('data:sync');
   }
 }
 
@@ -692,6 +693,7 @@ export function getDayStrips(dateStr) {
 export function saveDayStrips(dateStr, strips) {
   if (!dateStr) return;
   stripboardCache[dateStr] = [...strips];
+  emit('stripboard:updated', { dateStr });
   scheduleSync();
 }
 

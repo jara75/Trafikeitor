@@ -193,3 +193,10 @@ export function clearStripDropIndicators() {
   });
 }
 
+// ============================================================================
+// EXPOSICIÓN GLOBAL EN WINDOW
+// ============================================================================
+if (typeof window !== 'undefined') {
+  window.emit = emit;
+}
+

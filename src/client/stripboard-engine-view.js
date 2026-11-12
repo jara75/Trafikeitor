@@ -327,7 +327,7 @@ export function renderStripboardPendingPool() {
             </svg>
             <button
               type="button"
-              onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${ot.id}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${ot.id}');"
+              onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${ot.id}' });"
               title="Abrir Sobre OT completo"
               class="font-mono font-bold text-amber-400 hover:text-white text-[11px] px-1.5 py-0.2 bg-black/40 hover:bg-black/60 rounded-md border border-resolve-border transition-colors cursor-pointer"
             >
@@ -341,7 +341,7 @@ export function renderStripboardPendingPool() {
         </div>
 
         <div
-          onclick="emit('modal:open-envelope', { otId: '${ot.id}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${ot.id}');"
+          onclick="emit('modal:open-envelope', { otId: '${ot.id}' });"
           class="font-bold text-white hover:text-amber-400 text-[11px] truncate mb-0.5 cursor-pointer transition-colors"
           title="Clic para abrir el Sobre: ${escapeHtml(ot.title || ot.description || '')}"
         >
@@ -357,7 +357,7 @@ export function renderStripboardPendingPool() {
             <span>Testigo de Días (${scheduledDays.length}):</span>
             <button
               type="button"
-              onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${ot.id}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${ot.id}');"
+              onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${ot.id}' });"
               class="text-stone-400 hover:text-amber-400 underline lowercase font-normal cursor-pointer"
             >
               abrir sobre →
@@ -546,7 +546,7 @@ export function renderStripboard() {
                 data-no-drag="true"
                 onmousedown="pauseRowDrag(this); event.stopPropagation();"
                 onmouseup="resumeRowDrag(this)"
-                onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${strip.otId}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${strip.otId}');" 
+                onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${strip.otId}' });" 
                 title="Abrir Sobre OT" 
                 class="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-xs font-mono truncate transition-all cursor-pointer"
               >
@@ -789,9 +789,6 @@ export function handleStripCardClick(e, otId, stripIdx, dateStr) {
   }
   if (otId) {
     emit('modal:open-envelope', { otId });
-    if (typeof window !== 'undefined' && typeof window.openEnvelopeModal === 'function') {
-      window.openEnvelopeModal(otId);
-    }
   } else if (stripIdx !== undefined && stripIdx !== null && stripIdx >= 0) {
     openCustomTaskModal(stripIdx, dateStr || state.currentStripboardDate);
   }
@@ -908,17 +905,15 @@ export function handleStripDrop(e, targetIdx, targetDateStr) {
       strips.splice(insertIdx, 0, movedItem);
       saveDayStrips(destDate, strips);
     } else {
-      const all = getAllStripboardStorage();
-      const srcStrips = all[srcDate] || [];
-      const destStrips = all[destDate] || [];
+      const srcStrips = getDayStrips(srcDate);
+      const destStrips = getDayStrips(destDate);
       if (srcStrips[fromIdx]) {
         const [movedItem] = srcStrips.splice(fromIdx, 1);
         const insertIdx = pos === 'before' ? targetIdx : targetIdx + 1;
         const safeIdx = Math.max(0, Math.min(destStrips.length, insertIdx));
         destStrips.splice(safeIdx, 0, movedItem);
-        all[srcDate] = srcStrips;
-        all[destDate] = destStrips;
-        localStorage.setItem('resolve_traffic_stripboard_v2', JSON.stringify(all));
+        saveDayStrips(srcDate, srcStrips);
+        saveDayStrips(destDate, destStrips);
         renderStripboard();
       }
     }
@@ -1019,16 +1014,16 @@ export function handleWeekColDrop(e, targetDateStr) {
   if (state.dragState.sourceType === 'strip' && state.dragState.sourceIndex !== null) {
     const srcDate = state.dragState.sourceDate || state.currentStripboardDate;
     const fromIdx = state.dragState.sourceIndex;
-    const all = getAllStripboardStorage();
-    const srcStrips = all[srcDate] || [];
-    const destStrips = srcDate === targetDateStr ? srcStrips : (all[targetDateStr] || []);
+    const srcStrips = getDayStrips(srcDate);
+    const destStrips = srcDate === targetDateStr ? srcStrips : getDayStrips(targetDateStr);
 
     if (srcStrips[fromIdx]) {
       const [movedItem] = srcStrips.splice(fromIdx, 1);
       destStrips.push(movedItem);
-      all[srcDate] = srcStrips;
-      all[targetDateStr] = destStrips;
-      localStorage.setItem('resolve_traffic_stripboard_v2', JSON.stringify(all));
+      saveDayStrips(srcDate, srcStrips);
+      if (srcDate !== targetDateStr) {
+        saveDayStrips(targetDateStr, destStrips);
+      }
       state.currentStripboardDate = targetDateStr;
       renderStripboard();
     }
@@ -1123,7 +1118,7 @@ export function renderStripboardWeekView() {
                   data-no-drag="true"
                   onmousedown="pauseRowDrag(this); event.stopPropagation();"
                   onmouseup="resumeRowDrag(this)"
-                  onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${strip.otId}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${strip.otId}');"
+                  onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${strip.otId}' });"
                   class="px-1.5 py-0.2 bg-resolve-panel hover:bg-resolve-border border border-resolve-border hover:border-amber-400 rounded text-amber-400 font-bold text-[10px] truncate cursor-pointer"
                 >
                   ${strip.otId}
@@ -1504,7 +1499,7 @@ export function renderStripboardGanttView() {
                   data-no-drag="true"
                   onmousedown="pauseRowDrag(this); event.stopPropagation();"
                   onmouseup="resumeRowDrag(this)"
-                  onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${strip.otId}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${strip.otId}');"
+                  onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${strip.otId}' });"
                   class="font-black text-amber-400 hover:text-white underline truncate cursor-pointer font-mono"
                 >
                   ${strip.otId}
@@ -1718,7 +1713,7 @@ export function renderStripboardMonthView() {
 
     const deliveriesHtml = deliveries.slice(0, 2).map(del => `
       <div
-        onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${del.otId}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${del.otId}');"
+        onclick="event.stopPropagation(); emit('modal:open-envelope', { otId: '${del.otId}' });"
         class="px-1.5 py-0.5 rounded bg-red-950/70 border border-red-700/70 text-red-300 text-[9px] font-bold truncate cursor-pointer hover:bg-red-900/70"
         title="SALIDA COMPROMETIDA: ${escapeHtml(del.otId)} • ${escapeHtml(del.client)} (${escapeHtml(del.task)})"
       >
@@ -1728,7 +1723,7 @@ export function renderStripboardMonthView() {
 
     const stripsHtml = dayStrips.slice(0, 3).map(st => `
       <div
-        onclick="event.stopPropagation(); ${st.otId ? `emit('modal:open-envelope', { otId: '${st.otId}' }); if (typeof openEnvelopeModal === 'function') openEnvelopeModal('${st.otId}');` : `selectStripboardDate('${dateStr}', true)`}"
+        onclick="event.stopPropagation(); ${st.otId ? `emit('modal:open-envelope', { otId: '${st.otId}' });` : `selectStripboardDate('${dateStr}', true)`}"
         class="px-1.5 py-0.5 rounded bg-resolve-panel border border-resolve-border text-stone-200 text-[9px] truncate cursor-pointer hover:border-amber-500/60"
         title="Tira en Plan: ${escapeHtml(st.otId || 'LIBRE')} • ${escapeHtml(st.timeSlot || '')} • ${escapeHtml(st.task || '')}"
       >
@@ -1948,6 +1943,20 @@ on('views:refresh', () => {
   if (state.currentMainView === 'stripboard') {
     renderStripboard();
   }
+});
+
+on('stripboard:updated', () => {
+  renderStripboard();
+});
+
+on('data:changed', () => {
+  if (state.currentMainView === 'stripboard') {
+    renderStripboard();
+  }
+});
+
+on('data:ready', () => {
+  renderStripboard();
 });
 
 on('data:sync', () => {

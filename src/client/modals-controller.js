@@ -35,6 +35,7 @@ import {
   addResponsible,
   getResponsibleOptionsHtml,
   getDepartments,
+  addDepartment,
   getDepartmentOptionsHtml,
   getAllStripboardStorage,
   getDayStrips,
@@ -524,12 +525,8 @@ export function handleRouteDeptChange(index, field, val) {
   if (val === '__NEW_DEPT__') {
     const newName = typeof window !== 'undefined' ? window.prompt("Nombre del nuevo departamento / área:") : null;
     if (newName && newName.trim()) {
-      const clean = newName.trim();
-      const depts = getDepartments();
-      if (!depts.includes(clean)) {
-        depts.push(clean);
-        localStorage.setItem(DEPARTMENTS_STORAGE_KEY, JSON.stringify(depts));
-      }
+      const clean = addDepartment(newName.trim());
+      updateDeptOptionsDatalist();
       updateRouteCell(index, field, clean);
       const ot = getOrders().find(o => o.id === state.activeOtId);
       if (ot) renderRouteSheetRows(ot.routes);
@@ -1620,6 +1617,10 @@ export function handleCreateStatus(e) {
     const sel = document.getElementById('modal-ot-status');
     if (sel) sel.value = name;
   }
+
+  renderStatusManagerList();
+  renderStatusSelects();
+  refreshAllViews();
 }
 
 export function renameStatus(id, newName) {
@@ -1641,6 +1642,10 @@ export function renameStatus(id, newName) {
   });
   saveOrders(orders);
   saveStatuses(statuses);
+
+  renderStatusManagerList();
+  renderStatusSelects();
+  refreshAllViews();
 }
 
 export function updateStatusColor(id, newColor) {
@@ -1649,6 +1654,10 @@ export function updateStatusColor(id, newColor) {
   if (!st) return;
   st.color = newColor;
   saveStatuses(statuses);
+
+  renderStatusManagerList();
+  renderStatusSelects();
+  refreshAllViews();
 }
 
 export function deleteStatusAction(id) {
@@ -1679,6 +1688,10 @@ export function deleteStatusAction(id) {
 
   const filtered = statuses.filter(s => s.id !== id);
   saveStatuses(filtered);
+
+  renderStatusManagerList();
+  renderStatusSelects();
+  refreshAllViews();
 }
 
 // ============================================================================
@@ -1828,6 +1841,7 @@ if (typeof window !== 'undefined') {
   window.renameStatus = renameStatus;
   window.updateStatusColor = updateStatusColor;
   window.deleteStatus = deleteStatusAction;
+  window.deleteStatusAction = deleteStatusAction;
   window.exportBackupData = exportBackupData;
   window.importBackupData = importBackupData;
 }

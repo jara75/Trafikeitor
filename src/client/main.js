@@ -363,7 +363,7 @@ async function initializeApp() {
   renderResponsibleSelects();
   syncSortAndGroupControls();
   renderBinTree();
-  renderTrafficDesk();
+  setMainDeskView(state.currentDeskMode);
   updateClientsDatalist();
   updateDeptOptionsDatalist();
   initStripboard();
