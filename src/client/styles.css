@@ -116,7 +116,6 @@ tr.stripboard-row.dragging {
 .bin-active {
   background-color: rgba(255, 255, 255, 0.08) !important;
   border-left: 2.5px solid #f59e0b !important;
-  color: #ffffff !important;
 }
 .ink-stamp-box {
   font-family: 'Special Elite', monospace;

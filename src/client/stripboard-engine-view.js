@@ -582,7 +582,7 @@ export function renderStripboard() {
             title="${strip.otId ? 'Clic para abrir Sobre OT' : 'Clic para editar Tarea Libre'}"
           >
             <div class="font-bold text-white group-hover/client:text-amber-400 truncate transition-colors">${escapeHtml(clientDisplay)}</div>
-            <div class="text-[10px] text-resolve-dimText truncate">
+            <div class="text-[11px] text-resolve-dimText truncate">
               ${escapeHtml(brandDisplay)}${productDisplay ? ' • ' + escapeHtml(productDisplay) : ''}
             </div>
           </div>
