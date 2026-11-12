@@ -706,11 +706,11 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
   return `
     <tr 
       ${dragAttrs}
-      class="stripboard-row hover:bg-white/[0.04] transition-colors ${rowCursorClass} group" 
+      class="stripboard-row hover:bg-white/[0.04] transition-colors ${rowCursorClass} group text-[11px]" 
       onclick="handleTableRowClick(event, '${ot.id}')"
     >
       <!-- 1. No. OT -->
-      <td class="p-2 border-r border-resolve-border align-middle">
+      <td class="p-2 border-r border-resolve-border align-middle text-[11px]">
         <div class="flex items-center gap-1.5">
           ${gripHtml}
           <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/50 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px] whitespace-nowrap">
@@ -721,7 +721,7 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
       </td>
 
       <!-- 2. Cliente -->
-      <td class="p-2 border-r border-resolve-border align-middle font-medium truncate max-w-[150px]" title="${escapeHtml(safeClient)}">
+      <td class="p-2 border-r border-resolve-border align-middle font-medium truncate max-w-[150px] text-[11px]" title="${escapeHtml(safeClient)}">
         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md ${clientColor.badge} font-semibold text-[11px] truncate border max-w-full">
           <span class="w-1.5 h-1.5 rounded-full ${clientColor.dot} shrink-0"></span>
           <span class="truncate">${escapeHtml(safeClient)}</span>
@@ -735,19 +735,19 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
       </td>
 
       <!-- 4. Medio -->
-      <td class="p-2 border-r border-resolve-border align-middle text-zinc-300 truncate max-w-[130px]" title="${escapeHtml(safeMedia)}">
+      <td class="p-2 border-r border-resolve-border align-middle text-[11px] text-zinc-300 truncate max-w-[130px]" title="${escapeHtml(safeMedia)}">
         ${escapeHtml(safeMedia)}
       </td>
 
       <!-- 5. Referencia -->
-      <td class="p-2 border-r border-resolve-border align-middle">
+      <td class="p-2 border-r border-resolve-border align-middle text-[11px]">
         <span class="font-mono font-semibold text-amber-300 text-[11px] px-1.5 py-0.5 bg-amber-500/10 rounded border border-amber-500/20 truncate block max-w-[120px]" title="Referencia: ${escapeHtml(safeRef)}">
           ${escapeHtml(safeRef)}
         </span>
       </td>
 
       <!-- 6. Descripción -->
-      <td class="p-2 border-r border-resolve-border align-middle font-normal text-zinc-100 group-hover:text-amber-300 transition-colors truncate max-w-[220px]" title="${escapeHtml(safeDesc)}">
+      <td class="p-2 border-r border-resolve-border align-middle text-[11px] font-normal text-zinc-100 group-hover:text-amber-300 transition-colors truncate max-w-[220px]" title="${escapeHtml(safeDesc)}">
         ${escapeHtml(safeDesc)}
       </td>
 
@@ -869,7 +869,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
     if (state.currentTableGroup === 'client') {
       const clientColor = getClientColorClasses(groupKey);
       groupTitleHtml = `
-        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${clientColor.badge} font-bold text-xs border">
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${clientColor.badge} font-bold text-[11px] border">
           <span class="w-1.5 h-1.5 rounded-full ${clientColor.dot}"></span>
           ${escapeHtml(groupKey)}
         </span>
@@ -881,7 +881,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
         class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none"
         ${dragAttrs}
       >
-        <td colspan="11" class="px-3 py-1.5 font-bold text-xs text-white" onclick="toggleGroupCollapse('${escapeHtml(groupKey)}')">
+        <td colspan="11" class="px-3 py-1.5 font-bold text-[11px] text-white" onclick="toggleGroupCollapse('${escapeHtml(groupKey)}')">
           <div class="flex items-center gap-2">
             <span class="text-amber-400 font-mono text-[11px] inline-block transition-transform duration-150 ${isCollapsed ? '' : 'rotate-90'}">▶</span>
             <span class="text-zinc-400 text-[10px] uppercase tracking-wider">${label}:</span>
@@ -971,8 +971,8 @@ export function renderBinTree() {
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
             </svg>
 
-            <!-- Nombre del Cliente: 12px y en Negrita con color atenuado -->
-            <span class="font-bold truncate text-resolve-dimText group-hover:text-zinc-200 text-[12px] leading-tight transition-colors ${isClientActive ? 'text-white' : ''}">${escapeHtml(client.name)}</span>
+            <!-- Nombre del Cliente: 11px y en Negrita con color atenuado -->
+            <span class="font-bold truncate text-resolve-dimText group-hover:text-zinc-200 text-[11px] leading-tight transition-colors ${isClientActive ? 'text-white' : ''}">${escapeHtml(client.name)}</span>
 
             <!-- Badge numérico inmediatamente al lado del nombre -->
             <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.06] px-1.5 py-0.2 rounded-full border border-white/[0.05] shrink-0">${clientOrders.length}</span>
