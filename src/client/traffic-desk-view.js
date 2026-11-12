@@ -110,6 +110,33 @@ export function toggleGroupCollapse(groupKey) {
   refreshAllViews();
 }
 
+export function expandAllTableGroups() {
+  if (!state.collapsedGroupKeys) state.collapsedGroupKeys = new Set();
+  state.collapsedGroupKeys.clear();
+  refreshAllViews();
+}
+
+export function collapseAllTableGroups() {
+  if (state.currentTableGroup === 'none') return;
+  if (!state.collapsedGroupKeys) state.collapsedGroupKeys = new Set();
+  const orders = getOrders();
+  orders.forEach(ot => {
+    const route = getActiveRoute(ot);
+    let key = '';
+    if (state.currentTableGroup === 'client') {
+      key = ot.client || 'Sin Cliente';
+    } else if (state.currentTableGroup === 'status') {
+      key = ot.status || 'Tráfico';
+    } else if (state.currentTableGroup === 'responsible') {
+      key = ot.responsible || 'Andrés J.';
+    } else if (state.currentTableGroup === 'department') {
+      key = (route && route.to) ? route.to : 'Sin Departamento';
+    }
+    if (key) state.collapsedGroupKeys.add(key);
+  });
+  refreshAllViews();
+}
+
 export function syncSortAndGroupControls() {
   if (typeof document === 'undefined') return;
 
@@ -1300,6 +1327,32 @@ export function renderTrafficDesk() {
     footerCount.innerText = `${orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').length} Activas en Tráfico`;
   }
 
+  // Control de visibilidad de acciones de grupo (Abrir todo / Cerrar todo)
+  const groupActions = document.getElementById('trafico-group-actions');
+  if (groupActions) {
+    if (state.currentTableGroup !== 'none') {
+      groupActions.classList.remove('hidden');
+      groupActions.classList.add('flex');
+    } else {
+      groupActions.classList.add('hidden');
+      groupActions.classList.remove('flex');
+    }
+  }
+
+  // Indicador de Urgentes en la vista actual
+  const urgentCount = filtered.filter(o => o.urgent).length;
+  const urgentIndicator = document.getElementById('trafico-urgent-indicator');
+  if (urgentIndicator) {
+    const dotColor = urgentCount > 0 ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-zinc-600';
+    const textColor = urgentCount > 0 ? 'text-rose-300 font-semibold' : 'text-zinc-500 font-normal';
+    urgentIndicator.className = `flex items-center gap-1.5 text-[11px] font-mono ${textColor}`;
+    urgentIndicator.innerHTML = `
+      <span class="w-2 h-2 rounded-full ${dotColor} shrink-0"></span>
+      <span>${urgentCount} ${urgentCount === 1 ? 'Urgente' : 'Urgentes'}</span>
+    `;
+    urgentIndicator.title = urgentCount > 0 ? `${urgentCount} OTs marcadas como urgentes en esta vista` : 'Sin OTs urgentes en esta vista';
+  }
+
   const grid = document.getElementById('envelopes-grid');
   const listContainer = document.getElementById('envelopes-list-container');
   const listBody = document.getElementById('envelopes-list-body');
@@ -1559,6 +1612,8 @@ if (typeof window !== 'undefined') {
   window.toggleTableSortDirection = toggleTableSortDirection;
   window.setTableGroup = setTableGroup;
   window.toggleGroupCollapse = toggleGroupCollapse;
+  window.expandAllTableGroups = expandAllTableGroups;
+  window.collapseAllTableGroups = collapseAllTableGroups;
   window.syncSortAndGroupControls = syncSortAndGroupControls;
   window.handleTableRowClick = handleTableRowClick;
   window.handleUnifiedRowDragStart = handleUnifiedRowDragStart;

@@ -398,8 +398,34 @@
             </div>
           </div>
 
-          <div class="text-[10px] text-zinc-400 font-medium">
-            Tráfico • 11 Columnas Unificadas
+          <div class="flex items-center gap-2.5">
+            <!-- Acciones de Grupos (visibles cuando hay agrupación activa) -->
+            <div id="trafico-group-actions" class="flex items-center gap-1.5 text-[11px] text-zinc-400">
+              <button 
+                type="button" 
+                onclick="expandAllTableGroups()" 
+                title="Desplegar todas las categorías" 
+                class="hover:text-amber-400 transition-colors cursor-pointer"
+              >
+                Abrir todo
+              </button>
+              <span class="text-zinc-600 select-none">|</span>
+              <button 
+                type="button" 
+                onclick="collapseAllTableGroups()" 
+                title="Colapsar todas las categorías" 
+                class="hover:text-amber-400 transition-colors cursor-pointer"
+              >
+                Cerrar todo
+              </button>
+              <span class="w-px h-3.5 bg-resolve-border ml-1"></span>
+            </div>
+
+            <!-- Testigo vivo de Urgentes -->
+            <div id="trafico-urgent-indicator" class="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500">
+              <span class="w-2 h-2 rounded-full bg-zinc-600 shrink-0"></span>
+              <span>0 Urgentes</span>
+            </div>
           </div>
         </div>
 
