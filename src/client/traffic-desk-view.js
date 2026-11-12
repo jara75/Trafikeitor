@@ -988,14 +988,14 @@ export function renderBinTree() {
               return `
                 <div 
                   onclick="selectTreeFilter('brand', '${escapeHtml(client.name)}', '${escapeHtml(brand)}')" 
-                  class="flex items-center px-2 py-1 rounded-lg cursor-pointer group hover:bg-white/[0.05] text-zinc-400 hover:text-white transition-colors text-[11px] ${isBrandActive ? 'bin-active' : ''}"
+                  class="flex items-center px-1.5 py-0.5 rounded-md cursor-pointer group hover:bg-white/[0.05] transition-colors text-[10px] ${isBrandActive ? 'bin-active text-amber-300' : 'text-zinc-400'}"
                   title="Clic para filtrar por esta marca"
                 >
                   <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
                     <svg class="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                    <span class="truncate font-medium text-[11px]">${escapeHtml(brand)}</span>
+                    <span class="truncate font-medium text-[10px] text-zinc-400 group-hover:text-zinc-200">${escapeHtml(brand)}</span>
                     <!-- Badge numérico inmediatamente al lado de la marca -->
-                    <span class="text-[10px] font-medium text-zinc-400 bg-white/[0.04] px-1.5 py-0.2 rounded-full shrink-0">${brandOrders.length}</span>
+                    <span class="text-[9px] font-medium text-zinc-400 bg-white/[0.04] px-1.5 py-0.2 rounded-full shrink-0">${brandOrders.length}</span>
                   </div>
                 </div>
               `;
@@ -1425,8 +1425,13 @@ export function initSidebarResizer() {
     const savedWidth = localStorage.getItem('trafikeitor_sidebar_width');
     if (savedWidth) {
       const num = parseInt(savedWidth, 10);
-      if (!isNaN(num) && num >= 160 && num <= 420) {
-        sidebar.style.width = `${num}px`;
+      if (!isNaN(num) && num >= 150 && num <= 380) {
+        if (num >= 210) {
+          sidebar.style.width = '185px';
+          localStorage.setItem('trafikeitor_sidebar_width', '185');
+        } else {
+          sidebar.style.width = `${num}px`;
+        }
       }
     }
   } catch (_) {}
@@ -1443,7 +1448,7 @@ export function initSidebarResizer() {
       if (!isResizing) return;
       const sidebarRect = sidebar.getBoundingClientRect();
       const newWidth = moveEvent.clientX - sidebarRect.left;
-      const clampedWidth = Math.min(Math.max(newWidth, 160), 420);
+      const clampedWidth = Math.min(Math.max(newWidth, 150), 380);
       sidebar.style.width = `${clampedWidth}px`;
     };
 
