@@ -1427,9 +1427,9 @@ export function initSidebarResizer() {
     if (savedWidth) {
       const num = parseInt(savedWidth, 10);
       if (!isNaN(num) && num >= 150 && num <= 380) {
-        if (num >= 210) {
-          sidebar.style.width = '185px';
-          localStorage.setItem('trafikeitor_sidebar_width', '185');
+        if (num >= 210 || num === 185) {
+          sidebar.style.width = '195px';
+          localStorage.setItem('trafikeitor_sidebar_width', '195');
         } else {
           sidebar.style.width = `${num}px`;
         }

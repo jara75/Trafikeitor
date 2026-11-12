@@ -115,8 +115,8 @@
     <!-- PANEL IZQUIERDO: ÁRBOL DE BINS (Cliente -> Marca -> Año / Carpeta) -->
     <aside 
       id="sidebar-bin-tree" 
-      class="w-48 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none relative z-20 overflow-hidden"
-      style="width: 185px; min-width: 150px; max-width: 380px;"
+      class="w-52 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none relative z-20 overflow-hidden"
+      style="width: 195px; min-width: 160px; max-width: 380px;"
     >
       <!-- Resizer handle en el borde derecho -->
       <div 
@@ -152,15 +152,15 @@
       </div>
 
       <!-- Barra de Herramientas Contextual del Árbol (Crear, Editar, Duplicar, Eliminar) -->
-      <div id="tree-action-bar" class="h-8 px-2 bg-resolve-panel/50 border-b border-resolve-border/60 flex items-center justify-between shrink-0 select-none">
-        <span id="tree-action-label" class="text-[10px] text-zinc-400 font-medium truncate max-w-[85px]" title="Acciones de Clientes">Clientes</span>
-        <div class="flex items-center gap-0.5">
+      <div id="tree-action-bar" class="h-7 px-2 bg-resolve-panel/60 border-b border-resolve-border/60 flex items-center justify-between shrink-0 select-none">
+        <span id="tree-action-label" class="text-[10px] text-resolve-dimText font-medium truncate flex-1 min-w-0 pr-1.5" title="Acciones de Clientes">Clientes</span>
+        <div class="flex items-center gap-0.5 shrink-0">
           <button 
             id="tree-btn-add" 
             type="button"
             onclick="handleTreeToolbarAdd()" 
             title="Crear Nuevo Cliente" 
-            class="w-6 h-6 rounded flex items-center justify-center text-zinc-300 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer font-bold text-xs"
+            class="w-5 h-5 rounded flex items-center justify-center text-zinc-300 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer font-bold text-xs"
           >
             +
           </button>
@@ -169,7 +169,7 @@
             type="button"
             onclick="handleTreeToolbarEdit()" 
             title="Editar seleccionado" 
-            class="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-xs"
+            class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
           >
             ✎
           </button>
@@ -178,7 +178,7 @@
             type="button"
             onclick="handleTreeToolbarDuplicate()" 
             title="Duplicar seleccionado" 
-            class="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-xs font-serif"
+            class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px] font-serif"
           >
             ⎘
           </button>
@@ -187,7 +187,7 @@
             type="button"
             onclick="handleTreeToolbarDelete()" 
             title="Eliminar seleccionado" 
-            class="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-red-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-xs"
+            class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-red-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
           >
             ✕
           </button>
