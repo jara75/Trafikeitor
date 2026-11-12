@@ -41,21 +41,26 @@ import {
 // PALETA DE COLORES DISTINTIVA POR CLIENTE (RECONOCIMIENTO VISUAL INMEDIATO)
 // ============================================================================
 export const CLIENT_COLOR_PALETTE = [
-  { name: 'emerald', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', badge: 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60', dot: 'bg-emerald-400' },
-  { name: 'sky',     text: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     badge: 'bg-sky-950/40 text-sky-300 border-sky-700/60',         dot: 'bg-sky-400' },
-  { name: 'violet',  text: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/30',  badge: 'bg-violet-950/40 text-violet-300 border-violet-700/60', dot: 'bg-violet-400' },
-  { name: 'amber',   text: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   badge: 'bg-amber-950/40 text-amber-300 border-amber-700/60',   dot: 'bg-amber-400' },
-  { name: 'rose',    text: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/30',    badge: 'bg-rose-950/40 text-rose-300 border-rose-700/60',       dot: 'bg-rose-400' },
-  { name: 'cyan',    text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',    badge: 'bg-cyan-950/40 text-cyan-300 border-cyan-700/60',       dot: 'bg-cyan-400' },
-  { name: 'fuchsia', text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', badge: 'bg-fuchsia-950/40 text-fuchsia-300 border-fuchsia-700/60', dot: 'bg-fuchsia-400' },
-  { name: 'lime',    text: 'text-lime-400',    bg: 'bg-lime-500/10',    border: 'border-lime-500/30',    badge: 'bg-lime-950/40 text-lime-300 border-lime-700/60',       dot: 'bg-lime-400' },
-  { name: 'orange',  text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/30',  badge: 'bg-orange-950/40 text-orange-300 border-orange-700/60', dot: 'bg-orange-400' },
-  { name: 'teal',    text: 'text-teal-400',    bg: 'bg-teal-500/10',    border: 'border-teal-500/30',    badge: 'bg-teal-950/40 text-teal-300 border-teal-700/60',       dot: 'bg-teal-400' }
+  { name: 'emerald', label: 'Esmeralda', hex: '#34d399', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', badge: 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60', dot: 'bg-emerald-400' },
+  { name: 'sky',     label: 'Azul Cielo', hex: '#38bdf8', text: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     badge: 'bg-sky-950/40 text-sky-300 border-sky-700/60',         dot: 'bg-sky-400' },
+  { name: 'violet',  label: 'Violeta', hex: '#a78bfa', text: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/30',  badge: 'bg-violet-950/40 text-violet-300 border-violet-700/60', dot: 'bg-violet-400' },
+  { name: 'amber',   label: 'Ámbar', hex: '#fbbf24', text: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   badge: 'bg-amber-950/40 text-amber-300 border-amber-700/60',   dot: 'bg-amber-400' },
+  { name: 'rose',    label: 'Rosa', hex: '#fb7185', text: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/30',    badge: 'bg-rose-950/40 text-rose-300 border-rose-700/60',       dot: 'bg-rose-400' },
+  { name: 'cyan',    label: 'Cian', hex: '#22d3ee', text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',    badge: 'bg-cyan-950/40 text-cyan-300 border-cyan-700/60',       dot: 'bg-cyan-400' },
+  { name: 'fuchsia', label: 'Fucsia', hex: '#e879f9', text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', badge: 'bg-fuchsia-950/40 text-fuchsia-300 border-fuchsia-700/60', dot: 'bg-fuchsia-400' },
+  { name: 'lime',    label: 'Lima', hex: '#a3e635', text: 'text-lime-400',    bg: 'bg-lime-500/10',    border: 'border-lime-500/30',    badge: 'bg-lime-950/40 text-lime-300 border-lime-700/60',       dot: 'bg-lime-400' },
+  { name: 'orange',  label: 'Naranja', hex: '#fb923c', text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/30',  badge: 'bg-orange-950/40 text-orange-300 border-orange-700/60', dot: 'bg-orange-400' },
+  { name: 'teal',    label: 'Verde Azulado', hex: '#2dd4bf', text: 'text-teal-400',    bg: 'bg-teal-500/10',    border: 'border-teal-500/30',    badge: 'bg-teal-950/40 text-teal-300 border-teal-700/60',       dot: 'bg-teal-400' }
 ];
 
 export function getClientColorClasses(clientName) {
   if (!clientName || clientName === '--' || clientName === 'Interno') {
     return CLIENT_COLOR_PALETTE[3]; // Ámbar por defecto
+  }
+  const found = getClients().find(c => (c.name || '').toLowerCase() === String(clientName).trim().toLowerCase());
+  if (found && found.color) {
+    const matched = CLIENT_COLOR_PALETTE.find(p => p.name === found.color);
+    if (matched) return matched;
   }
   let hash = 0;
   const str = String(clientName).trim().toLowerCase();

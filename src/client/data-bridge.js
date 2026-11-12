@@ -636,7 +636,7 @@ export function saveClients(clients) {
   scheduleSync();
 }
 
-export function addClient(name, brands = []) {
+export function addClient(name, brands = [], color = 'emerald') {
   if (!name || !name.trim()) return null;
   const cleanName = name.trim();
   let client = clientsCache.find(c => c.name.toLowerCase() === cleanName.toLowerCase());
@@ -644,6 +644,7 @@ export function addClient(name, brands = []) {
     client = {
       id: `c-${Date.now()}`,
       name: cleanName,
+      color: color || 'emerald',
       brands: Array.isArray(brands) ? brands : []
     };
     clientsCache.push(client);

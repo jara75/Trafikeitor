@@ -69,6 +69,7 @@ export function initDatabaseAndSeed() {
       id TEXT PRIMARY KEY,
       studio_id INTEGER NOT NULL DEFAULT 1 REFERENCES studios(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT 'emerald',
       brands_json TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL
     );
@@ -153,6 +154,12 @@ export function initDatabaseAndSeed() {
       created_at TEXT NOT NULL
     );
   `);
+
+  try {
+    sqlite.exec("ALTER TABLE clients ADD COLUMN color TEXT DEFAULT 'emerald'");
+  } catch (_) {
+    // Columna ya existe
+  }
 
   const studioCount = sqlite.prepare('SELECT COUNT(*) as c FROM studios').get() as { c: number };
   if (studioCount.c === 0) {

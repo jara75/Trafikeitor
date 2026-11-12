@@ -62,6 +62,7 @@ export const clients = sqliteTable('clients', {
   id: text('id').primaryKey(),
   studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  color: text('color').notNull().default('emerald'),
   brandsJson: text('brands_json').notNull().default('[]'),
   createdAt: text('created_at').notNull(),
 });

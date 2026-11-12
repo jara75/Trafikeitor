@@ -189,6 +189,7 @@ app.get('/api/studio/bootstrap', (c) => {
     clients: studioClients.map((cl) => ({
       id: cl.id,
       name: cl.name,
+      color: cl.color || 'emerald',
       brands: JSON.parse(cl.brandsJson || '[]'),
     })),
     statuses: studioStatuses,
@@ -207,13 +208,14 @@ app.post('/api/studio/sync', async (c) => {
     if (Array.isArray(body.clients)) {
       sqlite.prepare('DELETE FROM clients WHERE studio_id = ?').run(studioId);
       const insClient = sqlite.prepare(
-        'INSERT INTO clients (id, studio_id, name, brands_json, created_at) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO clients (id, studio_id, name, color, brands_json, created_at) VALUES (?, ?, ?, ?, ?, ?)'
       );
       for (const cl of body.clients) {
         insClient.run(
           cl.id || 'c-' + Date.now() + Math.random(),
           studioId,
           cl.name || 'Sin nombre',
+          cl.color || 'emerald',
           JSON.stringify(cl.brands || []),
           now
         );

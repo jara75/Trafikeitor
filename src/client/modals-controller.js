@@ -53,7 +53,9 @@ import {
   renderStatusSelects,
   renderResponsibleSelects,
   syncSortAndGroupControls,
-  refreshAllViews
+  refreshAllViews,
+  CLIENT_COLOR_PALETTE,
+  getClientColorClasses
 } from './traffic-desk-view.js';
 
 import {
@@ -1332,14 +1334,103 @@ export function updateClientsDatalist() {
 }
 
 // ============================================================================
-// 5. GESTIÓN DE CLIENTES Y MARCAS (CRUD)
+// 5. GESTIÓN DE CLIENTES Y MARCAS (CRUD UNIFICADO CON COLOR Y MARCAS)
 // ============================================================================
+
+let currentModalBrands = [];
+let currentModalColor = 'emerald';
+
+export function renderClientModalColors() {
+  if (typeof document === 'undefined') return;
+  const container = document.getElementById('client-modal-color-container');
+  const label = document.getElementById('client-modal-color-label');
+  const hiddenInput = document.getElementById('client-modal-color');
+  const headerIndicator = document.getElementById('client-modal-header-indicator');
+  if (!container) return;
+
+  const activeItem = CLIENT_COLOR_PALETTE.find(p => p.name === currentModalColor) || CLIENT_COLOR_PALETTE[0];
+  if (label) {
+    label.innerText = activeItem.label || activeItem.name;
+    label.className = `text-[10px] font-semibold ${activeItem.text}`;
+  }
+  if (hiddenInput) hiddenInput.value = activeItem.name;
+  if (headerIndicator) {
+    headerIndicator.style.backgroundColor = activeItem.hex;
+  }
+
+  container.innerHTML = CLIENT_COLOR_PALETTE.map(item => {
+    const isSelected = item.name === currentModalColor;
+    return `
+      <button 
+        type="button" 
+        onclick="selectClientModalColor('${item.name}')" 
+        title="${escapeHtml(item.label || item.name)}"
+        class="h-7 rounded-md flex items-center justify-center gap-1.5 px-1.5 transition-all cursor-pointer border ${isSelected ? 'border-white ring-2 ring-amber-400/60 shadow-sm scale-[1.03] ' + item.bg : 'border-white/[0.08] hover:border-white/30 opacity-70 hover:opacity-100 bg-white/[0.02]'}"
+      >
+        <span class="w-2.5 h-2.5 rounded-full ${item.dot} shrink-0"></span>
+        <span class="text-[9px] font-medium truncate ${item.text}">${escapeHtml(item.label || item.name)}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+export function selectClientModalColor(colorName) {
+  currentModalColor = colorName;
+  renderClientModalColors();
+}
+
+export function renderClientModalBrandsList() {
+  if (typeof document === 'undefined') return;
+  const listContainer = document.getElementById('client-modal-brands-list');
+  if (!listContainer) return;
+
+  if (currentModalBrands.length === 0) {
+    listContainer.innerHTML = `<span class="text-zinc-500 italic text-[11px] py-1 self-center w-full text-center select-none">Sin marcas o productos agregados aún (opcional)</span>`;
+    return;
+  }
+
+  listContainer.innerHTML = currentModalBrands.map(brand => `
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/[0.08] text-zinc-200 border border-white/[0.12] text-xs font-medium group">
+      <span>${escapeHtml(brand)}</span>
+      <button 
+        type="button" 
+        onclick="handleRemoveBrandFromModal('${escapeHtml(brand)}')" 
+        class="text-zinc-400 hover:text-red-400 p-0.5 rounded transition-colors cursor-pointer"
+        title="Eliminar marca"
+      >✕</button>
+    </span>
+  `).join('');
+}
+
+export function handleAddBrandToModal() {
+  if (typeof document === 'undefined') return;
+  const input = document.getElementById('client-modal-brand-input');
+  if (!input) return;
+  const brandVal = (input.value || '').trim();
+  if (!brandVal) return;
+
+  if (currentModalBrands.some(b => b.toLowerCase() === brandVal.toLowerCase())) {
+    if (typeof window !== 'undefined') window.alert('Esta marca o producto ya fue agregada.');
+    return;
+  }
+
+  currentModalBrands.push(brandVal);
+  input.value = '';
+  renderClientModalBrandsList();
+  input.focus();
+}
+
+export function handleRemoveBrandFromModal(brandName) {
+  currentModalBrands = currentModalBrands.filter(b => b.toLowerCase() !== (brandName || '').toLowerCase());
+  renderClientModalBrandsList();
+}
 
 export function openClientModal(clientId = null) {
   if (typeof document === 'undefined') return;
   const title = document.getElementById('client-modal-title');
   const inputId = document.getElementById('edit-client-id');
   const inputName = document.getElementById('client-modal-name');
+  const brandInput = document.getElementById('client-modal-brand-input');
 
   if (clientId) {
     const client = getClients().find(c => c.id === clientId);
@@ -1347,11 +1438,20 @@ export function openClientModal(clientId = null) {
     if (title) title.innerText = "Editar Cliente";
     if (inputId) inputId.value = client.id;
     if (inputName) inputName.value = client.name;
+    currentModalColor = client.color || 'emerald';
+    currentModalBrands = Array.isArray(client.brands) ? [...client.brands] : [];
   } else {
     if (title) title.innerText = "Nuevo Cliente";
     if (inputId) inputId.value = "";
     if (inputName) inputName.value = "";
+    currentModalColor = 'emerald';
+    currentModalBrands = [];
   }
+
+  if (brandInput) brandInput.value = "";
+
+  renderClientModalColors();
+  renderClientModalBrandsList();
 
   const modal = document.getElementById('client-modal');
   if (modal) modal.classList.remove('hidden');
@@ -1372,6 +1472,15 @@ export function handleSaveClient(e) {
   const name = (document.getElementById('client-modal-name')?.value || '').trim();
   if (!name) return;
 
+  // Si quedó texto escrito en el input de marca sin pulsar "+", agregarlo automáticamente
+  const pendingBrandInput = document.getElementById('client-modal-brand-input');
+  if (pendingBrandInput) {
+    const pendingVal = (pendingBrandInput.value || '').trim();
+    if (pendingVal && !currentModalBrands.some(b => b.toLowerCase() === pendingVal.toLowerCase())) {
+      currentModalBrands.push(pendingVal);
+    }
+  }
+
   const clients = getClients();
   const orders = getOrders();
 
@@ -1380,15 +1489,20 @@ export function handleSaveClient(e) {
     if (client) {
       const oldName = client.name;
       client.name = name;
-      orders.forEach(ot => {
-        if ((ot.client || '').toLowerCase() === oldName.toLowerCase()) {
-          ot.client = name;
+      client.color = currentModalColor;
+      client.brands = [...currentModalBrands];
+
+      if (oldName.toLowerCase() !== name.toLowerCase()) {
+        orders.forEach(ot => {
+          if ((ot.client || '').toLowerCase() === oldName.toLowerCase()) {
+            ot.client = name;
+          }
+        });
+        if (state.selectedTreeFilter && state.selectedTreeFilter.client === oldName) {
+          state.selectedTreeFilter.client = name;
         }
-      });
-      if (state.selectedTreeFilter && state.selectedTreeFilter.client === oldName) {
-        state.selectedTreeFilter.client = name;
+        saveOrders(orders);
       }
-      saveOrders(orders);
     }
   } else {
     const exists = clients.some(c => c.name.toLowerCase() === name.toLowerCase());
@@ -1399,12 +1513,14 @@ export function handleSaveClient(e) {
     clients.push({
       id: 'c-' + Date.now(),
       name: name,
-      brands: []
+      color: currentModalColor,
+      brands: [...currentModalBrands]
     });
   }
 
   saveClients(clients);
   closeClientModal();
+  updateClientsDatalist();
   renderBinTree();
   renderTrafficDesk();
 }
@@ -1828,6 +1944,11 @@ if (typeof window !== 'undefined') {
   window.updateClientsDatalist = updateClientsDatalist;
   window.openClientModal = openClientModal;
   window.closeClientModal = closeClientModal;
+  window.renderClientModalColors = renderClientModalColors;
+  window.selectClientModalColor = selectClientModalColor;
+  window.renderClientModalBrandsList = renderClientModalBrandsList;
+  window.handleAddBrandToModal = handleAddBrandToModal;
+  window.handleRemoveBrandFromModal = handleRemoveBrandFromModal;
   window.handleSaveClient = handleSaveClient;
   window.deleteClient = deleteClientAction;
   window.openBrandModal = openBrandModal;
