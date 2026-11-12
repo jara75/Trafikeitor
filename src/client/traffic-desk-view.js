@@ -901,6 +901,16 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
 // RENDER: ÁRBOL DE BINS (Estilo DaVinci Resolve)
 // ============================================================================
 
+export function toggleClientTreeCollapse(clientId) {
+  if (!state.collapsedTreeClients) state.collapsedTreeClients = new Set();
+  if (state.collapsedTreeClients.has(clientId)) {
+    state.collapsedTreeClients.delete(clientId);
+  } else {
+    state.collapsedTreeClients.add(clientId);
+  }
+  renderBinTree();
+}
+
 export function renderBinTree() {
   if (typeof document === 'undefined') return;
 
@@ -926,57 +936,88 @@ export function renderBinTree() {
     const clientColor = getClientColorClasses(client.name);
     const clientOrders = orders.filter(o => (o.client || '').toLowerCase() === client.name.toLowerCase());
     const isClientActive = (state.selectedTreeFilter.type === 'client' && state.selectedTreeFilter.client === client.name);
+    const hasBrands = client.brands && client.brands.length > 0;
+    const isCollapsed = state.collapsedTreeClients ? state.collapsedTreeClients.has(client.id) : false;
 
     return `
-      <div class="bin-client-group">
-        <div class="flex items-center justify-between group rounded-lg hover:bg-white/[0.06] py-1.5 px-2 cursor-pointer transition-colors ${isClientActive ? 'bin-active' : ''}">
-          <div class="flex items-center gap-1.5 truncate flex-1" onclick="selectTreeFilter('client', '${escapeHtml(client.name)}', null)">
-            <svg class="w-3.5 h-3.5 ${clientColor.text} shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
-            <span class="font-semibold truncate text-white text-xs">${escapeHtml(client.name)}</span>
+      <div class="bin-client-group select-none">
+        <div 
+          class="flex items-center justify-between group rounded-lg hover:bg-white/[0.06] py-1 px-1.5 cursor-pointer transition-colors ${isClientActive ? 'bin-active' : ''}"
+          onclick="selectTreeFilter('client', '${escapeHtml(client.name)}', null)"
+          ondblclick="toggleClientTreeCollapse('${client.id}')"
+          title="Clic para filtrar por cliente / Doble clic para expandir o colapsar"
+        >
+          <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
+            <!-- Triángulo / Chevron de despliegue estilo DaVinci Resolve -->
+            ${hasBrands ? `
+              <button 
+                type="button" 
+                onclick="event.stopPropagation(); toggleClientTreeCollapse('${client.id}')" 
+                title="${isCollapsed ? 'Desplegar marcas' : 'Colapsar marcas'}"
+                class="w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-amber-400 transition-colors cursor-pointer shrink-0"
+              >
+                <svg class="w-2.5 h-2.5 transition-transform duration-150 ${isCollapsed ? '' : 'rotate-90 text-amber-400'}" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M6 4l8 6-8 6V4z"/>
+                </svg>
+              </button>
+            ` : `
+              <span class="w-4 h-4 shrink-0"></span>
+            `}
+
+            <!-- Ícono de Carpeta / Bin en el color distintivo del cliente -->
+            <svg class="w-3.5 h-3.5 ${clientColor.text} shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+            </svg>
+
+            <!-- Nombre del Cliente: 12px y en Negrita -->
+            <span class="font-bold truncate text-white text-[12px] leading-tight">${escapeHtml(client.name)}</span>
           </div>
-          <div class="flex items-center gap-1">
+
+          <div class="flex items-center gap-1 shrink-0 ml-1">
             <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.05] px-1.5 py-0.2 rounded-full border border-white/[0.04]">${clientOrders.length}</span>
             <!-- Acciones CRUD Cliente -->
-            <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}' });" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded">
+            <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}' });" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded text-xs transition-opacity cursor-pointer">
               +
             </button>
-            <button onclick="event.stopPropagation(); emit('modal:open-client', { clientId: '${client.id}' });" title="Editar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-amber-400 rounded">
+            <button onclick="event.stopPropagation(); emit('modal:open-client', { clientId: '${client.id}' });" title="Editar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-amber-400 rounded text-xs transition-opacity cursor-pointer">
               ✎
             </button>
-            <button onclick="event.stopPropagation(); if (confirm('¿Eliminar cliente ${escapeHtml(client.name)}?')) { deleteClient('${client.id}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-red-400 rounded">
+            <button onclick="event.stopPropagation(); if (confirm('¿Eliminar cliente ${escapeHtml(client.name)}?')) { deleteClient('${client.id}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-red-400 rounded text-xs transition-opacity cursor-pointer">
               ✕
             </button>
           </div>
         </div>
 
-        <!-- Sub-marcas / Sub-bins -->
-        <div class="pl-4 ml-1 border-l border-resolve-border/60 space-y-0.5 mt-0.5">
-          ${(client.brands || []).map(brand => {
-            const brandOrders = clientOrders.filter(o => ((o.brand || o.product || '').toLowerCase() === brand.toLowerCase()));
-            const isBrandActive = (state.selectedTreeFilter.type === 'brand' && state.selectedTreeFilter.client === client.name && state.selectedTreeFilter.brand === brand);
+        <!-- Sub-marcas / Sub-bins (Oculto cuando el cliente está colapsado) -->
+        ${hasBrands ? `
+          <div class="pl-3.5 ml-2.5 border-l border-resolve-border/60 space-y-0.5 mt-0.5 ${isCollapsed ? 'hidden' : ''}">
+            ${client.brands.map(brand => {
+              const brandOrders = clientOrders.filter(o => ((o.brand || o.product || '').toLowerCase() === brand.toLowerCase()));
+              const isBrandActive = (state.selectedTreeFilter.type === 'brand' && state.selectedTreeFilter.client === client.name && state.selectedTreeFilter.brand === brand);
 
-            return `
-              <div 
-                onclick="selectTreeFilter('brand', '${escapeHtml(client.name)}', '${escapeHtml(brand)}')" 
-                class="flex items-center justify-between px-2 py-1 rounded-lg cursor-pointer group hover:bg-white/[0.05] text-zinc-400 hover:text-white transition-colors text-xs ${isBrandActive ? 'bin-active' : ''}"
-              >
-                <div class="flex items-center gap-1.5 truncate flex-1">
-                  <span class="text-zinc-600">↳</span>
-                  <span class="truncate font-medium">${escapeHtml(brand)}</span>
+              return `
+                <div 
+                  onclick="selectTreeFilter('brand', '${escapeHtml(client.name)}', '${escapeHtml(brand)}')" 
+                  class="flex items-center justify-between px-2 py-1 rounded-lg cursor-pointer group hover:bg-white/[0.05] text-zinc-400 hover:text-white transition-colors text-[11px] ${isBrandActive ? 'bin-active' : ''}"
+                >
+                  <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
+                    <svg class="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                    <span class="truncate font-medium text-[11px]">${escapeHtml(brand)}</span>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0 ml-1">
+                    <span class="text-[10px] font-medium text-zinc-500 bg-white/[0.03] px-1.5 py-0.2 rounded-full">${brandOrders.length}</span>
+                    <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}', brand: '${escapeHtml(brand)}' });" title="Editar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-400 hover:text-amber-400 text-xs cursor-pointer">
+                      ✎
+                    </button>
+                    <button onclick="event.stopPropagation(); if (confirm('¿Eliminar marca ${escapeHtml(brand)}?')) { deleteBrand('${escapeHtml(client.name)}', '${escapeHtml(brand)}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-400 hover:text-red-400 text-xs cursor-pointer">
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1">
-                  <span class="text-[10px] font-medium text-zinc-500">${brandOrders.length}</span>
-                  <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}', brand: '${escapeHtml(brand)}' });" title="Editar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-amber-400">
-                    ✎
-                  </button>
-                  <button onclick="event.stopPropagation(); if (confirm('¿Eliminar marca ${escapeHtml(brand)}?')) { deleteBrand('${escapeHtml(client.name)}', '${escapeHtml(brand)}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-red-400">
-                    ✕
-                  </button>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
       </div>
     `;
   }).join('');
@@ -984,6 +1025,15 @@ export function renderBinTree() {
 
 export function selectTreeFilter(type, client, brand) {
   state.selectedTreeFilter = { type, client, brand };
+
+  // Si se selecciona un cliente y estaba colapsado, desplegarlo automáticamente
+  if (type === 'client' && client && state.collapsedTreeClients) {
+    const clients = getClients();
+    const found = clients.find(c => (c.name || '').toLowerCase() === client.toLowerCase());
+    if (found && state.collapsedTreeClients.has(found.id)) {
+      state.collapsedTreeClients.delete(found.id);
+    }
+  }
 
   // Resaltar Master Bin si corresponde
   if (typeof document !== 'undefined') {
@@ -1330,6 +1380,7 @@ if (typeof window !== 'undefined') {
   window.renderUnifiedOtRow = renderUnifiedOtRow;
   window.renderUnifiedTableRows = renderUnifiedTableRows;
   window.renderBinTree = renderBinTree;
+  window.toggleClientTreeCollapse = toggleClientTreeCollapse;
   window.selectTreeFilter = selectTreeFilter;
   window.renderTrafficDesk = renderTrafficDesk;
   window.setMainDeskView = setMainDeskView;
