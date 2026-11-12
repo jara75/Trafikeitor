@@ -10,6 +10,15 @@ export const studios = sqliteTable('studios', {
   createdAt: text('created_at').notNull(),
 });
 
+export const organizations = sqliteTable('organizations', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  logo: text('logo'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  metadata: text('metadata'),
+});
+
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -18,6 +27,11 @@ export const users = sqliteTable('users', {
   image: text('image'),
   studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('director'),
+  shortName: text('short_name').notNull().default('Andrés J.'),
+  color: text('color').notNull().default('cyan'),
+  avatarMode: text('avatar_mode').notNull().default('initials'),
+  avatarIcon: text('avatar_icon').notNull().default('pen'),
+  departments: text('departments').notNull().default('["Cuentas","Tráfico","Creativos"]'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
@@ -31,6 +45,7 @@ export const sessions = sqliteTable('sessions', {
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  activeOrganizationId: text('active_organization_id'),
 });
 
 export const accounts = sqliteTable('accounts', {
@@ -58,8 +73,28 @@ export const verifications = sqliteTable('verifications', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }),
 });
 
+export const members = sqliteTable('members', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('member'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role'),
+  status: text('status').notNull().default('pending'),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  inviterId: text('inviter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+});
+
 export const clients = sqliteTable('clients', {
   id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   color: text('color').notNull().default('emerald'),
@@ -69,6 +104,7 @@ export const clients = sqliteTable('clients', {
 
 export const statuses = sqliteTable('statuses', {
   id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   color: text('color').notNull().default('amber'),
@@ -77,6 +113,7 @@ export const statuses = sqliteTable('statuses', {
 
 export const workOrders = sqliteTable('work_orders', {
   id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   ref: text('ref').notNull().default(''),
   discipline: text('discipline').notNull().default('advertising'),
@@ -86,6 +123,7 @@ export const workOrders = sqliteTable('work_orders', {
   title: text('title').notNull(),
   media: text('media').notNull().default(''),
   status: text('status').notNull().default('En Redacción'),
+  responsible: text('responsible').notNull().default('Andrés J.'),
   urgent: integer('urgent', { mode: 'boolean' }).notNull().default(false),
   brief: text('brief').notNull().default(''),
   legalText: text('legal_text').notNull().default(''),
@@ -95,6 +133,7 @@ export const workOrders = sqliteTable('work_orders', {
 
 export const routeEntries = sqliteTable('route_entries', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1),
   otId: text('ot_id').notNull().references(() => workOrders.id, { onDelete: 'cascade' }),
   lineNumber: integer('line_number').notNull().default(1),
@@ -103,6 +142,8 @@ export const routeEntries = sqliteTable('route_entries', {
   task: text('task').notNull().default(''),
   entryDate: text('entry_date').notNull(),
   deliveryDate: text('delivery_date').notNull().default(''),
+  sign: text('sign').default('Andrés J.'),
+  notes: text('notes').default(''),
   stamp: text('stamp'),
   completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
@@ -110,6 +151,7 @@ export const routeEntries = sqliteTable('route_entries', {
 
 export const mediaFiles = sqliteTable('media_files', {
   id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1),
   otId: text('ot_id').notNull().references(() => workOrders.id, { onDelete: 'cascade' }),
   routeEntryId: integer('route_entry_id'),
@@ -126,6 +168,7 @@ export const mediaFiles = sqliteTable('media_files', {
 
 export const stripboardStrips = sqliteTable('stripboard_strips', {
   id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1),
   dateStr: text('date_str').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
@@ -143,6 +186,7 @@ export const stripboardStrips = sqliteTable('stripboard_strips', {
 
 export const sharedReviews = sqliteTable('shared_reviews', {
   token: text('token').primaryKey(),
+  organizationId: text('organization_id'),
   studioId: integer('studio_id').notNull().default(1),
   otId: text('ot_id').notNull().references(() => workOrders.id, { onDelete: 'cascade' }),
   routeEntryIdsJson: text('route_entry_ids_json').notNull().default('[]'),

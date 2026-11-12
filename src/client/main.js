@@ -418,8 +418,11 @@ export function updateUserPill(user) {
   }
 }
 
-export function showAuthGate(hasAnyUsers = true) {
+export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
   if (typeof document === 'undefined') return;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteId = inviteIdParam || urlParams.get('invite');
 
   let gate = document.getElementById('elmarcante-auth-gate');
   if (gate) gate.remove();
@@ -428,7 +431,7 @@ export function showAuthGate(hasAnyUsers = true) {
   gate.id = 'elmarcante-auth-gate';
   gate.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-xl p-4 select-none';
 
-  let isRegisterMode = !hasAnyUsers;
+  let isRegisterMode = inviteId ? true : !hasAnyUsers;
 
   const renderGateForm = () => {
     gate.innerHTML = `
@@ -443,29 +446,39 @@ export function showAuthGate(hasAnyUsers = true) {
           </div>
           <div class="flex items-center gap-2">
             <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] text-amber-300 font-semibold">
-              ${isRegisterMode ? 'ACTIVAR CUENTA' : 'BETTER AUTH'}
+              ${inviteId ? 'INVITACIÓN' : (isRegisterMode ? 'ACTIVAR CUENTA' : 'BETTER AUTH')}
             </span>
             <button type="button" id="auth-close-btn" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="Cerrar (Esc)">✕</button>
           </div>
         </div>
 
+        ${inviteId ? `
+          <div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+            <span class="text-base leading-none pt-0.5">🤝</span>
+            <div>
+              <div class="font-bold text-amber-300 text-[11px]">Invitación a Micro-Estudio</div>
+              <div class="text-[10px] text-zinc-300 leading-relaxed mt-0.5">Te han invitado a colaborar en un espacio de trabajo en El Marcante. Regístrate o inicia sesión con tu correo para unirte automáticamente al equipo.</div>
+            </div>
+          </div>
+        ` : ''}
+
         <p class="text-[11px] text-zinc-400 mb-4 leading-relaxed font-normal">
           ${isRegisterMode
-            ? 'Bienvenido, Director. Crea tu cuenta maestra para proteger tus Órdenes de Trabajo, el Media Pool y tu Stripboard en SQLite.'
+            ? 'Bienvenido. Crea tu cuenta para proteger tus Órdenes de Trabajo, el Media Pool y sincronizar tu espacio en tiempo real.'
             : 'Ingresa tus credenciales para abrir la Mesa de Tráfico y sincronizar con la base de datos.'}
         </p>
 
         <form id="elmarcante-auth-form" class="space-y-3.5">
           ${isRegisterMode ? `
             <div>
-              <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre del Director *</label>
-              <input type="text" id="auth-name" required value="Andrés Jaramillo" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+              <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre Completo *</label>
+              <input type="text" id="auth-name" required placeholder="Ej: Andrés Jaramillo" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
             </div>
           ` : ''}
 
           <div>
             <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Correo Electrónico *</label>
-            <input type="email" id="auth-email" required placeholder="contacto@marcanter.com" value="contacto@marcanter.com" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+            <input type="email" id="auth-email" required placeholder="correo@estudio.com" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
           </div>
 
           <div>
@@ -497,7 +510,7 @@ export function showAuthGate(hasAnyUsers = true) {
           <div id="auth-error-msg" class="hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-medium"></div>
 
           <button type="submit" id="auth-submit-btn" class="w-full py-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold uppercase tracking-wider rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] cursor-pointer text-xs">
-            ${isRegisterMode ? 'Crear Cuenta Maestra y Entrar' : 'Entrar al Estudio'}
+            ${isRegisterMode ? (inviteId ? 'Unirse al Equipo' : 'Crear Cuenta y Entrar') : 'Entrar al Estudio'}
           </button>
         </form>
 
@@ -550,7 +563,7 @@ export function showAuthGate(hasAnyUsers = true) {
       const email = gate.querySelector('#auth-email').value.trim();
       const password = gate.querySelector('#auth-password').value;
       const nameInput = gate.querySelector('#auth-name');
-      const name = nameInput ? nameInput.value.trim() : 'Director';
+      const name = nameInput ? nameInput.value.trim() : (email.split('@')[0] || 'Colaborador');
 
       try {
         const endpoint = isRegisterMode ? '/api/auth/sign-up/email' : '/api/auth/sign-in/email';
@@ -568,6 +581,31 @@ export function showAuthGate(hasAnyUsers = true) {
           throw new Error(data.message || data.error?.message || 'Credenciales inválidas o error de acceso.');
         }
 
+        // Si venía de una invitación, aceptarla y fijar la organización como activa
+        if (inviteId) {
+          try {
+            const acceptRes = await fetch('/api/auth/organization/accept-invitation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ invitationId: inviteId })
+            });
+            const acceptData = await acceptRes.json().catch(() => ({}));
+            const orgId = acceptData?.invitation?.organizationId || acceptData?.member?.organizationId;
+            if (orgId) {
+              await fetch('/api/auth/organization/set-active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ organizationId: orgId })
+              });
+            }
+          } catch (e) {
+            console.warn('[Invite] Error al aceptar invitación:', e);
+          }
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         gate.remove();
         await bootstrap();
         updateUserPill(getCurrentUser());
@@ -576,7 +614,7 @@ export function showAuthGate(hasAnyUsers = true) {
         errEl.innerText = err.message || 'Error al autenticar';
         errEl.classList.remove('hidden');
         btnEl.disabled = false;
-        btnEl.innerText = isRegisterMode ? 'Crear Cuenta Maestra y Entrar' : 'Entrar al Estudio';
+        btnEl.innerText = isRegisterMode ? (inviteId ? 'Unirse al Equipo' : 'Crear Cuenta y Entrar') : 'Entrar al Estudio';
       }
     };
   };
@@ -595,11 +633,17 @@ on('sync:status', (e) => {
 on('data:ready', (e) => {
   if (!e || !e.detail) return;
   if (e.detail.user) updateUserPill(e.detail.user);
-  if (e.detail.authRequired) showAuthGate(true);
+  if (e.detail.authRequired) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteId = urlParams.get('invite');
+    showAuthGate(true, inviteId);
+  }
 });
 
 on('auth:required', (e) => {
-  showAuthGate(e && e.detail ? e.detail.hasUsers : true);
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteId = urlParams.get('invite');
+  showAuthGate(e && e.detail ? e.detail.hasUsers : true, inviteId);
 });
 
 on('user:profile-updated', () => {
@@ -618,6 +662,34 @@ async function initializeApp() {
   // 1. Hidratar caché desde backend Hono/SQLite con fallback síncrono a localStorage
   try {
     await bootstrap();
+
+    // Si viene con un enlace de invitación ?invite=... y ya está autenticado, unirse automáticamente
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteId = urlParams.get('invite');
+    if (inviteId && getCurrentUser()) {
+      try {
+        const acceptRes = await fetch('/api/auth/organization/accept-invitation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ invitationId: inviteId })
+        });
+        const acceptData = await acceptRes.json().catch(() => ({}));
+        const orgId = acceptData?.invitation?.organizationId || acceptData?.member?.organizationId;
+        if (orgId) {
+          await fetch('/api/auth/organization/set-active', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ organizationId: orgId })
+          });
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+        await bootstrap();
+      } catch (e) {
+        console.warn('[Invite] Error procesando invitación de usuario autenticado:', e);
+      }
+    }
   } catch (err) {
     console.warn('Iniciando en modo offline / almacenamiento local:', err);
   }

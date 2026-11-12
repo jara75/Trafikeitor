@@ -50,7 +50,9 @@ import {
   saveUserProfile,
   getActiveUserShortName,
   renderUserAvatarHtml,
-  getCurrentUser
+  getCurrentUser,
+  getCurrentOrganization,
+  fetchFullOrganization
 } from './data-bridge.js';
 
 import {
@@ -1960,6 +1962,7 @@ export function openUserProfileModal() {
   }
 
   renderUserProfileModalUI();
+  switchUserProfileTab('profile');
   modal.classList.remove('hidden');
 }
 
@@ -2290,7 +2293,7 @@ export async function handleUserChangePassword() {
   }
 }
 
-export function handleSaveUserProfile(event) {
+export async function handleSaveUserProfile(event) {
   if (event) event.preventDefault();
   if (!currentProfileDraft) return;
 
@@ -2306,7 +2309,7 @@ export function handleSaveUserProfile(event) {
     currentProfileDraft.departments = ['Tráfico'];
   }
 
-  saveUserProfile(currentProfileDraft);
+  await saveUserProfile(currentProfileDraft);
 
   if (typeof window.updateUserPill === 'function') {
     window.updateUserPill(getCurrentUser());
@@ -2314,6 +2317,238 @@ export function handleSaveUserProfile(event) {
 
   refreshAllViews();
   closeUserProfileModal();
+}
+
+export function switchUserProfileTab(tabKey = 'profile') {
+  const profileTabBtn = document.getElementById('user-modal-tab-profile-btn');
+  const teamTabBtn = document.getElementById('user-modal-tab-team-btn');
+  const profileView = document.getElementById('user-modal-view-profile');
+  const teamView = document.getElementById('user-modal-view-team');
+
+  const activeClass = 'flex-1 py-1.5 text-xs rounded-lg font-semibold transition-all cursor-pointer bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm';
+  const inactiveClass = 'flex-1 py-1.5 text-xs rounded-lg font-medium transition-all cursor-pointer bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08]';
+
+  if (tabKey === 'team') {
+    if (profileTabBtn) profileTabBtn.className = inactiveClass;
+    if (teamTabBtn) teamTabBtn.className = activeClass;
+    if (profileView) profileView.classList.add('hidden');
+    if (teamView) teamView.classList.remove('hidden');
+    loadTeamTabUI();
+  } else {
+    if (profileTabBtn) profileTabBtn.className = activeClass;
+    if (teamTabBtn) teamTabBtn.className = inactiveClass;
+    if (profileView) profileView.classList.remove('hidden');
+    if (teamView) teamView.classList.add('hidden');
+  }
+}
+
+export async function loadTeamTabUI() {
+  const orgNameEl = document.getElementById('user-modal-org-name');
+  const orgSlugEl = document.getElementById('user-modal-org-slug');
+  const orgQuotaEl = document.getElementById('user-modal-org-quota');
+  const orgRoleEl = document.getElementById('user-modal-org-role-badge');
+  const membersListEl = document.getElementById('user-team-members-list');
+  const invContainer = document.getElementById('user-team-invitations-container');
+  const invListEl = document.getElementById('user-team-invitations-list');
+
+  if (membersListEl) {
+    membersListEl.innerHTML = '<div class="text-[11px] text-zinc-500 py-3 text-center">Cargando miembros del espacio...</div>';
+  }
+
+  const org = await fetchFullOrganization();
+  const user = getCurrentUser();
+
+  if (org) {
+    if (orgNameEl) orgNameEl.innerText = org.name || 'Mi Espacio de Trabajo';
+    if (orgSlugEl) orgSlugEl.innerText = org.slug || '--';
+
+    const members = Array.isArray(org.members) ? org.members : [];
+    const memberCount = members.length;
+    if (orgQuotaEl) {
+      orgQuotaEl.innerText = `${memberCount} / 6 miembros`;
+    }
+
+    const myMembership = user ? members.find(m => m.userId === user.id) : null;
+    const isOwner = myMembership ? myMembership.role === 'owner' : true;
+
+    if (orgRoleEl) {
+      if (isOwner) {
+        orgRoleEl.innerText = 'Dueño';
+        orgRoleEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300';
+      } else {
+        orgRoleEl.innerText = 'Colaborador';
+        orgRoleEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300';
+      }
+    }
+
+    // Renderizar miembros
+    if (membersListEl) {
+      if (members.length === 0) {
+        membersListEl.innerHTML = '<div class="text-[11px] text-zinc-500 py-2">No hay miembros registrados aún.</div>';
+      } else {
+        membersListEl.innerHTML = members.map(m => {
+          const mUser = m.user || {};
+          const isCurrentUser = user && m.userId === user.id;
+          const memberProfile = {
+            fullName: mUser.name || '',
+            shortName: mUser.shortName || mUser.name || 'Usuario',
+            email: mUser.email || '',
+            color: mUser.color || 'cyan',
+            avatarMode: mUser.avatarMode || 'initials',
+            avatarIcon: mUser.avatarIcon || 'pen',
+            avatarImage: mUser.image || '',
+            departments: []
+          };
+          const isOwnerMember = m.role === 'owner';
+          return `
+            <div class="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-resolve-border/60">
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${renderUserAvatarHtml('w-8 h-8 text-xs', memberProfile)}
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-semibold text-white text-xs truncate">${escapeHtml(mUser.name || 'Sin nombre')}</span>
+                    ${isCurrentUser ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-white/[0.08] text-zinc-400 font-mono">Tú</span>' : ''}
+                  </div>
+                  <div class="text-[10px] text-zinc-400 truncate flex items-center gap-1.5">
+                    <span class="font-mono text-zinc-300">${escapeHtml(memberProfile.shortName)}</span>
+                    <span class="text-zinc-600">•</span>
+                    <span class="truncate">${escapeHtml(mUser.email || '')}</span>
+                  </div>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-semibold ${isOwnerMember ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}">
+                ${isOwnerMember ? 'Dueño' : 'Colaborador'}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Renderizar invitaciones pendientes
+    const invitations = Array.isArray(org.invitations) ? org.invitations.filter(i => i.status === 'pending') : [];
+    if (invContainer && invListEl) {
+      if (invitations.length > 0) {
+        invContainer.classList.remove('hidden');
+        invListEl.innerHTML = invitations.map(inv => {
+          return `
+            <div class="flex items-center justify-between p-2 rounded-xl bg-amber-500/[0.03] border border-amber-500/20 text-xs">
+              <div class="min-w-0 pr-2">
+                <div class="font-medium text-amber-200 truncate">${escapeHtml(inv.email)}</div>
+                <div class="text-[10px] text-zinc-500">Pendiente de registro / aceptación</div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button 
+                  type="button" 
+                  onclick="handleCopyTeamInviteLink('${inv.id}', this)" 
+                  class="px-2 py-1 bg-white/[0.08] hover:bg-amber-500/20 text-amber-300 border border-white/[0.12] hover:border-amber-500/40 rounded-lg text-[10px] font-medium transition-colors cursor-pointer"
+                  title="Copiar enlace de invitación"
+                >
+                  Copiar Link
+                </button>
+                <button 
+                  type="button" 
+                  onclick="handleCancelTeamInvite('${inv.id}')" 
+                  class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-[10px] font-medium transition-colors cursor-pointer"
+                  title="Cancelar invitación"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        invContainer.classList.add('hidden');
+        invListEl.innerHTML = '';
+      }
+    }
+  } else {
+    if (membersListEl) {
+      membersListEl.innerHTML = '<div class="text-[11px] text-zinc-500 py-2">No se pudo cargar la información del espacio.</div>';
+    }
+  }
+}
+
+export async function handleSendTeamInvite(event) {
+  if (event) event.preventDefault();
+  const emailInput = document.getElementById('user-team-invite-email');
+  const feedbackEl = document.getElementById('user-team-invite-feedback');
+  const btnEl = document.getElementById('user-team-invite-btn');
+
+  const email = emailInput ? emailInput.value.trim() : '';
+  if (!email) return;
+
+  const showFeedback = (msg, isSuccess = false) => {
+    if (!feedbackEl) return;
+    feedbackEl.className = `text-xs p-2 rounded-lg font-medium ${isSuccess ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`;
+    feedbackEl.innerText = msg;
+    feedbackEl.classList.remove('hidden');
+  };
+
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerText = 'Enviando...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/organization/invite-member', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, role: 'member' })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      showFeedback(`Invitación enviada a ${email}. Copia el enlace o espera a que se registre.`, true);
+      if (emailInput) emailInput.value = '';
+      await loadTeamTabUI();
+    } else {
+      showFeedback(data.message || data.error || 'No se pudo enviar la invitación (límite de miembros o error de permisos).');
+    }
+  } catch (err) {
+    showFeedback('Error de conexión al enviar la invitación.');
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerText = 'Invitar';
+    }
+  }
+}
+
+export async function handleCopyTeamInviteLink(inviteId, btnEl) {
+  const inviteUrl = `${window.location.origin}/?invite=${inviteId}`;
+  try {
+    await navigator.clipboard.writeText(inviteUrl);
+    if (btnEl) {
+      const orig = btnEl.innerText;
+      btnEl.innerText = '¡Copiado!';
+      btnEl.classList.add('text-emerald-400');
+      setTimeout(() => {
+        btnEl.innerText = orig;
+        btnEl.classList.remove('text-emerald-400');
+      }, 2000);
+    }
+  } catch (e) {
+    window.prompt('Copia este enlace de invitación:', inviteUrl);
+  }
+}
+
+export async function handleCancelTeamInvite(invitationId) {
+  if (!confirm('¿Cancelar esta invitación?')) return;
+  try {
+    const res = await fetch('/api/auth/organization/cancel-invitation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ invitationId })
+    });
+    if (res.ok) {
+      await loadTeamTabUI();
+    }
+  } catch (err) {
+    console.error('Error cancelando invitación:', err);
+  }
 }
 
 export async function handleUserSignOut() {
@@ -2369,6 +2604,11 @@ if (typeof window !== 'undefined') {
   window.handleUserChangePassword = handleUserChangePassword;
   window.handleSaveUserProfile = handleSaveUserProfile;
   window.handleUserSignOut = handleUserSignOut;
+  window.switchUserProfileTab = switchUserProfileTab;
+  window.loadTeamTabUI = loadTeamTabUI;
+  window.handleSendTeamInvite = handleSendTeamInvite;
+  window.handleCopyTeamInviteLink = handleCopyTeamInviteLink;
+  window.handleCancelTeamInvite = handleCancelTeamInvite;
   window.openEnvelopeModal = openEnvelopeModal;
   window.closeEnvelopeModal = closeEnvelopeModal;
   window.switchOtTab = switchOtTab;

@@ -143,6 +143,7 @@ let responsiblesCache = [];
 let departmentsCache = [];
 let stripboardCache = {};
 let currentUser = null;
+let currentOrganization = null;
 let syncDebounceTimer = null;
 let isBootstrapping = false;
 
@@ -227,21 +228,32 @@ function writeLocal(key, value) {
 }
 
 // ============================================================================
-// PERFIL DE USUARIO Y FIRMA OPERATIVA
+// PERFIL DE USUARIO Y FIRMA OPERATIVA (NATIVO BETTER AUTH)
 // ============================================================================
 export function getUserProfile() {
+  if (currentUser) {
+    let depts = DEFAULT_USER_PROFILE.departments;
+    if (currentUser.departments) {
+      try {
+        depts = typeof currentUser.departments === 'string' ? JSON.parse(currentUser.departments) : currentUser.departments;
+      } catch (_) {}
+    }
+    return {
+      fullName: currentUser.name || DEFAULT_USER_PROFILE.fullName,
+      shortName: (currentUser.shortName || DEFAULT_USER_PROFILE.shortName || 'Andrés J.').trim(),
+      email: currentUser.email || DEFAULT_USER_PROFILE.email,
+      color: currentUser.color || DEFAULT_USER_PROFILE.color,
+      avatarMode: currentUser.avatarMode || DEFAULT_USER_PROFILE.avatarMode,
+      avatarIcon: currentUser.avatarIcon || DEFAULT_USER_PROFILE.avatarIcon,
+      avatarImage: currentUser.image || '',
+      departments: Array.isArray(depts) && depts.length > 0 ? depts : DEFAULT_USER_PROFILE.departments,
+    };
+  }
+
   const profile = readLocal(USER_PROFILE_STORAGE_KEY, DEFAULT_USER_PROFILE);
   const merged = { ...DEFAULT_USER_PROFILE, ...profile };
   if (!Array.isArray(merged.departments) || merged.departments.length === 0) {
     merged.departments = [...DEFAULT_USER_PROFILE.departments];
-  }
-  if (currentUser) {
-    if ((!profile.fullName || profile.fullName === DEFAULT_USER_PROFILE.fullName) && currentUser.name) {
-      merged.fullName = currentUser.name;
-    }
-    if ((!profile.email || profile.email === DEFAULT_USER_PROFILE.email) && currentUser.email) {
-      merged.email = currentUser.email;
-    }
   }
   return merged;
 }
@@ -256,7 +268,7 @@ export function getActiveUserShortName() {
   return shortName;
 }
 
-export function saveUserProfile(profileData) {
+export async function saveUserProfile(profileData) {
   if (!profileData || typeof profileData !== 'object') return getUserProfile();
   const oldProfile = getUserProfile();
   const oldShortName = (oldProfile.shortName || '').trim();
@@ -280,7 +292,35 @@ export function saveUserProfile(profileData) {
 
   if (currentUser) {
     currentUser.name = merged.fullName;
+    currentUser.shortName = merged.shortName;
     currentUser.email = merged.email;
+    currentUser.color = merged.color;
+    currentUser.avatarMode = merged.avatarMode;
+    currentUser.avatarIcon = merged.avatarIcon;
+    currentUser.departments = JSON.stringify(merged.departments);
+    currentUser.image = merged.avatarMode === 'image' ? (merged.avatarImage || '') : '';
+  }
+
+  // Sincronización oficial con endpoint nativo de Better Auth: /api/auth/update-user
+  if (typeof fetch !== 'undefined') {
+    try {
+      await fetch('/api/auth/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: merged.fullName,
+          image: merged.avatarMode === 'image' ? (merged.avatarImage || '') : '',
+          shortName: merged.shortName,
+          color: merged.color,
+          avatarMode: merged.avatarMode,
+          avatarIcon: merged.avatarIcon,
+          departments: JSON.stringify(merged.departments),
+        })
+      });
+    } catch (err) {
+      console.warn('[DataBridge] Error enviando update-user a Better Auth:', err);
+    }
   }
 
   const newShortName = merged.shortName;
@@ -487,6 +527,21 @@ export async function bootstrap() {
       const data = await res.json();
       if (data && data.ok) {
         currentUser = data.user || null;
+        currentOrganization = data.organization || null;
+
+        // Poblar catálogo de Responsables / Firmas con los miembros reales de la organización
+        if (Array.isArray(data.members) && data.members.length > 0) {
+          data.members.forEach((m) => {
+            const mUser = m.user;
+            if (mUser) {
+              const memberShort = (mUser.shortName || mUser.name || '').trim();
+              if (memberShort && !responsiblesCache.includes(memberShort)) {
+                responsiblesCache.push(memberShort);
+              }
+            }
+          });
+          writeLocal(RESPONSIBLES_STORAGE_KEY, responsiblesCache);
+        }
 
         if (Array.isArray(data.clients) && data.clients.length > 0) {
           clientsCache = data.clients;
@@ -506,8 +561,8 @@ export async function bootstrap() {
         }
 
         emit('sync:status', { isSaving: false, text: 'SQLite Activo', user: currentUser });
-        emit('data:ready', { source: 'server', user: currentUser });
-        return { ok: true, source: 'server', user: currentUser };
+        emit('data:ready', { source: 'server', user: currentUser, organization: currentOrganization });
+        return { ok: true, source: 'server', user: currentUser, organization: currentOrganization };
       }
     }
 
@@ -527,6 +582,27 @@ export async function bootstrap() {
 
 export function getCurrentUser() {
   return currentUser;
+}
+
+export function getCurrentOrganization() {
+  return currentOrganization;
+}
+
+export async function fetchFullOrganization() {
+  if (typeof fetch === 'undefined') return currentOrganization;
+  try {
+    const res = await fetch('/api/auth/organization/get-full-organization', {
+      credentials: 'include'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      currentOrganization = data;
+      return data;
+    }
+  } catch (err) {
+    console.warn('[DataBridge] Error cargando organización:', err);
+  }
+  return currentOrganization;
 }
 
 // ============================================================================

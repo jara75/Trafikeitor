@@ -1615,14 +1615,36 @@
     <div class="w-full max-w-lg bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-5 text-xs text-zinc-200 my-auto">
       
       <!-- Cabecera -->
-      <div class="flex items-center justify-between border-b border-resolve-border pb-3 mb-4">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-3 mb-3">
         <div class="flex items-center gap-2.5">
           <div id="user-modal-header-indicator" class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm transition-colors"></div>
-          <h4 class="font-semibold text-white uppercase text-xs tracking-wider">Perfil de Usuario</h4>
+          <h4 class="font-semibold text-white uppercase text-xs tracking-wider">Perfil & Espacio de Trabajo</h4>
         </div>
         <button type="button" onclick="closeUserProfileModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="Cerrar (Esc)">✕</button>
       </div>
 
+      <!-- Conmutador de Pestañas: Mi Perfil | Mi Equipo / Espacio -->
+      <div class="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-resolve-border/60 mb-4">
+        <button 
+          id="user-modal-tab-profile-btn" 
+          type="button" 
+          onclick="switchUserProfileTab('profile')" 
+          class="flex-1 py-1.5 text-xs rounded-lg font-semibold transition-all cursor-pointer bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+        >
+          Mi Perfil
+        </button>
+        <button 
+          id="user-modal-tab-team-btn" 
+          type="button" 
+          onclick="switchUserProfileTab('team')" 
+          class="flex-1 py-1.5 text-xs rounded-lg font-medium transition-all cursor-pointer bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08]"
+        >
+          Mi Equipo / Espacio
+        </button>
+      </div>
+
+      <!-- PESTAÑA 1: MI PERFIL -->
+      <div id="user-modal-view-profile">
       <form onsubmit="handleSaveUserProfile(event)" class="space-y-4">
         <!-- Input de Archivo Oculto para Foto de Avatar -->
         <input 
@@ -1884,6 +1906,91 @@
         </div>
 
       </form>
+      </div><!-- /#user-modal-view-profile -->
+
+      <!-- PESTAÑA 2: MI EQUIPO / ESPACIO -->
+      <div id="user-modal-view-team" class="hidden space-y-4">
+        <!-- Tarjeta del Espacio de Trabajo -->
+        <div class="bg-black/30 border border-resolve-border/60 rounded-xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm animate-pulse"></span>
+              <span id="user-modal-org-name" class="font-bold text-white text-xs">Mi Espacio de Trabajo</span>
+            </div>
+            <span id="user-modal-org-role-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">Dueño</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-zinc-400 pt-1.5 border-t border-resolve-border/40">
+            <div class="flex items-center gap-1.5">
+              <span class="text-zinc-500 font-mono text-[10px]">Slug:</span>
+              <span id="user-modal-org-slug" class="font-mono text-[10px] text-zinc-300">--</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-zinc-500">Capacidad:</span>
+              <span id="user-modal-org-quota" class="font-semibold text-amber-300 font-mono">1 / 6 miembros</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario: Invitar Colaborador -->
+        <div id="user-modal-invite-box" class="bg-black/20 border border-resolve-border/60 rounded-xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">Invitar a un Colaborador</span>
+            <span class="text-[10px] text-zinc-500">Micro-estudio (hasta 6 en total)</span>
+          </div>
+          <form onsubmit="handleSendTeamInvite(event)" class="space-y-2">
+            <div class="flex items-center gap-2">
+              <input 
+                type="email" 
+                id="user-team-invite-email" 
+                required 
+                placeholder="colaborador@estudio.com" 
+                class="flex-1 bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 text-zinc-200 text-xs font-mono focus:border-amber-500/60 focus:outline-none"
+              >
+              <button 
+                type="submit" 
+                id="user-team-invite-btn"
+                class="px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm border border-amber-300/40 transition-all active:scale-[0.98] cursor-pointer shrink-0"
+              >
+                Invitar
+              </button>
+            </div>
+            <div id="user-team-invite-feedback" class="hidden text-xs p-2 rounded-lg font-medium"></div>
+          </form>
+        </div>
+
+        <!-- Lista de Miembros Activos -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">Miembros del Espacio</span>
+            <button type="button" onclick="loadTeamTabUI()" class="text-[10px] text-amber-400 hover:underline cursor-pointer flex items-center gap-1">
+              <span>Actualizar</span>
+              <span class="text-xs">⟳</span>
+            </button>
+          </div>
+          <div id="user-team-members-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Invitaciones Pendientes -->
+        <div id="user-team-invitations-container" class="space-y-2 hidden">
+          <span class="text-[10px] uppercase text-amber-400 font-bold tracking-wider">Invitaciones Pendientes</span>
+          <div id="user-team-invitations-list" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Pie de la Pestaña Equipo -->
+        <div class="flex items-center justify-end pt-3 border-t border-resolve-border mt-4">
+          <button 
+            type="button" 
+            onclick="closeUserProfileModal()" 
+            class="px-4 py-1.5 rounded-lg border border-resolve-border bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs transition-colors cursor-pointer"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div><!-- /#user-modal-view-team -->
     </div>
   </div>
 

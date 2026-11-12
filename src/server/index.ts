@@ -31,9 +31,10 @@ type Variables = {
   user: typeof auth.$Infer.Session.user;
   session: typeof auth.$Infer.Session.session;
   studioId: number;
+  organizationId: string;
 };
 
-const app = new Hono<{ Variables: Variables }>();
+export const app = new Hono<{ Variables: Variables }>();
 
 app.use(
   '/api/*',
@@ -110,40 +111,151 @@ app.get('/api/share/:token', async (c) => {
   });
 });
 
-// 5. MIDDLEWARE PROTEGIDO POR ESTUDIO
+// 5. MIDDLEWARE PROTEGIDO POR ESTUDIO & ORGANIZACIÓN (BETTER AUTH)
 app.use('/api/studio/*', async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) {
     return c.json({ ok: false, error: 'No autorizado. Inicia sesión en El Marcante.' }, 401);
   }
 
-  const studioId = Number((session.user as any).studioId || 1);
-  const studio = db.select().from(studios).where(eq(studios.id, studioId)).get();
+  let activeOrgId = (session.session as any).activeOrganizationId as string | null | undefined;
 
-  if (!studio || studio.planStatus === 'suspended') {
-    return c.json({ ok: false, error: 'Licencia de estudio suspendida o inactiva.' }, 403);
+  if (!activeOrgId) {
+    // 1. Revisar si el usuario ya es miembro de alguna organización existente
+    const membership = sqlite
+      .prepare('SELECT organization_id FROM members WHERE user_id = ? ORDER BY created_at ASC LIMIT 1')
+      .get(session.user.id) as { organization_id: string } | undefined;
+
+    if (membership && membership.organization_id) {
+      activeOrgId = membership.organization_id;
+      await auth.api.setActiveOrganization({
+        body: { organizationId: activeOrgId },
+        headers: c.req.raw.headers,
+      }).catch(() => {});
+    } else {
+      // 2. Nuevo usuario dueño: crear automáticamente su espacio/organización inicial
+      const orgName = `Estudio ${session.user.name || 'Creativo'}`;
+      const baseSlug = (session.user.name || 'estudio')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'estudio';
+      const orgSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+
+      try {
+        const newOrg = await auth.api.createOrganization({
+          body: {
+            name: orgName,
+            slug: orgSlug,
+          },
+          headers: c.req.raw.headers,
+        });
+
+        if (newOrg && newOrg.id) {
+          activeOrgId = newOrg.id;
+          await auth.api.setActiveOrganization({
+            body: { organizationId: activeOrgId },
+            headers: c.req.raw.headers,
+          }).catch(() => {});
+
+          // Si existen registros históricos sin organizationId, asociarlos a la primera organización
+          const hasOrgData = sqlite.prepare('SELECT COUNT(*) as c FROM work_orders WHERE organization_id IS NOT NULL').get() as { c: number };
+          if (hasOrgData.c === 0) {
+            sqlite.prepare('UPDATE clients SET organization_id = ? WHERE organization_id IS NULL').run(activeOrgId);
+            sqlite.prepare('UPDATE statuses SET organization_id = ? WHERE organization_id IS NULL').run(activeOrgId);
+            sqlite.prepare('UPDATE work_orders SET organization_id = ? WHERE organization_id IS NULL').run(activeOrgId);
+            sqlite.prepare('UPDATE route_entries SET organization_id = ? WHERE organization_id IS NULL').run(activeOrgId);
+            sqlite.prepare('UPDATE media_files SET organization_id = ? WHERE organization_id IS NULL').run(activeOrgId);
+            sqlite.prepare('UPDATE stripboard_strips SET organization_id = ? WHERE organization_id IS NULL').run(activeOrgId);
+          }
+        }
+      } catch (err) {
+        console.error('[Studio] Error al crear organización automática:', err);
+      }
+    }
   }
 
+  const studioId = Number((session.user as any).studioId || 1);
   c.set('user', session.user);
   c.set('session', session.session);
   c.set('studioId', studioId);
+  c.set('organizationId', activeOrgId || '');
   await next();
 });
 
 // 6. CARGA COMPLETA DEL ESTUDIO DESDE SQLITE (BOOTSTRAP)
-app.get('/api/studio/bootstrap', (c) => {
+app.get('/api/studio/bootstrap', async (c) => {
+  const organizationId = c.get('organizationId');
   const studioId = c.get('studioId');
   const user = c.get('user');
-  const studio = db.select().from(studios).where(eq(studios.id, studioId)).get();
-  const studioClients = db.select().from(clients).where(eq(clients.studioId, studioId)).all();
-  const studioStatuses = db.select().from(statuses).where(eq(statuses.studioId, studioId)).all();
-  const studioOrders = db.select().from(workOrders).where(eq(workOrders.studioId, studioId)).all();
-  const studioRoutes = db.select().from(routeEntries).where(eq(routeEntries.studioId, studioId)).all();
-  const studioMedia = db.select().from(mediaFiles).where(eq(mediaFiles.studioId, studioId)).all();
-  const studioStrips = db.select().from(stripboardStrips).where(eq(stripboardStrips.studioId, studioId)).all();
+
+  // Obtener la organización completa (con miembros e invitaciones) usando Better Auth
+  let fullOrg: any = null;
+  try {
+    fullOrg = await auth.api.getFullOrganization({ headers: c.req.raw.headers });
+  } catch (err) {
+    console.warn('[Bootstrap] Error obteniendo full organization:', err);
+  }
+
+  // Enriquecer los miembros con sus campos operativos (shortName, color, avatar, departments)
+  if (fullOrg && Array.isArray(fullOrg.members)) {
+    fullOrg.members = fullOrg.members.map((m: any) => {
+      const dbUser = sqlite
+        .prepare('SELECT short_name, color, avatar_mode, avatar_icon, departments FROM users WHERE id = ?')
+        .get(m.userId) as any;
+      if (dbUser) {
+        return {
+          ...m,
+          user: {
+            ...m.user,
+            shortName: dbUser.short_name || m.user?.name,
+            color: dbUser.color || 'cyan',
+            avatarMode: dbUser.avatar_mode || 'initials',
+            avatarIcon: dbUser.avatar_icon || 'pen',
+            departments: dbUser.departments || '[]',
+          },
+        };
+      }
+      return m;
+    });
+  }
+
+  // Filtrar todos los datos del estudio por organizationId
+  let studioClients = organizationId ? db.select().from(clients).where(eq(clients.organizationId, organizationId)).all() : [];
+  let studioStatuses = organizationId ? db.select().from(statuses).where(eq(statuses.organizationId, organizationId)).all() : [];
+  let studioOrders = organizationId ? db.select().from(workOrders).where(eq(workOrders.organizationId, organizationId)).all() : [];
+  let studioRoutes = organizationId ? db.select().from(routeEntries).where(eq(routeEntries.organizationId, organizationId)).all() : [];
+  let studioMedia = organizationId ? db.select().from(mediaFiles).where(eq(mediaFiles.organizationId, organizationId)).all() : [];
+  let studioStrips = organizationId ? db.select().from(stripboardStrips).where(eq(stripboardStrips.organizationId, organizationId)).all() : [];
+
+  // Semilla de estados predeterminados si es un espacio nuevo sin estados
+  if (studioStatuses.length === 0 && organizationId) {
+    const defaultStatusesSeed = [
+      { name: 'Redacción', color: 'amber' },
+      { name: 'Creativos', color: 'purple' },
+      { name: 'Cuentas', color: 'blue' },
+      { name: 'Tráfico', color: 'amber' },
+      { name: 'Arte Final', color: 'emerald' },
+      { name: 'Facturación', color: 'indigo' },
+      { name: 'Aprobación Cliente', color: 'emerald' },
+      { name: 'Cancelada', color: 'rose' },
+    ];
+    defaultStatusesSeed.forEach((st, idx) => {
+      sqlite.prepare('INSERT INTO statuses (id, organization_id, studio_id, name, color, sort_order) VALUES (?, ?, 1, ?, ?, ?)').run(
+        'st-' + Math.random().toString(36).substring(2, 8),
+        organizationId,
+        st.name,
+        st.color,
+        idx
+      );
+    });
+    studioStatuses = db.select().from(statuses).where(eq(statuses.organizationId, organizationId)).all();
+  }
 
   const ordersHydrated = studioOrders.map((ot) => ({
     ...ot,
+    responsible: (ot as any).responsible || 'Andrés J.',
     urgent: Boolean(ot.urgent),
     routes: studioRoutes
       .filter((r) => r.otId === ot.id)
@@ -155,13 +267,14 @@ app.get('/api/studio/bootstrap', (c) => {
         task: r.task,
         entryDate: r.entryDate,
         deliveryDate: r.deliveryDate,
+        sign: (r as any).sign || '',
+        notes: (r as any).notes || '',
         stamp: r.stamp,
         completed: Boolean(r.completed),
       })),
     mediaFiles: studioMedia.filter((m) => m.otId === ot.id),
   }));
 
-  // Agrupar stripboard por fecha YYYY-MM-DD tal como lo espera la vista
   const stripboardByDate: Record<string, any[]> = {};
   studioStrips
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -185,7 +298,8 @@ app.get('/api/studio/bootstrap', (c) => {
   return c.json({
     ok: true,
     user,
-    studio,
+    organization: fullOrg,
+    members: fullOrg && Array.isArray(fullOrg.members) ? fullOrg.members : [],
     clients: studioClients.map((cl) => ({
       id: cl.id,
       name: cl.name,
@@ -198,21 +312,27 @@ app.get('/api/studio/bootstrap', (c) => {
   });
 });
 
-// 7. GUARDADO TRANSACCIONAL COMPLETO EN SQLITE
+// 7. GUARDADO TRANSACCIONAL COMPLETO EN SQLITE (FILTRADO POR ORGANIZACIÓN)
 app.post('/api/studio/sync', async (c) => {
+  const organizationId = c.get('organizationId');
   const studioId = c.get('studioId');
   const body = await c.req.json();
   const now = new Date().toISOString();
 
+  if (!organizationId) {
+    return c.json({ ok: false, error: 'No se encontró un espacio de trabajo activo.' }, 400);
+  }
+
   const syncTx = sqlite.transaction(() => {
     if (Array.isArray(body.clients)) {
-      sqlite.prepare('DELETE FROM clients WHERE studio_id = ?').run(studioId);
+      sqlite.prepare('DELETE FROM clients WHERE organization_id = ?').run(organizationId);
       const insClient = sqlite.prepare(
-        'INSERT INTO clients (id, studio_id, name, color, brands_json, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT OR REPLACE INTO clients (id, organization_id, studio_id, name, color, brands_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
       );
       for (const cl of body.clients) {
         insClient.run(
           cl.id || 'c-' + Date.now() + Math.random(),
+          organizationId,
           studioId,
           cl.name || 'Sin nombre',
           cl.color || 'emerald',
@@ -223,36 +343,37 @@ app.post('/api/studio/sync', async (c) => {
     }
 
     if (Array.isArray(body.statuses)) {
-      sqlite.prepare('DELETE FROM statuses WHERE studio_id = ?').run(studioId);
+      sqlite.prepare('DELETE FROM statuses WHERE organization_id = ?').run(organizationId);
       const insStatus = sqlite.prepare(
-        'INSERT INTO statuses (id, studio_id, name, color, sort_order) VALUES (?, ?, ?, ?, ?)'
+        'INSERT OR REPLACE INTO statuses (id, organization_id, studio_id, name, color, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
       );
       body.statuses.forEach((st: any, idx: number) => {
-        insStatus.run(st.id || 'st-' + idx, studioId, st.name, st.color || 'amber', idx);
+        insStatus.run(st.id || 'st-' + idx, organizationId, studioId, st.name, st.color || 'amber', idx);
       });
     }
 
     if (Array.isArray(body.orders)) {
-      sqlite.prepare('DELETE FROM route_entries WHERE studio_id = ?').run(studioId);
-      sqlite.prepare('DELETE FROM media_files WHERE studio_id = ?').run(studioId);
-      sqlite.prepare('DELETE FROM work_orders WHERE studio_id = ?').run(studioId);
+      sqlite.prepare('DELETE FROM route_entries WHERE organization_id = ?').run(organizationId);
+      sqlite.prepare('DELETE FROM media_files WHERE organization_id = ?').run(organizationId);
+      sqlite.prepare('DELETE FROM work_orders WHERE organization_id = ?').run(organizationId);
 
       const insOrder = sqlite.prepare(`
-        INSERT INTO work_orders (id, studio_id, ref, discipline, client, brand, product, title, media, status, urgent, brief, legal_text, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO work_orders (id, organization_id, studio_id, ref, discipline, client, brand, product, title, media, status, responsible, urgent, brief, legal_text, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const insRoute = sqlite.prepare(`
-        INSERT INTO route_entries (studio_id, ot_id, line_number, from_dept, to_dept, task, entry_date, delivery_date, stamp, completed, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO route_entries (organization_id, studio_id, ot_id, line_number, from_dept, to_dept, task, entry_date, delivery_date, sign, notes, stamp, completed, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const insMedia = sqlite.prepare(`
-        INSERT INTO media_files (id, studio_id, ot_id, route_entry_id, name, type, ext, size, date, url, preview_url, preview_kind, content)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO media_files (id, organization_id, studio_id, ot_id, route_entry_id, name, type, ext, size, date, url, preview_url, preview_kind, content)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       for (const ot of body.orders) {
         insOrder.run(
           ot.id,
+          organizationId,
           studioId,
           ot.ref || '',
           ot.discipline || 'advertising',
@@ -262,6 +383,7 @@ app.post('/api/studio/sync', async (c) => {
           ot.title || '',
           ot.media || '',
           ot.status || 'En Tránsito',
+          ot.responsible || 'Andrés J.',
           ot.urgent ? 1 : 0,
           ot.brief || '',
           ot.legalText || '',
@@ -272,6 +394,7 @@ app.post('/api/studio/sync', async (c) => {
         if (Array.isArray(ot.routes)) {
           ot.routes.forEach((r: any, idx: number) => {
             insRoute.run(
+              organizationId,
               studioId,
               ot.id,
               idx + 1,
@@ -280,6 +403,8 @@ app.post('/api/studio/sync', async (c) => {
               r.task || '',
               r.entryDate || '',
               r.deliveryDate || '',
+              r.sign || '',
+              r.notes || '',
               r.stamp || null,
               r.completed ? 1 : 0,
               now
@@ -291,6 +416,7 @@ app.post('/api/studio/sync', async (c) => {
           for (const m of ot.mediaFiles) {
             insMedia.run(
               m.id || 'm-' + Date.now() + Math.random(),
+              organizationId,
               studioId,
               ot.id,
               m.routeEntryId || null,
@@ -310,10 +436,10 @@ app.post('/api/studio/sync', async (c) => {
     }
 
     if (body.stripboard && typeof body.stripboard === 'object') {
-      sqlite.prepare('DELETE FROM stripboard_strips WHERE studio_id = ?').run(studioId);
+      sqlite.prepare('DELETE FROM stripboard_strips WHERE organization_id = ?').run(organizationId);
       const insStrip = sqlite.prepare(`
-        INSERT INTO stripboard_strips (id, studio_id, date_str, sort_order, type, ot_id, title, client, brand, product, time_slot, task, assignee, shift_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO stripboard_strips (id, organization_id, studio_id, date_str, sort_order, type, ot_id, title, client, brand, product, time_slot, task, assignee, shift_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       for (const [dateStr, strips] of Object.entries(body.stripboard)) {
@@ -321,6 +447,7 @@ app.post('/api/studio/sync', async (c) => {
           strips.forEach((st: any, idx: number) => {
             insStrip.run(
               st.id || 'strip-' + Date.now() + '-' + idx,
+              organizationId,
               studioId,
               dateStr,
               idx,
