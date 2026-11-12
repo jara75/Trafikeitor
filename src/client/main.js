@@ -374,7 +374,7 @@ export function updateUserPill(user) {
       <button 
         id="elmarcante-user-btn" 
         type="button" 
-        class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-rose-500/10 text-zinc-300 hover:text-rose-300 rounded-lg border border-white/[0.08] hover:border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+        class="h-7 px-2.5 text-[11px] font-medium bg-white/[0.05] hover:bg-rose-500/10 text-zinc-300 hover:text-rose-300 rounded-md border border-white/[0.08] hover:border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
         title="Sesión activa: ${escapeHtml(user.email || user.name)} (Clic para cerrar sesión)"
       >
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -403,7 +403,7 @@ export function updateUserPill(user) {
         id="elmarcante-login-btn" 
         type="button" 
         onclick="showAuthGate(true)" 
-        class="px-2.5 py-1 text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+        class="h-7 px-2.5 text-[11px] font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1.5"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
         <span>Iniciar Sesión</span>
