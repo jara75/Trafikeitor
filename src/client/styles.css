@@ -99,7 +99,7 @@ tr.stripboard-row.stripboard-row-even {
   background-color: transparent;
 }
 tr.stripboard-row.stripboard-row-odd {
-  background-color: rgba(255, 255, 255, 0.035);
+  background-color: rgba(255, 255, 255, 0.025);
 }
 tr.stripboard-row:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
@@ -109,6 +109,22 @@ tr.apple-category-row {
 }
 tr.apple-category-row:hover {
   background-color: rgba(34, 35, 42, 0.95) !important;
+}
+
+/* Unificación estricta de líneas separadoras de la tabla con el encabezado */
+#envelopes-list-body > tr,
+#stripboard-day-table-body > tr,
+#route-sheet-rows > tr,
+.divide-resolve-border > :not([hidden]) ~ :not([hidden]),
+tr.stripboard-row,
+tr.apple-category-row {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+tbody#envelopes-list-body > tr,
+tbody#stripboard-day-table-body > tr,
+tbody#route-sheet-rows > tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Apple Pro macOS dark scrollbars & typography rendering */

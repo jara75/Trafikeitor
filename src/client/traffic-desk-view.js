@@ -703,7 +703,7 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
 
   const rowCursorClass = isStripboard ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
   const isOdd = (rowIndex % 2 === 1);
-  const zebraClass = isOdd ? 'bg-white/[0.035] stripboard-row-odd' : 'bg-transparent stripboard-row-even';
+  const zebraClass = isOdd ? 'bg-white/[0.025] stripboard-row-odd' : 'bg-transparent stripboard-row-even';
 
   return `
     <tr 
