@@ -913,6 +913,24 @@ export function toggleClientTreeCollapse(clientId) {
   renderBinTree();
 }
 
+/**
+ * Expande todos los árboles de clientes mostrando todas sus marcas / carpetas
+ */
+export function expandAllClientTrees() {
+  if (!state.collapsedTreeClients) state.collapsedTreeClients = new Set();
+  state.collapsedTreeClients.clear();
+  renderBinTree();
+}
+
+/**
+ * Colapsa todos los árboles de clientes ocultando sus marcas / carpetas
+ */
+export function collapseAllClientTrees() {
+  const clients = getClients();
+  state.collapsedTreeClients = new Set(clients.map(c => c.id));
+  renderBinTree();
+}
+
 export function renderBinTree() {
   if (typeof document === 'undefined') return;
 
@@ -1427,9 +1445,9 @@ export function initSidebarResizer() {
     if (savedWidth) {
       const num = parseInt(savedWidth, 10);
       if (!isNaN(num) && num >= 150 && num <= 380) {
-        if (num >= 210 || num === 185) {
-          sidebar.style.width = '195px';
-          localStorage.setItem('trafikeitor_sidebar_width', '195');
+        if (num >= 210 || num === 185 || num === 195) {
+          sidebar.style.width = '200px';
+          localStorage.setItem('trafikeitor_sidebar_width', '200');
         } else {
           sidebar.style.width = `${num}px`;
         }
@@ -1525,6 +1543,8 @@ if (typeof window !== 'undefined') {
   window.renderUnifiedTableRows = renderUnifiedTableRows;
   window.renderBinTree = renderBinTree;
   window.toggleClientTreeCollapse = toggleClientTreeCollapse;
+  window.expandAllClientTrees = expandAllClientTrees;
+  window.collapseAllClientTrees = collapseAllClientTrees;
   window.selectTreeFilter = selectTreeFilter;
   window.updateTreeToolbarState = updateTreeToolbarState;
   window.handleTreeToolbarAdd = handleTreeToolbarAdd;

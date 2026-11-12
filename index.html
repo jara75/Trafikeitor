@@ -116,7 +116,7 @@
     <aside 
       id="sidebar-bin-tree" 
       class="w-52 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none relative z-20 overflow-hidden"
-      style="width: 195px; min-width: 160px; max-width: 380px;"
+      style="width: 200px; min-width: 160px; max-width: 380px;"
     >
       <!-- Resizer handle en el borde derecho -->
       <div 
@@ -151,16 +151,39 @@
         </button>
       </div>
 
-      <!-- Barra de Herramientas Contextual del Árbol (Crear, Editar, Duplicar, Eliminar) -->
+      <!-- Barra de Herramientas Contextual del Árbol (Crear, Editar, Duplicar, Eliminar, Abrir/Cerrar Todo) -->
       <div id="tree-action-bar" class="h-7 px-2 bg-resolve-panel/60 border-b border-resolve-border/60 flex items-center justify-between shrink-0 select-none">
-        <span id="tree-action-label" class="text-[10px] text-resolve-dimText font-medium truncate flex-1 min-w-0 pr-1.5" title="Acciones de Clientes">Clientes</span>
+        <span id="tree-action-label" class="text-[10px] text-resolve-dimText font-medium truncate flex-1 min-w-0 pr-1" title="Acciones de Clientes">Clientes</span>
         <div class="flex items-center gap-0.5 shrink-0">
+          <button 
+            id="tree-btn-expand-all" 
+            type="button" 
+            onclick="expandAllClientTrees()" 
+            title="Abrir todo (Desplegar todas las marcas)" 
+            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+          >
+            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 13l-7 7-7-7m14-8l-7 7-7-7"/>
+            </svg>
+          </button>
+          <button 
+            id="tree-btn-collapse-all" 
+            type="button" 
+            onclick="collapseAllClientTrees()" 
+            title="Cerrar todo (Colapsar todas las marcas)" 
+            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+          >
+            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 11l7-7 7 7M5 19l7-7 7 7"/>
+            </svg>
+          </button>
+          <span class="w-px h-3 bg-white/[0.10] mx-0.5"></span>
           <button 
             id="tree-btn-add" 
             type="button"
             onclick="handleTreeToolbarAdd()" 
             title="Crear Nuevo Cliente" 
-            class="w-5 h-5 rounded flex items-center justify-center text-zinc-300 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer font-bold text-xs"
+            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-300 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer font-bold text-xs"
           >
             +
           </button>
@@ -169,7 +192,7 @@
             type="button"
             onclick="handleTreeToolbarEdit()" 
             title="Editar seleccionado" 
-            class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
+            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
           >
             ✎
           </button>
@@ -178,7 +201,7 @@
             type="button"
             onclick="handleTreeToolbarDuplicate()" 
             title="Duplicar seleccionado" 
-            class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px] font-serif"
+            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px] font-serif"
           >
             ⎘
           </button>
@@ -187,7 +210,7 @@
             type="button"
             onclick="handleTreeToolbarDelete()" 
             title="Eliminar seleccionado" 
-            class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-red-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
+            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-red-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
           >
             ✕
           </button>
