@@ -14,7 +14,8 @@ import {
   CLIENTS_STORAGE_KEY,
   STATUSES_STORAGE_KEY,
   RESPONSIBLES_STORAGE_KEY,
-  STRIPBOARD_STORAGE_KEY
+  STRIPBOARD_STORAGE_KEY,
+  USER_AVATAR_ICONS
 } from './core-state.js';
 
 import {
@@ -44,7 +45,12 @@ import {
   toIsoDateTime,
   fromIsoToDisplay,
   escapeHtml,
-  uploadOtFiles
+  uploadOtFiles,
+  getUserProfile,
+  saveUserProfile,
+  getActiveUserShortName,
+  renderUserAvatarHtml,
+  getCurrentUser
 } from './data-bridge.js';
 
 import {
@@ -55,7 +61,8 @@ import {
   syncSortAndGroupControls,
   refreshAllViews,
   CLIENT_COLOR_PALETTE,
-  getClientColorClasses
+  getClientColorClasses,
+  getResponsibleColorClasses
 } from './traffic-desk-view.js';
 
 import {
@@ -439,7 +446,7 @@ export function renderRouteSheetRows(routes) {
           <div class="flex flex-col gap-1">
             <select 
               onchange="handleRouteSignChange(${index}, this.value)" 
-              class="w-full bg-black/50 border border-resolve-border hover:border-cyan-400/50 rounded px-1.5 py-1 text-[11px] font-semibold text-cyan-300 focus:border-cyan-500/60 focus:outline-none cursor-pointer"
+              class="w-full bg-black/50 border border-resolve-border hover:${getResponsibleColorClasses(row.sign || row.from || 'Andrés J.').border} rounded px-1.5 py-1 text-[11px] font-semibold ${getResponsibleColorClasses(row.sign || row.from || 'Andrés J.').text} focus:border-current focus:outline-none cursor-pointer"
             >
               ${getResponsibleOptionsHtml(row.sign || row.from || 'Andrés J.')}
             </select>
@@ -483,11 +490,15 @@ export function addNewRouteRow() {
 
   if (!ot.routes) ot.routes = [];
 
-  let defaultFrom = "Tráfico";
+  const profile = getUserProfile();
+  const userPrimaryDept = (profile.departments && profile.departments.length > 0) ? profile.departments[0] : "Tráfico";
+  const activeUserShort = getActiveUserShortName();
+
+  let defaultFrom = userPrimaryDept;
   let defaultTo = "Creativos";
   if (ot.routes.length > 0) {
     const last = ot.routes[ot.routes.length - 1];
-    defaultFrom = last.to || "Tráfico";
+    defaultFrom = last.to || userPrimaryDept;
     defaultTo = last.from || "Creativos";
   }
 
@@ -497,7 +508,7 @@ export function addNewRouteRow() {
     task: "",
     entryDate: getNowFormatted(),
     deliveryDate: "",
-    sign: ot.responsible || "Andrés J.",
+    sign: activeUserShort || ot.responsible || "Andrés J.",
     notes: "",
     stamp: null,
     completed: false
@@ -1902,9 +1913,442 @@ on('modal:open-custom-task', e => {
 });
 
 // ============================================================================
+// MODAL: PERFIL DE USUARIO, AVATAR, FIRMA OPERATIVA Y SEGURIDAD
+// ============================================================================
+
+let currentProfileDraft = null;
+
+export function openUserProfileModal() {
+  const profile = getUserProfile();
+  currentProfileDraft = {
+    fullName: profile.fullName || '',
+    shortName: profile.shortName || 'Andrés J.',
+    email: profile.email || '',
+    color: profile.color || 'cyan',
+    avatarMode: profile.avatarMode || 'initials',
+    avatarIcon: profile.avatarIcon || 'pen',
+    avatarImage: profile.avatarImage || '',
+    departments: Array.isArray(profile.departments) && profile.departments.length > 0
+      ? [...profile.departments]
+      : ['Tráfico']
+  };
+
+  const modal = document.getElementById('user-profile-modal');
+  if (!modal) return;
+
+  const fnInput = document.getElementById('user-modal-fullname');
+  const snInput = document.getElementById('user-modal-shortname');
+  const emInput = document.getElementById('user-modal-email');
+  const feedback = document.getElementById('user-password-feedback');
+  const pwdDetails = document.getElementById('user-password-details');
+
+  if (fnInput) fnInput.value = currentProfileDraft.fullName;
+  if (snInput) snInput.value = currentProfileDraft.shortName;
+  if (emInput) emInput.value = currentProfileDraft.email;
+  if (feedback) {
+    feedback.className = 'hidden';
+    feedback.innerHTML = '';
+  }
+  if (pwdDetails) {
+    pwdDetails.open = false;
+    const curr = document.getElementById('user-modal-current-password');
+    const newP = document.getElementById('user-modal-new-password');
+    const confP = document.getElementById('user-modal-confirm-password');
+    if (curr) curr.value = '';
+    if (newP) newP.value = '';
+    if (confP) confP.value = '';
+  }
+
+  renderUserProfileModalUI();
+  modal.classList.remove('hidden');
+}
+
+export function closeUserProfileModal() {
+  const modal = document.getElementById('user-profile-modal');
+  if (modal) modal.classList.add('hidden');
+  currentProfileDraft = null;
+}
+
+export function handleUserProfileInputChange() {
+  if (!currentProfileDraft) return;
+  const fnInput = document.getElementById('user-modal-fullname');
+  const snInput = document.getElementById('user-modal-shortname');
+  const emInput = document.getElementById('user-modal-email');
+
+  if (fnInput) currentProfileDraft.fullName = fnInput.value;
+  if (snInput) currentProfileDraft.shortName = snInput.value;
+  if (emInput) currentProfileDraft.email = emInput.value;
+
+  if (currentProfileDraft.avatarMode === 'initials') {
+    renderUserProfileModalAvatarPreview();
+  }
+}
+
+export function renderUserProfileModalAvatarPreview() {
+  if (!currentProfileDraft) return;
+  const preview = document.getElementById('user-modal-avatar-preview');
+  if (preview) {
+    preview.innerHTML = renderUserAvatarHtml('w-16 h-16 text-lg font-bold shadow-md', currentProfileDraft);
+  }
+}
+
+export function renderUserProfileModalUI() {
+  if (!currentProfileDraft) return;
+
+  // 1. Color activo y Header Indicator
+  const activeColor = CLIENT_COLOR_PALETTE.find(p => p.name === currentProfileDraft.color) || CLIENT_COLOR_PALETTE[0];
+  const headerIndicator = document.getElementById('user-modal-header-indicator');
+  if (headerIndicator) {
+    headerIndicator.style.backgroundColor = activeColor.hex;
+  }
+
+  // 2. Avatar Preview
+  renderUserProfileModalAvatarPreview();
+
+  // 3. Botones de Selección de Modo (Pestañas)
+  const modeInitialsBtn = document.getElementById('user-avatar-mode-initials');
+  const modeIconBtn = document.getElementById('user-avatar-mode-icon');
+  const modeImageBtn = document.getElementById('user-avatar-mode-image');
+
+  const activeTabClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold shadow-sm';
+  const inactiveTabClass = 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border-white/[0.08]';
+
+  if (modeInitialsBtn) {
+    modeInitialsBtn.className = `flex-1 py-1.5 text-xs rounded-lg border transition-all cursor-pointer ${currentProfileDraft.avatarMode === 'initials' ? activeTabClass : inactiveTabClass}`;
+  }
+  if (modeIconBtn) {
+    modeIconBtn.className = `flex-1 py-1.5 text-xs rounded-lg border transition-all cursor-pointer ${currentProfileDraft.avatarMode === 'icon' ? activeTabClass : inactiveTabClass}`;
+  }
+  if (modeImageBtn) {
+    modeImageBtn.className = `flex-1 py-1.5 text-xs rounded-lg border transition-all cursor-pointer ${currentProfileDraft.avatarMode === 'image' ? activeTabClass : inactiveTabClass}`;
+  }
+
+  // 4. Contenido específico según el Modo
+  const iconGridContainer = document.getElementById('user-avatar-icon-selector');
+  const imageUploadContainer = document.getElementById('user-avatar-image-selector');
+  const initialsNotice = document.getElementById('user-avatar-initials-notice');
+
+  if (iconGridContainer) {
+    if (currentProfileDraft.avatarMode === 'icon') {
+      iconGridContainer.classList.remove('hidden');
+      iconGridContainer.innerHTML = Object.keys(USER_AVATAR_ICONS).map(key => {
+        const iconDef = USER_AVATAR_ICONS[key];
+        const isSelected = currentProfileDraft.avatarIcon === key;
+        return `
+          <button 
+            type="button" 
+            onclick="selectUserProfileAvatarIcon('${key}')" 
+            title="${escapeHtml(iconDef.label)}"
+            class="h-9 rounded-lg flex items-center justify-center p-2 transition-all cursor-pointer border ${isSelected ? 'border-amber-400 ring-2 ring-amber-400/50 bg-amber-500/10 text-amber-300 scale-105' : 'border-white/[0.08] hover:border-white/30 text-zinc-400 hover:text-zinc-200 bg-black/30'}"
+          >
+            <div class="w-5 h-5 flex items-center justify-center">${iconDef.svg}</div>
+          </button>
+        `;
+      }).join('');
+    } else {
+      iconGridContainer.classList.add('hidden');
+    }
+  }
+
+  if (imageUploadContainer) {
+    if (currentProfileDraft.avatarMode === 'image') {
+      imageUploadContainer.classList.remove('hidden');
+      const hasImage = !!currentProfileDraft.avatarImage;
+      imageUploadContainer.innerHTML = `
+        <div class="flex items-center gap-2">
+          <button 
+            type="button" 
+            onclick="document.getElementById('user-profile-photo-input').click()" 
+            class="px-3 py-1.5 bg-white/[0.08] hover:bg-amber-500/15 hover:text-amber-300 text-zinc-200 border border-white/[0.12] rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>${hasImage ? 'Cambiar Foto' : 'Subir Imagen'}</span>
+          </button>
+          ${hasImage ? `
+            <button 
+              type="button" 
+              onclick="setUserProfileAvatarMode('initials'); currentProfileDraft.avatarImage = ''; renderUserProfileModalUI();" 
+              class="px-2.5 py-1.5 text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 rounded-lg text-xs transition-colors cursor-pointer"
+            >
+              Quitar
+            </button>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      imageUploadContainer.classList.add('hidden');
+    }
+  }
+
+  if (initialsNotice) {
+    if (currentProfileDraft.avatarMode === 'initials') {
+      initialsNotice.classList.remove('hidden');
+    } else {
+      initialsNotice.classList.add('hidden');
+    }
+  }
+
+  // 5. Paleta de Colores
+  const colorContainer = document.getElementById('user-modal-color-container');
+  const colorLabel = document.getElementById('user-modal-color-label');
+  if (colorLabel) {
+    colorLabel.innerText = activeColor.label || activeColor.name;
+    colorLabel.className = `text-[10px] font-semibold ${activeColor.text}`;
+  }
+  if (colorContainer) {
+    colorContainer.innerHTML = CLIENT_COLOR_PALETTE.map(item => {
+      const isSelected = item.name === currentProfileDraft.color;
+      return `
+        <button 
+          type="button" 
+          onclick="selectUserProfileColor('${item.name}')" 
+          title="${escapeHtml(item.label || item.name)}"
+          class="h-7 rounded-md flex items-center justify-center gap-1.5 px-1.5 transition-all cursor-pointer border ${isSelected ? 'border-white ring-2 ring-amber-400/60 shadow-sm scale-[1.03] ' + item.bg : 'border-white/[0.08] hover:border-white/30 opacity-70 hover:opacity-100 bg-white/[0.02]'}"
+        >
+          <span class="w-2.5 h-2.5 rounded-full ${item.dot} shrink-0"></span>
+          <span class="text-[9px] font-medium truncate ${item.text}">${escapeHtml(item.label || item.name)}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  // 6. Departamentos
+  renderUserProfileDepartments();
+}
+
+export function setUserProfileAvatarMode(mode) {
+  if (!currentProfileDraft) return;
+  currentProfileDraft.avatarMode = mode;
+  if (mode === 'image' && !currentProfileDraft.avatarImage) {
+    const fileInput = document.getElementById('user-profile-photo-input');
+    if (fileInput) fileInput.click();
+  }
+  renderUserProfileModalUI();
+}
+
+export function selectUserProfileAvatarIcon(iconKey) {
+  if (!currentProfileDraft) return;
+  currentProfileDraft.avatarIcon = iconKey;
+  renderUserProfileModalUI();
+}
+
+export function selectUserProfileColor(colorName) {
+  if (!currentProfileDraft) return;
+  currentProfileDraft.color = colorName;
+  renderUserProfileModalUI();
+}
+
+export function handleUserProfilePhotoUpload(event) {
+  if (!currentProfileDraft || !event || !event.target || !event.target.files || !event.target.files[0]) return;
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      const size = Math.min(img.width, img.height);
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 128, 128);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      currentProfileDraft.avatarImage = dataUrl;
+      currentProfileDraft.avatarMode = 'image';
+      renderUserProfileModalUI();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+export function renderUserProfileDepartments() {
+  if (!currentProfileDraft) return;
+  const container = document.getElementById('user-modal-departments-container');
+  if (!container) return;
+
+  const allDepts = getDepartments();
+  const selectedDepts = currentProfileDraft.departments || [];
+
+  container.innerHTML = `
+    ${allDepts.map(dept => {
+      const isSelected = selectedDepts.includes(dept);
+      return `
+        <button 
+          type="button" 
+          onclick="toggleUserProfileDepartment('${escapeHtml(dept)}')" 
+          class="px-2.5 py-1 rounded-md text-[11px] border transition-all cursor-pointer flex items-center gap-1.5 ${isSelected ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold' : 'bg-white/[0.04] text-zinc-400 border-white/[0.08] hover:text-zinc-200'}"
+        >
+          <span>${isSelected ? '✓' : '+'}</span>
+          <span>${escapeHtml(dept)}</span>
+        </button>
+      `;
+    }).join('')}
+    <button 
+      type="button" 
+      onclick="promptAddUserProfileDepartment()" 
+      class="px-2.5 py-1 rounded-md text-[11px] border border-dashed border-white/[0.20] text-zinc-400 hover:text-amber-300 hover:border-amber-400/50 bg-white/[0.02] transition-colors cursor-pointer"
+    >
+      + Nuevo Depto.
+    </button>
+  `;
+}
+
+export function toggleUserProfileDepartment(deptName) {
+  if (!currentProfileDraft) return;
+  if (!Array.isArray(currentProfileDraft.departments)) {
+    currentProfileDraft.departments = [];
+  }
+  const idx = currentProfileDraft.departments.indexOf(deptName);
+  if (idx !== -1) {
+    if (currentProfileDraft.departments.length > 1) {
+      currentProfileDraft.departments.splice(idx, 1);
+    }
+  } else {
+    currentProfileDraft.departments.push(deptName);
+  }
+  renderUserProfileDepartments();
+}
+
+export function promptAddUserProfileDepartment() {
+  if (typeof window === 'undefined') return;
+  const newName = window.prompt("Nombre del nuevo departamento / área:");
+  if (newName && newName.trim()) {
+    const clean = addDepartment(newName.trim());
+    if (currentProfileDraft) {
+      if (!currentProfileDraft.departments.includes(clean)) {
+        currentProfileDraft.departments.push(clean);
+      }
+      renderUserProfileDepartments();
+    }
+  }
+}
+
+export async function handleUserChangePassword() {
+  const feedback = document.getElementById('user-password-feedback');
+  const currInput = document.getElementById('user-modal-current-password');
+  const newInput = document.getElementById('user-modal-new-password');
+  const confInput = document.getElementById('user-modal-confirm-password');
+  const btn = document.getElementById('user-modal-update-pwd-btn');
+
+  const currentPassword = currInput ? currInput.value : '';
+  const newPassword = newInput ? newInput.value : '';
+  const confirmPassword = confInput ? confInput.value : '';
+
+  const showFeedback = (msg, type = 'error') => {
+    if (!feedback) return;
+    feedback.className = `p-2.5 rounded-lg border text-xs font-medium mb-3 ${type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`;
+    feedback.innerHTML = msg;
+  };
+
+  if (!currentPassword) {
+    showFeedback('Ingresa tu contraseña actual.');
+    return;
+  }
+  if (!newPassword || newPassword.length < 8) {
+    showFeedback('La nueva contraseña debe tener al menos 8 caracteres.');
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    showFeedback('La nueva contraseña y su confirmación no coinciden.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Actualizando...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      showFeedback('Contraseña actualizada con éxito.', 'success');
+      if (currInput) currInput.value = '';
+      if (newInput) newInput.value = '';
+      if (confInput) confInput.value = '';
+    } else {
+      showFeedback(data.message || data.error || 'No se pudo actualizar la contraseña. Revisa la contraseña actual.');
+    }
+  } catch (err) {
+    showFeedback('No se pudo conectar con el servidor de autenticación (Modo Offline o sesión expirada).');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = 'Actualizar Contraseña';
+    }
+  }
+}
+
+export function handleSaveUserProfile(event) {
+  if (event) event.preventDefault();
+  if (!currentProfileDraft) return;
+
+  const fnInput = document.getElementById('user-modal-fullname');
+  const snInput = document.getElementById('user-modal-shortname');
+  const emInput = document.getElementById('user-modal-email');
+
+  if (fnInput) currentProfileDraft.fullName = fnInput.value.trim();
+  if (snInput) currentProfileDraft.shortName = snInput.value.trim() || 'Andrés J.';
+  if (emInput) currentProfileDraft.email = emInput.value.trim();
+
+  if (!currentProfileDraft.departments || currentProfileDraft.departments.length === 0) {
+    currentProfileDraft.departments = ['Tráfico'];
+  }
+
+  saveUserProfile(currentProfileDraft);
+
+  if (typeof window.updateUserPill === 'function') {
+    window.updateUserPill(getCurrentUser());
+  }
+
+  refreshAllViews();
+  closeUserProfileModal();
+}
+
+export async function handleUserSignOut() {
+  if (!confirm('¿Cerrar sesión en El Marcante?')) return;
+  try {
+    await fetch('/api/auth/sign-out', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({})
+    });
+  } catch (e) {}
+  await fetch('/api/logout-force', { method: 'POST', credentials: 'include' }).catch(() => {});
+  window.location.reload();
+}
+
+// ============================================================================
 // EXPOSICIÓN GLOBAL EN WINDOW PARA RETROCOMPATIBILIDAD
 // ============================================================================
 if (typeof window !== 'undefined') {
+  window.openUserProfileModal = openUserProfileModal;
+  window.closeUserProfileModal = closeUserProfileModal;
+  window.handleUserProfileInputChange = handleUserProfileInputChange;
+  window.renderUserProfileModalAvatarPreview = renderUserProfileModalAvatarPreview;
+  window.renderUserProfileModalUI = renderUserProfileModalUI;
+  window.setUserProfileAvatarMode = setUserProfileAvatarMode;
+  window.selectUserProfileAvatarIcon = selectUserProfileAvatarIcon;
+  window.selectUserProfileColor = selectUserProfileColor;
+  window.handleUserProfilePhotoUpload = handleUserProfilePhotoUpload;
+  window.renderUserProfileDepartments = renderUserProfileDepartments;
+  window.toggleUserProfileDepartment = toggleUserProfileDepartment;
+  window.promptAddUserProfileDepartment = promptAddUserProfileDepartment;
+  window.handleUserChangePassword = handleUserChangePassword;
+  window.handleSaveUserProfile = handleSaveUserProfile;
+  window.handleUserSignOut = handleUserSignOut;
   window.openEnvelopeModal = openEnvelopeModal;
   window.closeEnvelopeModal = closeEnvelopeModal;
   window.switchOtTab = switchOtTab;

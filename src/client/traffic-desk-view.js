@@ -11,8 +11,11 @@ import {
   pauseRowDrag,
   resumeRowDrag,
   emit,
-  on
+  on,
+  CLIENT_COLOR_PALETTE
 } from './core-state.js';
+
+export { CLIENT_COLOR_PALETTE };
 
 import {
   getOrders,
@@ -35,24 +38,29 @@ import {
   saveDayStrips,
   escapeHtml,
   toIsoDateTime,
-  fromIsoToDisplay
+  fromIsoToDisplay,
+  getUserProfile,
+  getActiveUserShortName
 } from './data-bridge.js';
 
 // ============================================================================
-// PALETA DE COLORES DISTINTIVA POR CLIENTE (RECONOCIMIENTO VISUAL INMEDIATO)
+// COLORES DISTINTIVOS: CLIENTES Y RESPONSABLES
 // ============================================================================
-export const CLIENT_COLOR_PALETTE = [
-  { name: 'emerald', label: 'Esmeralda', hex: '#34d399', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', badge: 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60', dot: 'bg-emerald-400' },
-  { name: 'sky',     label: 'Azul Cielo', hex: '#38bdf8', text: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     badge: 'bg-sky-950/40 text-sky-300 border-sky-700/60',         dot: 'bg-sky-400' },
-  { name: 'violet',  label: 'Violeta', hex: '#a78bfa', text: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/30',  badge: 'bg-violet-950/40 text-violet-300 border-violet-700/60', dot: 'bg-violet-400' },
-  { name: 'amber',   label: 'Ámbar', hex: '#fbbf24', text: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   badge: 'bg-amber-950/40 text-amber-300 border-amber-700/60',   dot: 'bg-amber-400' },
-  { name: 'rose',    label: 'Rosa', hex: '#fb7185', text: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/30',    badge: 'bg-rose-950/40 text-rose-300 border-rose-700/60',       dot: 'bg-rose-400' },
-  { name: 'cyan',    label: 'Cian', hex: '#22d3ee', text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',    badge: 'bg-cyan-950/40 text-cyan-300 border-cyan-700/60',       dot: 'bg-cyan-400' },
-  { name: 'fuchsia', label: 'Fucsia', hex: '#e879f9', text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', badge: 'bg-fuchsia-950/40 text-fuchsia-300 border-fuchsia-700/60', dot: 'bg-fuchsia-400' },
-  { name: 'lime',    label: 'Lima', hex: '#a3e635', text: 'text-lime-400',    bg: 'bg-lime-500/10',    border: 'border-lime-500/30',    badge: 'bg-lime-950/40 text-lime-300 border-lime-700/60',       dot: 'bg-lime-400' },
-  { name: 'orange',  label: 'Naranja', hex: '#fb923c', text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/30',  badge: 'bg-orange-950/40 text-orange-300 border-orange-700/60', dot: 'bg-orange-400' },
-  { name: 'teal',    label: 'Verde Azulado', hex: '#2dd4bf', text: 'text-teal-400',    bg: 'bg-teal-500/10',    border: 'border-teal-500/30',    badge: 'bg-teal-950/40 text-teal-300 border-teal-700/60',       dot: 'bg-teal-400' }
-];
+
+export function getResponsibleColorClasses(responsibleName) {
+  const profile = getUserProfile();
+  const cleanResp = (responsibleName || '').trim().toLowerCase();
+  const userShort = (profile.shortName || '').trim().toLowerCase();
+  const userFull = (profile.fullName || '').trim().toLowerCase();
+
+  if (cleanResp && (cleanResp === userShort || cleanResp === userFull)) {
+    const userColor = CLIENT_COLOR_PALETTE.find(p => p.name === profile.color);
+    if (userColor) return userColor;
+  }
+
+  // Cyan por defecto para otros responsables
+  return CLIENT_COLOR_PALETTE.find(p => p.name === 'cyan') || CLIENT_COLOR_PALETTE[0];
+}
 
 export function getClientColorClasses(clientName) {
   if (!clientName || clientName === '--' || clientName === 'Interno') {
@@ -707,6 +715,7 @@ export function renderResponsibleSelects() {
 export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', rowIndex = 0) {
   const isStripboard = viewContext === 'stripboard';
   const clientColor = getClientColorClasses(ot.client);
+  const respColor = getResponsibleColorClasses(ot.responsible);
   const safeDesc = ot.title || ot.description || '';
   const safeBrand = ot.brand || ot.product || '--';
   const safeMedia = ot.media || '--';
@@ -823,7 +832,7 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
       <td class="p-2 border-r border-resolve-border align-middle" onclick="event.stopPropagation()">
         <select 
           onchange="handleTableOtResponsibleChange('${ot.id}', this.value)" 
-          class="w-full bg-black/50 border border-resolve-border hover:border-cyan-400/50 rounded px-1.5 py-0.5 text-[11px] font-semibold text-cyan-300 focus:border-cyan-500/60 focus:outline-none cursor-pointer"
+          class="w-full bg-black/50 border border-resolve-border hover:${respColor.border} rounded px-1.5 py-0.5 text-[11px] font-semibold ${respColor.text} focus:border-current focus:outline-none cursor-pointer"
         >
           ${getResponsibleOptionsHtml(ot.responsible || 'Andrés J.')}
         </select>
@@ -1475,7 +1484,7 @@ export function renderTrafficDesk() {
             </h3>
             <div class="text-[11px] text-zinc-400 mt-1 flex items-center justify-between gap-1.5">
               <span class="truncate"><span class="text-zinc-500 font-medium">Medio:</span> <span class="text-zinc-300">${escapeHtml(ot.media || 'No especificado')}</span></span>
-              <span class="shrink-0"><span class="text-zinc-500 font-medium">Resp:</span> <span class="text-cyan-300 font-semibold">${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.'))}</span></span>
+              <span class="shrink-0"><span class="text-zinc-500 font-medium">Resp:</span> <span class="${getResponsibleColorClasses(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.')).text} font-semibold">${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.'))}</span></span>
             </div>
 
             <!-- Último Relevo -->
@@ -1710,6 +1719,7 @@ if (typeof window !== 'undefined') {
   window.handleGlobalStatusChange = handleGlobalStatusChange;
   window.handleGlobalResponsibleChange = handleGlobalResponsibleChange;
   window.getClientColorClasses = getClientColorClasses;
+  window.getResponsibleColorClasses = getResponsibleColorClasses;
 }
 
 if (typeof document !== 'undefined') {

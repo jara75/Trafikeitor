@@ -14,7 +14,9 @@ import {
   bootstrap,
   scheduleSync,
   getCurrentUser,
-  escapeHtml
+  escapeHtml,
+  getUserProfile,
+  renderUserAvatarHtml
 } from './data-bridge.js';
 
 import {
@@ -29,7 +31,8 @@ import {
   toggleSidebar,
   initSidebarResizer,
   setMainDeskView,
-  refreshAllViews
+  refreshAllViews,
+  getResponsibleColorClasses
 } from './traffic-desk-view.js';
 
 import {
@@ -89,7 +92,9 @@ import {
   saveCustomTaskModal,
   deleteCustomTaskFromModal,
   exportBackupData,
-  importBackupData
+  importBackupData,
+  openUserProfileModal,
+  closeUserProfileModal
 } from './modals-controller.js';
 
 // ============================================================================
@@ -291,6 +296,11 @@ function setupEventDelegation() {
   // 3. Atajos de Teclado Globales (Escape y Flechas de Visor)
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      const userProfileModal = document.getElementById('user-profile-modal');
+      if (userProfileModal && !userProfileModal.classList.contains('hidden')) {
+        closeUserProfileModal();
+        return;
+      }
       const customTaskModal = document.getElementById('custom-task-modal');
       if (customTaskModal && !customTaskModal.classList.contains('hidden')) {
         closeCustomTaskModal();
@@ -368,33 +378,29 @@ export function updateUserPill(user) {
   const container = document.getElementById('header-user-container');
   if (!container) return;
 
+  const profile = getUserProfile();
+  const displayName = profile.shortName || (user && user.name ? user.name.split(' ')[0] : 'Andrés J.');
+  const colorClasses = getResponsibleColorClasses(displayName);
+
   if (user) {
-    const firstName = (user.name || 'Director').split(' ')[0];
     container.innerHTML = `
       <button 
         id="elmarcante-user-btn" 
         type="button" 
-        class="h-7 px-2.5 text-[11px] font-medium bg-white/[0.05] hover:bg-rose-500/10 text-zinc-300 hover:text-rose-300 rounded-md border border-white/[0.08] hover:border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
-        title="Sesión activa: ${escapeHtml(user.email || user.name)} (Clic para cerrar sesión)"
+        class="h-7 pl-1.5 pr-2.5 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 rounded-md border border-white/[0.08] hover:border-white/[0.20] transition-all cursor-pointer flex items-center gap-1.5 group select-none shadow-sm"
+        title="Perfil de ${escapeHtml(profile.fullName || displayName)} (${escapeHtml(user.email || profile.email)})"
       >
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-        <span>Salir (${escapeHtml(firstName)})</span>
+        ${renderUserAvatarHtml('w-5 h-5 text-[9px]')}
+        <span class="${colorClasses.text} font-semibold">${escapeHtml(displayName)}</span>
+        <svg class="w-3 h-3 text-zinc-400 group-hover:text-zinc-200 transition-colors -mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </button>
     `;
     const btn = document.getElementById('elmarcante-user-btn');
     if (btn) {
-      btn.onclick = async () => {
-        if (!confirm('¿Cerrar sesión en El Marcante?')) return;
-        try {
-          await fetch('/api/auth/sign-out', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({}),
-          });
-        } catch (e) {}
-        await fetch('/api/logout-force', { method: 'POST', credentials: 'include' }).catch(() => {});
-        window.location.reload();
+      btn.onclick = () => {
+        if (typeof openUserProfileModal === 'function') {
+          openUserProfileModal();
+        }
       };
     }
   } else {
@@ -546,6 +552,10 @@ on('data:ready', (e) => {
 
 on('auth:required', (e) => {
   showAuthGate(e && e.detail ? e.detail.hasUsers : true);
+});
+
+on('user:profile-updated', () => {
+  updateUserPill(getCurrentUser());
 });
 
 // ============================================================================

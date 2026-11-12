@@ -11,6 +11,10 @@ import {
   STRIPBOARD_STORAGE_KEY,
   RESPONSIBLES_STORAGE_KEY,
   DEPARTMENTS_STORAGE_KEY,
+  USER_PROFILE_STORAGE_KEY,
+  CLIENT_COLOR_PALETTE,
+  USER_AVATAR_ICONS,
+  DEFAULT_USER_PROFILE,
   defaultResponsibles,
   legacyGenericRoles,
   defaultDepartments,
@@ -222,6 +226,159 @@ function writeLocal(key, value) {
   }
 }
 
+// ============================================================================
+// PERFIL DE USUARIO Y FIRMA OPERATIVA
+// ============================================================================
+export function getUserProfile() {
+  const profile = readLocal(USER_PROFILE_STORAGE_KEY, DEFAULT_USER_PROFILE);
+  const merged = { ...DEFAULT_USER_PROFILE, ...profile };
+  if (!Array.isArray(merged.departments) || merged.departments.length === 0) {
+    merged.departments = [...DEFAULT_USER_PROFILE.departments];
+  }
+  if (currentUser) {
+    if ((!profile.fullName || profile.fullName === DEFAULT_USER_PROFILE.fullName) && currentUser.name) {
+      merged.fullName = currentUser.name;
+    }
+    if ((!profile.email || profile.email === DEFAULT_USER_PROFILE.email) && currentUser.email) {
+      merged.email = currentUser.email;
+    }
+  }
+  return merged;
+}
+
+export function getActiveUserShortName() {
+  const profile = getUserProfile();
+  const shortName = (profile.shortName || 'Andrés J.').trim();
+  if (Array.isArray(responsiblesCache) && !responsiblesCache.includes(shortName)) {
+    responsiblesCache.unshift(shortName);
+    writeLocal(RESPONSIBLES_STORAGE_KEY, responsiblesCache);
+  }
+  return shortName;
+}
+
+export function saveUserProfile(profileData) {
+  if (!profileData || typeof profileData !== 'object') return getUserProfile();
+  const oldProfile = getUserProfile();
+  const oldShortName = (oldProfile.shortName || '').trim();
+
+  const merged = {
+    ...oldProfile,
+    ...profileData,
+    fullName: (profileData.fullName !== undefined ? profileData.fullName : oldProfile.fullName || '').trim(),
+    shortName: (profileData.shortName !== undefined ? profileData.shortName : oldProfile.shortName || 'Andrés J.').trim(),
+    email: (profileData.email !== undefined ? profileData.email : oldProfile.email || '').trim(),
+    color: profileData.color || oldProfile.color || 'cyan',
+    avatarMode: profileData.avatarMode || oldProfile.avatarMode || 'initials',
+    avatarIcon: profileData.avatarIcon || oldProfile.avatarIcon || 'pen',
+    avatarImage: typeof profileData.avatarImage === 'string' ? profileData.avatarImage : (oldProfile.avatarImage || ''),
+    departments: Array.isArray(profileData.departments) && profileData.departments.length > 0
+      ? profileData.departments
+      : (oldProfile.departments || ['Tráfico'])
+  };
+
+  writeLocal(USER_PROFILE_STORAGE_KEY, merged);
+
+  if (currentUser) {
+    currentUser.name = merged.fullName;
+    currentUser.email = merged.email;
+  }
+
+  const newShortName = merged.shortName;
+
+  // Actualización en cascada del shortName / firma operativa si cambió
+  if (oldShortName && newShortName && oldShortName !== newShortName) {
+    // 1. responsiblesCache
+    const rIdx = responsiblesCache.indexOf(oldShortName);
+    if (rIdx !== -1) {
+      responsiblesCache[rIdx] = newShortName;
+    } else if (!responsiblesCache.includes(newShortName)) {
+      responsiblesCache.unshift(newShortName);
+    }
+    writeLocal(RESPONSIBLES_STORAGE_KEY, responsiblesCache);
+
+    // 2. ordersCache (campo responsible y routes[].sign)
+    let ordersModified = false;
+    ordersCache.forEach(order => {
+      if (order.responsible === oldShortName) {
+        order.responsible = newShortName;
+        ordersModified = true;
+      }
+      if (Array.isArray(order.routes)) {
+        order.routes.forEach(route => {
+          if (route.sign === oldShortName) {
+            route.sign = newShortName;
+            ordersModified = true;
+          }
+        });
+      }
+    });
+    if (ordersModified) {
+      writeLocal(STORAGE_KEY, ordersCache);
+    }
+
+    // 3. stripboardCache (campo assignee)
+    let stripModified = false;
+    Object.keys(stripboardCache).forEach(dateStr => {
+      const strips = stripboardCache[dateStr];
+      if (Array.isArray(strips)) {
+        strips.forEach(strip => {
+          if (strip.assignee === oldShortName) {
+            strip.assignee = newShortName;
+            stripModified = true;
+          }
+        });
+      }
+    });
+    if (stripModified) {
+      writeLocal(STRIPBOARD_STORAGE_KEY, stripboardCache);
+    }
+
+    scheduleSync();
+  } else {
+    // Asegurar que newShortName siempre esté en responsiblesCache
+    if (!responsiblesCache.includes(newShortName)) {
+      responsiblesCache.unshift(newShortName);
+      writeLocal(RESPONSIBLES_STORAGE_KEY, responsiblesCache);
+      scheduleSync();
+    }
+  }
+
+  emit('user:profile-updated', merged);
+  return merged;
+}
+
+export function renderUserAvatarHtml(sizeClass = 'w-5 h-5 text-[10px]', overrideProfile = null) {
+  const profile = overrideProfile || getUserProfile();
+  const colorName = profile.color || 'cyan';
+  const colorObj = CLIENT_COLOR_PALETTE.find(p => p.name === colorName)
+    || CLIENT_COLOR_PALETTE.find(p => p.name === 'cyan')
+    || CLIENT_COLOR_PALETTE[0];
+
+  let inner = '';
+  if (profile.avatarMode === 'image' && profile.avatarImage) {
+    inner = `<img src="${profile.avatarImage}" alt="${escapeHtml(profile.shortName || profile.fullName || 'User')}" class="w-full h-full object-cover rounded-full" />`;
+  } else if (profile.avatarMode === 'icon' && profile.avatarIcon && USER_AVATAR_ICONS[profile.avatarIcon]) {
+    inner = `<div class="w-3/5 h-3/5 ${colorObj.text} flex items-center justify-center">${USER_AVATAR_ICONS[profile.avatarIcon].svg}</div>`;
+  } else {
+    // Modo Iniciales
+    const sourceName = (profile.shortName || profile.fullName || 'AJ').trim();
+    const parts = sourceName.split(/\s+/).filter(Boolean);
+    let initials = 'AJ';
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[1][0]).toUpperCase();
+    } else if (parts.length === 1) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    }
+    inner = `<span class="font-bold tracking-tighter ${colorObj.text}">${initials}</span>`;
+  }
+
+  return `
+    <div class="${sizeClass} rounded-full flex items-center justify-center ${colorObj.bg} border ${colorObj.border} overflow-hidden shrink-0 select-none shadow-sm">
+      ${inner}
+    </div>
+  `;
+}
+
 // Hidratación inicial síncrona desde localStorage para que las llamadas
 // inmediatas antes del bootstrap() asíncrono tengan datos consistentes
 function initLocalCache() {
@@ -232,9 +389,13 @@ function initLocalCache() {
   departmentsCache = readLocal(DEPARTMENTS_STORAGE_KEY, defaultDepartments);
   stripboardCache = readLocal(STRIPBOARD_STORAGE_KEY, {});
 
-  // Asegurar que Andrés J. esté siempre presente
+  // Asegurar que el shortName del perfil y Andrés J. estén siempre presentes
+  const activeShort = getActiveUserShortName();
+  if (!responsiblesCache.includes(activeShort)) {
+    responsiblesCache.unshift(activeShort);
+  }
   if (!responsiblesCache.includes("Andrés J.")) {
-    responsiblesCache.unshift("Andrés J.");
+    responsiblesCache.push("Andrés J.");
   }
   // Depurar roles genéricos legados
   responsiblesCache = responsiblesCache.filter(
@@ -589,6 +750,10 @@ export function deleteOt(otId) {
 }
 
 export function createOt(otData) {
+  const profile = getUserProfile();
+  const activeShort = getActiveUserShortName();
+  const defaultDept = (profile.departments && profile.departments.length > 0) ? profile.departments[0] : 'Tráfico';
+
   const newOt = {
     id: otData.id || `OT-26-${String(ordersCache.length + 1).padStart(3, '0')}`,
     ref: otData.ref || '',
@@ -600,18 +765,18 @@ export function createOt(otData) {
     media: otData.media || 'Digital',
     urgent: !!otData.urgent,
     status: otData.status || 'Tráfico',
-    responsible: otData.responsible || 'Andrés J.',
+    responsible: otData.responsible || activeShort || 'Andrés J.',
     brief: otData.brief || '',
     legalText: otData.legalText || '',
     mediaFiles: otData.mediaFiles || [],
     routes: otData.routes && otData.routes.length > 0 ? otData.routes : [
       {
-        from: 'Cliente',
+        from: otData.from || defaultDept || 'Cliente',
         to: 'Tráfico',
         task: otData.title || otData.description || 'Recepción inicial de OT',
         entryDate: getNowFormatted(),
         deliveryDate: '',
-        sign: otData.responsible || 'Andrés J.',
+        sign: otData.responsible || activeShort || 'Andrés J.',
         notes: '',
         stamp: 'RECIBIDO',
         completed: false
@@ -734,4 +899,15 @@ export function cycleStripStatusOnDate(dateStr, index) {
     saveDayStrips(dateStr, strips);
   }
 }
+
+// ============================================================================
+// EXPOSICIÓN GLOBAL EN WINDOW
+// ============================================================================
+if (typeof window !== 'undefined') {
+  window.getUserProfile = getUserProfile;
+  window.saveUserProfile = saveUserProfile;
+  window.getActiveUserShortName = getActiveUserShortName;
+  window.renderUserAvatarHtml = renderUserAvatarHtml;
+}
+
 
