@@ -27,6 +27,7 @@ import {
   toggleTableSortDirection,
   setTableGroup,
   toggleSidebar,
+  initSidebarResizer,
   setMainDeskView,
   refreshAllViews
 } from './traffic-desk-view.js';
@@ -570,6 +571,7 @@ async function initializeApp() {
   renderResponsibleSelects();
   syncSortAndGroupControls();
   renderBinTree();
+  initSidebarResizer();
   setMainDeskView(state.currentDeskMode);
   updateClientsDatalist();
   updateDeptOptionsDatalist();
@@ -592,5 +594,6 @@ if (typeof window !== 'undefined') {
   window.showAuthGate = showAuthGate;
   window.updateUserPill = updateUserPill;
   window.updateSyncBadge = updateSyncBadge;
+  window.initSidebarResizer = initSidebarResizer;
 }
 

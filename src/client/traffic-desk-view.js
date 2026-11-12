@@ -1217,6 +1217,63 @@ export function toggleSidebar() {
   }
 }
 
+/**
+ * Inicializador del redimensionador interactivo del panel izquierdo (Bin Tree)
+ * Permite ajustar el ancho entre 180px y 480px y persiste la preferencia en localStorage.
+ */
+export function initSidebarResizer() {
+  if (typeof document === 'undefined') return;
+  const resizer = document.getElementById('sidebar-resizer');
+  const sidebar = document.getElementById('sidebar-bin-tree');
+  if (!resizer || !sidebar) return;
+
+  // Restaurar ancho previo si existe
+  try {
+    const savedWidth = localStorage.getItem('trafikeitor_sidebar_width');
+    if (savedWidth) {
+      const num = parseInt(savedWidth, 10);
+      if (!isNaN(num) && num >= 180 && num <= 480) {
+        sidebar.style.width = `${num}px`;
+      }
+    }
+  } catch (_) {}
+
+  let isResizing = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (moveEvent) => {
+      if (!isResizing) return;
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const newWidth = moveEvent.clientX - sidebarRect.left;
+      const clampedWidth = Math.min(Math.max(newWidth, 180), 480);
+      sidebar.style.width = `${clampedWidth}px`;
+    };
+
+    const onMouseUp = () => {
+      if (!isResizing) return;
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      try {
+        const widthVal = parseInt(sidebar.style.width, 10);
+        if (!isNaN(widthVal)) {
+          localStorage.setItem('trafikeitor_sidebar_width', String(widthVal));
+        }
+      } catch (_) {}
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
+}
+
 // ============================================================================
 // REFRESCO COORDINADO DE TODAS LAS VISTAS
 // ============================================================================
@@ -1272,6 +1329,7 @@ if (typeof window !== 'undefined') {
   window.renderTrafficDesk = renderTrafficDesk;
   window.setMainDeskView = setMainDeskView;
   window.toggleSidebar = toggleSidebar;
+  window.initSidebarResizer = initSidebarResizer;
   window.refreshAllViews = refreshAllViews;
   window.handleGlobalStatusChange = handleGlobalStatusChange;
   window.handleGlobalResponsibleChange = handleGlobalResponsibleChange;

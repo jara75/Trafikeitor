@@ -80,15 +80,6 @@
         <span id="sqlite-sync-text">SQLite Activo</span>
       </div>
 
-      <!-- Píldora de Usuario Activo / Login -->
-      <div id="header-user-container" class="flex items-center">
-        <button id="elmarcante-login-btn" type="button" onclick="showAuthGate(true)" class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-amber-500/10 text-zinc-300 hover:text-amber-300 rounded-lg border border-white/[0.08] hover:border-amber-500/30 transition-all cursor-pointer">
-          Iniciar Sesión
-        </button>
-      </div>
-
-      <div class="h-4 w-px bg-resolve-border"></div>
-
       <!-- Respaldo / Restauración -->
       <button onclick="exportBackupData()" title="Descargar Respaldo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 transition-all active:scale-[0.98] shadow-xs cursor-pointer">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -105,6 +96,16 @@
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
         <span>Nueva OT</span>
       </button>
+
+      <!-- Divisor vertical hacia la sección de usuario en el extremo derecho -->
+      <div class="h-4 w-px bg-resolve-border border-l border-resolve-border mx-1"></div>
+
+      <!-- Píldora de Usuario Activo / Login (Extremo Derecho) -->
+      <div id="header-user-container" class="flex items-center pl-1">
+        <button id="elmarcante-login-btn" type="button" onclick="showAuthGate(true)" class="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-amber-500/10 text-zinc-300 hover:text-amber-300 rounded-lg border border-white/[0.08] hover:border-amber-500/30 transition-all cursor-pointer">
+          Iniciar Sesión
+        </button>
+      </div>
     </div>
   </header>
 
@@ -114,8 +115,15 @@
     <!-- PANEL IZQUIERDO: ÁRBOL DE BINS (Cliente -> Marca -> Año / Carpeta) -->
     <aside 
       id="sidebar-bin-tree" 
-      class="w-72 md:w-80 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none transition-all duration-300 ease-in-out relative z-20 overflow-hidden"
+      class="w-60 bg-resolve-surface border-r border-resolve-border flex flex-col shrink-0 select-none relative z-20 overflow-hidden"
+      style="width: 240px; min-width: 180px; max-width: 480px;"
     >
+      <!-- Resizer handle en el borde derecho -->
+      <div 
+        id="sidebar-resizer" 
+        class="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-amber-500/50 active:bg-amber-500 transition-colors z-30 select-none"
+        title="Arrastrar para redimensionar panel"
+      ></div>
       
       <!-- Encabezado de la barra lateral -->
       <div class="h-9 px-3 bg-resolve-panel border-b border-resolve-border flex items-center justify-between shrink-0">
@@ -128,7 +136,7 @@
             <span>+</span> <span>Cliente</span>
           </button>
           <button onclick="toggleSidebar()" title="Colapsar panel de Clientes" class="px-2 py-0.5 hover:bg-white/[0.08] text-resolve-dimText hover:text-white rounded-md transition-colors text-xs font-mono font-bold border border-resolve-border/60 cursor-pointer">
-            &lt;&gt;
+            &lt;
           </button>
         </div>
       </div>
@@ -167,7 +175,7 @@
         title="Expandir panel de Clientes" 
         class="p-2 text-amber-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors text-xs font-mono font-bold cursor-pointer"
       >
-        &lt;&gt;
+        &gt;
       </button>
       <div class="w-full border-t border-resolve-border my-2"></div>
       <button 
