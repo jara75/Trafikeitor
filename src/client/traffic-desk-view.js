@@ -971,8 +971,8 @@ export function renderBinTree() {
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
             </svg>
 
-            <!-- Nombre del Cliente: 12px y en Negrita -->
-            <span class="font-bold truncate text-white text-[12px] leading-tight">${escapeHtml(client.name)}</span>
+            <!-- Nombre del Cliente: 12px y en Negrita con color atenuado -->
+            <span class="font-bold truncate text-resolve-dimText group-hover:text-zinc-200 text-[12px] leading-tight transition-colors ${isClientActive ? 'text-white' : ''}">${escapeHtml(client.name)}</span>
 
             <!-- Badge numérico inmediatamente al lado del nombre -->
             <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.06] px-1.5 py-0.2 rounded-full border border-white/[0.05] shrink-0">${clientOrders.length}</span>
