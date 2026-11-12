@@ -109,6 +109,7 @@ export const state = {
   currentTableGroup: 'client',          // 'none' | 'client' | 'status' | 'responsible' | 'department'
   collapsedGroupKeys: new Set(),
   filterUrgentOnly: false,              // true para filtrar solo OTs marcadas como urgentes
+  hideTreeBadges: typeof localStorage !== 'undefined' ? (localStorage.getItem('resolve_hide_tree_badges') === 'true') : false,
   activeOtId: null,
   activeOtTab: 'route',                 // 'route' | 'media' | 'specs'
   activeCustomTaskIndex: null,

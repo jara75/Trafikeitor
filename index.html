@@ -147,7 +147,7 @@
             <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
             <span class="font-bold truncate text-[11px] text-white">Master Bin</span>
           </div>
-          <span class="text-[10px] font-semibold bg-white/[0.08] px-1.5 py-0.2 rounded-full text-zinc-300" id="badge-count-all">0</span>
+          <span class="bin-tree-badge text-[10px] font-semibold bg-white/[0.08] px-1.5 py-0.2 rounded-full text-zinc-300" id="badge-count-all">0</span>
         </button>
       </div>
 
@@ -243,6 +243,19 @@
           >
             <span class="w-3.5 text-center text-red-400 text-xs shrink-0">✕</span>
             <span id="tree-menu-delete-label" class="text-[11px] font-medium">Eliminar</span>
+          </button>
+
+          <div class="my-1 border-t border-resolve-border"></div>
+
+          <!-- Opción Visual: Ocultar / Mostrar Badges -->
+          <button 
+            id="tree-btn-toggle-badges" 
+            type="button" 
+            onclick="toggleTreeBadges(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-white/[0.08] text-zinc-300 hover:text-amber-400 transition-colors cursor-pointer"
+          >
+            <span id="tree-menu-badges-icon" class="w-3.5 text-center text-zinc-400 text-xs shrink-0">🏷</span>
+            <span id="tree-menu-badges-label" class="text-[11px] font-medium">Ocultar badges</span>
           </button>
         </div>
       </div>

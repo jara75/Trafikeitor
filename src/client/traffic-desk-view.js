@@ -970,8 +970,30 @@ export function collapseAllClientTrees() {
   renderBinTree();
 }
 
+/**
+ * Conmuta la visualización de badges numéricos en el árbol de clientes
+ */
+export function toggleTreeBadges() {
+  state.hideTreeBadges = !state.hideTreeBadges;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('resolve_hide_tree_badges', state.hideTreeBadges ? 'true' : 'false');
+  }
+  renderBinTree();
+}
+
 export function renderBinTree() {
   if (typeof document === 'undefined') return;
+
+  const sidebar = document.getElementById('sidebar-bin-tree');
+  if (sidebar) {
+    if (state.hideTreeBadges) sidebar.classList.add('hide-badges');
+    else sidebar.classList.remove('hide-badges');
+  }
+
+  const badgesLabel = document.getElementById('tree-menu-badges-label');
+  if (badgesLabel) {
+    badgesLabel.innerText = state.hideTreeBadges ? 'Mostrar badges' : 'Ocultar badges';
+  }
 
   const clients = getClients();
   const orders = getOrders();
@@ -1032,7 +1054,7 @@ export function renderBinTree() {
             <span class="font-bold truncate text-resolve-dimText group-hover:text-zinc-200 text-[11px] leading-tight transition-colors ${isClientActive ? 'text-white' : ''}">${escapeHtml(client.name)}</span>
 
             <!-- Badge numérico inmediatamente al lado del nombre -->
-            <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.06] px-1.5 py-0.2 rounded-full border border-white/[0.05] shrink-0">${clientOrders.length}</span>
+            <span class="bin-tree-badge text-[10px] font-semibold ${clientColor.text} bg-white/[0.06] px-1.5 py-0.2 rounded-full border border-white/[0.05] shrink-0">${clientOrders.length}</span>
           </div>
         </div>
 
@@ -1053,7 +1075,7 @@ export function renderBinTree() {
                     <svg class="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                     <span class="truncate font-medium text-[11px] text-resolve-dimText group-hover:text-zinc-300">${escapeHtml(brand)}</span>
                     <!-- Badge numérico inmediatamente al lado de la marca -->
-                    <span class="text-[10px] font-medium text-zinc-400 bg-white/[0.04] px-1.5 py-0.2 rounded-full shrink-0">${brandOrders.length}</span>
+                    <span class="bin-tree-badge text-[10px] font-medium text-zinc-400 bg-white/[0.04] px-1.5 py-0.2 rounded-full shrink-0">${brandOrders.length}</span>
                   </div>
                 </div>
               `;
@@ -1669,6 +1691,7 @@ if (typeof window !== 'undefined') {
   window.toggleClientTreeCollapse = toggleClientTreeCollapse;
   window.expandAllClientTrees = expandAllClientTrees;
   window.collapseAllClientTrees = collapseAllClientTrees;
+  window.toggleTreeBadges = toggleTreeBadges;
   window.toggleTreeActionMenu = toggleTreeActionMenu;
   window.closeTreeActionMenu = closeTreeActionMenu;
   window.selectTreeFilter = selectTreeFilter;

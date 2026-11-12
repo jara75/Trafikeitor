@@ -127,6 +127,12 @@ tbody#route-sheet-rows > tr {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Ocultar badges numéricos del árbol de clientes */
+#sidebar-bin-tree.hide-badges .bin-tree-badge,
+#sidebar-bin-tree.hide-badges #badge-count-all {
+  display: none !important;
+}
+
 /* Apple Pro macOS dark scrollbars & typography rendering */
 * {
   -webkit-font-smoothing: antialiased;
