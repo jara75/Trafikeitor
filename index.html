@@ -421,11 +421,16 @@
               <span class="w-px h-3.5 bg-resolve-border ml-1"></span>
             </div>
 
-            <!-- Testigo vivo de Urgentes -->
-            <div id="trafico-urgent-indicator" class="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500">
+            <!-- Testigo interactivo de Urgentes (Filtro rápido al pulsar) -->
+            <button 
+              id="trafico-urgent-indicator" 
+              type="button" 
+              onclick="toggleUrgentFilter()" 
+              class="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 px-1.5 py-0.5 rounded transition-all cursor-pointer"
+            >
               <span class="w-2 h-2 rounded-full bg-zinc-600 shrink-0"></span>
               <span>0 Urgentes</span>
-            </div>
+            </button>
           </div>
         </div>
 

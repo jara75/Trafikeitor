@@ -137,6 +137,11 @@ export function collapseAllTableGroups() {
   refreshAllViews();
 }
 
+export function toggleUrgentFilter() {
+  state.filterUrgentOnly = !state.filterUrgentOnly;
+  refreshAllViews();
+}
+
 export function syncSortAndGroupControls() {
   if (typeof document === 'undefined') return;
 
@@ -1290,8 +1295,8 @@ export function renderTrafficDesk() {
     else if (state.selectedTreeFilter.type === 'brand') breadcrumb.innerText = `${state.selectedTreeFilter.client} > ${state.selectedTreeFilter.brand}`;
   }
 
-  // Filtrado por Bin Tree
-  let filtered = orders.filter(ot => {
+  // Filtrado base (por Bin Tree, Estado y Búsqueda)
+  const baseFiltered = orders.filter(ot => {
     if (state.selectedTreeFilter.type === 'client') {
       if ((ot.client || '').toLowerCase() !== (state.selectedTreeFilter.client || '').toLowerCase()) return false;
     } else if (state.selectedTreeFilter.type === 'brand') {
@@ -1317,9 +1322,20 @@ export function renderTrafficDesk() {
     return true;
   });
 
+  // Conteo de OTs urgentes en el contexto actual
+  const urgentCount = baseFiltered.filter(o => o.urgent).length;
+
+  // Si no hay urgentes en esta vista, desactivar el filtro automáticamente
+  if (urgentCount === 0 && state.filterUrgentOnly) {
+    state.filterUrgentOnly = false;
+  }
+
+  // Filtrado final (aplica filtro de solo urgentes si el usuario lo activó)
+  let filtered = state.filterUrgentOnly ? baseFiltered.filter(o => o.urgent) : baseFiltered;
+
   const countBadge = document.getElementById('current-bin-count');
   if (countBadge) {
-    countBadge.innerText = `${filtered.length} OTs encontradas`;
+    countBadge.innerText = `${filtered.length} OTs encontradas${state.filterUrgentOnly ? ' (Solo Urgentes)' : ''}`;
   }
   
   const footerCount = document.getElementById('footer-active-count');
@@ -1339,18 +1355,34 @@ export function renderTrafficDesk() {
     }
   }
 
-  // Indicador de Urgentes en la vista actual
-  const urgentCount = filtered.filter(o => o.urgent).length;
+  // Indicador interactivo de Urgentes (Filtro toggle On/Off al hacer clic)
   const urgentIndicator = document.getElementById('trafico-urgent-indicator');
   if (urgentIndicator) {
-    const dotColor = urgentCount > 0 ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-zinc-600';
-    const textColor = urgentCount > 0 ? 'text-rose-300 font-semibold' : 'text-zinc-500 font-normal';
-    urgentIndicator.className = `flex items-center gap-1.5 text-[11px] font-mono ${textColor}`;
-    urgentIndicator.innerHTML = `
-      <span class="w-2 h-2 rounded-full ${dotColor} shrink-0"></span>
-      <span>${urgentCount} ${urgentCount === 1 ? 'Urgente' : 'Urgentes'}</span>
-    `;
-    urgentIndicator.title = urgentCount > 0 ? `${urgentCount} OTs marcadas como urgentes en esta vista` : 'Sin OTs urgentes en esta vista';
+    if (urgentCount > 0) {
+      if (state.filterUrgentOnly) {
+        urgentIndicator.className = "flex items-center gap-1.5 text-[11px] font-mono text-rose-200 bg-rose-500/20 border border-rose-500/50 px-2 py-0.5 rounded shadow-xs cursor-pointer transition-all";
+        urgentIndicator.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
+          <span class="font-bold">${urgentCount} ${urgentCount === 1 ? 'Urgente' : 'Urgentes'}</span>
+          <span class="text-[9px] bg-rose-500/30 px-1 rounded text-rose-300 font-sans ml-0.5">✕ Solo Urgentes</span>
+        `;
+        urgentIndicator.title = "Filtro activo: mostrando solo OTs urgentes. Clic para ver todas.";
+      } else {
+        urgentIndicator.className = "flex items-center gap-1.5 text-[11px] font-mono text-rose-300 hover:text-white hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08] px-1.5 py-0.5 rounded cursor-pointer transition-all font-semibold";
+        urgentIndicator.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-rose-500 shadow-xs shadow-rose-500/50 shrink-0"></span>
+          <span>${urgentCount} ${urgentCount === 1 ? 'Urgente' : 'Urgentes'}</span>
+        `;
+        urgentIndicator.title = `Clic para filtrar y mostrar solo las ${urgentCount} OTs urgentes`;
+      }
+    } else {
+      urgentIndicator.className = "flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 px-1.5 py-0.5 rounded cursor-default border border-transparent";
+      urgentIndicator.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-zinc-600 shrink-0"></span>
+        <span>0 Urgentes</span>
+      `;
+      urgentIndicator.title = "Sin OTs urgentes en esta vista";
+    }
   }
 
   const grid = document.getElementById('envelopes-grid');
@@ -1614,6 +1646,7 @@ if (typeof window !== 'undefined') {
   window.toggleGroupCollapse = toggleGroupCollapse;
   window.expandAllTableGroups = expandAllTableGroups;
   window.collapseAllTableGroups = collapseAllTableGroups;
+  window.toggleUrgentFilter = toggleUrgentFilter;
   window.syncSortAndGroupControls = syncSortAndGroupControls;
   window.handleTableRowClick = handleTableRowClick;
   window.handleUnifiedRowDragStart = handleUnifiedRowDragStart;

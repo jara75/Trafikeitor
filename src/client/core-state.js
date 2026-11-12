@@ -108,6 +108,7 @@ export const state = {
   },
   currentTableGroup: 'client',          // 'none' | 'client' | 'status' | 'responsible' | 'department'
   collapsedGroupKeys: new Set(),
+  filterUrgentOnly: false,              // true para filtrar solo OTs marcadas como urgentes
   activeOtId: null,
   activeOtTab: 'route',                 // 'route' | 'media' | 'specs'
   activeCustomTaskIndex: null,
