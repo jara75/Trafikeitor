@@ -355,8 +355,11 @@ export function renderRouteSheetRows(routes) {
       `;
     }
 
+    const isOdd = (index % 2 === 1);
+    const zebraClass = isOdd ? 'bg-white/[0.035]' : 'bg-transparent';
+
     return `
-      <tr class="hover:bg-white/[0.03] transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
+      <tr class="${zebraClass} hover:bg-white/[0.08] transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
         <!-- 1. DE: -->
         <td class="p-2 border-r border-resolve-border align-middle">
           <select 
@@ -781,7 +784,9 @@ export function renderMediaPool(files) {
           <tbody class="divide-y divide-resolve-border bg-resolve-bg text-stone-200">
             ${files.map((file, idx) => {
               const meta = getMediaMeta(file);
-              return `<tr class="hover:bg-resolve-card transition-colors">
+              const isOdd = (idx % 2 === 1);
+              const zebraClass = isOdd ? 'bg-white/[0.035]' : 'bg-transparent';
+              return `<tr class="${zebraClass} hover:bg-white/[0.08] transition-colors">
                 <td class="p-2 font-bold text-white flex items-center gap-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="${meta.badgeStyle}">${meta.badge}</span><span class="truncate">${escapeHtml(file.name)}</span></td>
                 <td class="p-2 text-resolve-dimText uppercase text-[10px]">${escapeHtml(meta.subLabel)}</td>
                 <td class="p-2 text-resolve-dimText">${file.size || 'N/A'}</td>

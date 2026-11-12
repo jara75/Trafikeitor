@@ -94,6 +94,23 @@ tr.stripboard-row.dragging {
   background-color: rgba(245, 158, 11, 0.08) !important;
 }
 
+/* Zebra striping para filas de tabla (uno sí, uno no • DaVinci / Apple Numbers) */
+tr.stripboard-row.stripboard-row-even {
+  background-color: transparent;
+}
+tr.stripboard-row.stripboard-row-odd {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+tr.stripboard-row:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+tr.apple-category-row {
+  background-color: rgba(21, 22, 26, 0.95);
+}
+tr.apple-category-row:hover {
+  background-color: rgba(34, 35, 42, 0.95) !important;
+}
+
 /* Apple Pro macOS dark scrollbars & typography rendering */
 * {
   -webkit-font-smoothing: antialiased;

@@ -672,7 +672,7 @@ export function renderResponsibleSelects() {
 // COMPONENTE DE FILA ÚNICO COMPARTIDO (11 COLUMNAS EXACTAS CON DRAG & DROP)
 // ============================================================================
 
-export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
+export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', rowIndex = 0) {
   const isStripboard = viewContext === 'stripboard';
   const clientColor = getClientColorClasses(ot.client);
   const safeDesc = ot.title || ot.description || '';
@@ -702,11 +702,13 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico') {
   ` : '';
 
   const rowCursorClass = isStripboard ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
+  const isOdd = (rowIndex % 2 === 1);
+  const zebraClass = isOdd ? 'bg-white/[0.035] stripboard-row-odd' : 'bg-transparent stripboard-row-even';
 
   return `
     <tr 
       ${dragAttrs}
-      class="stripboard-row hover:bg-white/[0.04] transition-colors ${rowCursorClass} group text-[11px]" 
+      class="stripboard-row ${zebraClass} hover:bg-white/[0.08] transition-colors ${rowCursorClass} group text-[11px]" 
       onclick="handleTableRowClick(event, '${ot.id}')"
     >
       <!-- 1. No. OT -->
@@ -827,7 +829,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
   const sorted = sortOrdersList(ordersList);
 
   if (state.currentTableGroup === 'none') {
-    return sorted.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext)).join('');
+    return sorted.map((ot, idx) => renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext, idx)).join('');
   }
 
   const groups = new Map();
@@ -855,6 +857,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
     groups.get(key).push(ot);
   });
 
+  let globalRowIndex = 0;
   let html = '';
   groups.forEach((items, groupKey) => {
     const isCollapsed = state.collapsedGroupKeys.has(groupKey);
@@ -878,7 +881,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
 
     html += `
       <tr 
-        class="apple-category-row bg-white/[0.04] hover:bg-white/[0.08] transition-colors border-y border-resolve-border cursor-pointer select-none"
+        class="apple-category-row bg-resolve-panel/90 hover:bg-resolve-card transition-colors border-y border-resolve-border cursor-pointer select-none"
         ${dragAttrs}
       >
         <td colspan="11" class="px-3 py-1.5 font-bold text-[11px] text-white" onclick="toggleGroupCollapse('${escapeHtml(groupKey)}')">
@@ -892,7 +895,11 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
       </tr>
     `;
     if (!isCollapsed) {
-      html += items.map(ot => renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext)).join('');
+      html += items.map(ot => {
+        const rowHtml = renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext, globalRowIndex);
+        globalRowIndex++;
+        return rowHtml;
+      }).join('');
     }
   });
 
