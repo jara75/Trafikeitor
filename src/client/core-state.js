@@ -108,7 +108,6 @@ export const state = {
   },
   currentTableGroup: 'client',          // 'none' | 'client' | 'status' | 'responsible' | 'department'
   collapsedGroupKeys: new Set(),
-  collapsedTreeClients: new Set(),
   activeOtId: null,
   activeOtTab: 'route',                 // 'route' | 'media' | 'specs'
   activeCustomTaskIndex: null,

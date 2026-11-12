@@ -19,6 +19,7 @@ import {
   saveOrders,
   getOrderById,
   getClients,
+  saveClients,
   deleteClient,
   deleteBrand,
   getStatuses,
@@ -942,10 +943,10 @@ export function renderBinTree() {
     return `
       <div class="bin-client-group select-none">
         <div 
-          class="flex items-center justify-between group rounded-lg hover:bg-white/[0.06] py-1 px-1.5 cursor-pointer transition-colors ${isClientActive ? 'bin-active' : ''}"
+          class="flex items-center group rounded-lg hover:bg-white/[0.06] py-1 px-1.5 cursor-pointer transition-colors ${isClientActive ? 'bin-active' : ''}"
           onclick="selectTreeFilter('client', '${escapeHtml(client.name)}', null)"
           ondblclick="toggleClientTreeCollapse('${client.id}')"
-          title="Clic para filtrar por cliente / Doble clic para expandir o colapsar"
+          title="Clic para seleccionar / Doble clic para desplegar marcas"
         >
           <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
             <!-- Triángulo / Chevron de despliegue estilo DaVinci Resolve -->
@@ -971,20 +972,9 @@ export function renderBinTree() {
 
             <!-- Nombre del Cliente: 12px y en Negrita -->
             <span class="font-bold truncate text-white text-[12px] leading-tight">${escapeHtml(client.name)}</span>
-          </div>
 
-          <div class="flex items-center gap-1 shrink-0 ml-1">
-            <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.05] px-1.5 py-0.2 rounded-full border border-white/[0.04]">${clientOrders.length}</span>
-            <!-- Acciones CRUD Cliente -->
-            <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}' });" title="Añadir Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-white rounded text-xs transition-opacity cursor-pointer">
-              +
-            </button>
-            <button onclick="event.stopPropagation(); emit('modal:open-client', { clientId: '${client.id}' });" title="Editar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-amber-400 rounded text-xs transition-opacity cursor-pointer">
-              ✎
-            </button>
-            <button onclick="event.stopPropagation(); if (confirm('¿Eliminar cliente ${escapeHtml(client.name)}?')) { deleteClient('${client.id}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Cliente" class="opacity-0 group-hover:opacity-100 p-0.5 text-resolve-dimText hover:text-red-400 rounded text-xs transition-opacity cursor-pointer">
-              ✕
-            </button>
+            <!-- Badge numérico inmediatamente al lado del nombre -->
+            <span class="text-[10px] font-semibold ${clientColor.text} bg-white/[0.06] px-1.5 py-0.2 rounded-full border border-white/[0.05] shrink-0">${clientOrders.length}</span>
           </div>
         </div>
 
@@ -998,20 +988,14 @@ export function renderBinTree() {
               return `
                 <div 
                   onclick="selectTreeFilter('brand', '${escapeHtml(client.name)}', '${escapeHtml(brand)}')" 
-                  class="flex items-center justify-between px-2 py-1 rounded-lg cursor-pointer group hover:bg-white/[0.05] text-zinc-400 hover:text-white transition-colors text-[11px] ${isBrandActive ? 'bin-active' : ''}"
+                  class="flex items-center px-2 py-1 rounded-lg cursor-pointer group hover:bg-white/[0.05] text-zinc-400 hover:text-white transition-colors text-[11px] ${isBrandActive ? 'bin-active' : ''}"
+                  title="Clic para filtrar por esta marca"
                 >
                   <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
                     <svg class="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                     <span class="truncate font-medium text-[11px]">${escapeHtml(brand)}</span>
-                  </div>
-                  <div class="flex items-center gap-1 shrink-0 ml-1">
-                    <span class="text-[10px] font-medium text-zinc-500 bg-white/[0.03] px-1.5 py-0.2 rounded-full">${brandOrders.length}</span>
-                    <button onclick="event.stopPropagation(); emit('modal:open-brand', { clientName: '${escapeHtml(client.name)}', brand: '${escapeHtml(brand)}' });" title="Editar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-400 hover:text-amber-400 text-xs cursor-pointer">
-                      ✎
-                    </button>
-                    <button onclick="event.stopPropagation(); if (confirm('¿Eliminar marca ${escapeHtml(brand)}?')) { deleteBrand('${escapeHtml(client.name)}', '${escapeHtml(brand)}'); renderBinTree(); renderTrafficDesk(); }" title="Eliminar Marca" class="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-400 hover:text-red-400 text-xs cursor-pointer">
-                      ✕
-                    </button>
+                    <!-- Badge numérico inmediatamente al lado de la marca -->
+                    <span class="text-[10px] font-medium text-zinc-400 bg-white/[0.04] px-1.5 py-0.2 rounded-full shrink-0">${brandOrders.length}</span>
                   </div>
                 </div>
               `;
@@ -1021,6 +1005,159 @@ export function renderBinTree() {
       </div>
     `;
   }).join('');
+
+  updateTreeToolbarState();
+}
+
+// ============================================================================
+// BARRA DE HERRAMIENTAS CONTEXTUAL DEL ÁRBOL (CREAR, EDITAR, DUPLICAR, ELIMINAR)
+// ============================================================================
+
+export function updateTreeToolbarState() {
+  if (typeof document === 'undefined') return;
+  const label = document.getElementById('tree-action-label');
+  const addBtn = document.getElementById('tree-btn-add');
+  const editBtn = document.getElementById('tree-btn-edit');
+  const dupBtn = document.getElementById('tree-btn-duplicate');
+  const delBtn = document.getElementById('tree-btn-delete');
+  if (!addBtn || !editBtn || !dupBtn || !delBtn) return;
+
+  const filter = state.selectedTreeFilter || { type: 'all' };
+
+  if (filter.type === 'client' && filter.client) {
+    if (label) {
+      label.innerText = filter.client;
+      label.title = `Cliente: ${filter.client}`;
+    }
+    addBtn.title = `Añadir Marca a ${filter.client}`;
+    editBtn.title = `Editar Cliente ${filter.client}`;
+    dupBtn.title = `Duplicar Cliente ${filter.client}`;
+    delBtn.title = `Eliminar Cliente ${filter.client}`;
+
+    [editBtn, dupBtn, delBtn].forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove('opacity-25', 'cursor-not-allowed', 'pointer-events-none');
+    });
+  } else if (filter.type === 'brand' && filter.brand) {
+    if (label) {
+      label.innerText = filter.brand;
+      label.title = `Marca: ${filter.brand} (${filter.client || ''})`;
+    }
+    addBtn.title = `Añadir Marca a ${filter.client || 'Cliente'}`;
+    editBtn.title = `Editar Marca ${filter.brand}`;
+    dupBtn.title = `Duplicar Marca ${filter.brand}`;
+    delBtn.title = `Eliminar Marca ${filter.brand}`;
+
+    [editBtn, dupBtn, delBtn].forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove('opacity-25', 'cursor-not-allowed', 'pointer-events-none');
+    });
+  } else {
+    // Master Bin (Todas)
+    if (label) {
+      label.innerText = 'Clientes';
+      label.title = 'Todos los Clientes';
+    }
+    addBtn.title = 'Crear Nuevo Cliente';
+    editBtn.title = 'Selecciona un cliente o marca para editar';
+    dupBtn.title = 'Selecciona un cliente o marca para duplicar';
+    delBtn.title = 'Selecciona un cliente o marca para eliminar';
+
+    [editBtn, dupBtn, delBtn].forEach(btn => {
+      btn.disabled = true;
+      btn.classList.add('opacity-25', 'cursor-not-allowed', 'pointer-events-none');
+    });
+  }
+}
+
+export function handleTreeToolbarAdd() {
+  const filter = state.selectedTreeFilter || { type: 'all' };
+  if (filter.type === 'client' && filter.client) {
+    emit('modal:open-brand', { clientName: filter.client });
+  } else if (filter.type === 'brand' && filter.client) {
+    emit('modal:open-brand', { clientName: filter.client });
+  } else {
+    emit('modal:open-client', { clientId: null });
+  }
+}
+
+export function handleTreeToolbarEdit() {
+  const filter = state.selectedTreeFilter || { type: 'all' };
+  if (filter.type === 'client' && filter.client) {
+    const client = getClients().find(c => c.name.toLowerCase() === filter.client.toLowerCase());
+    if (client) {
+      emit('modal:open-client', { clientId: client.id });
+    }
+  } else if (filter.type === 'brand' && filter.brand && filter.client) {
+    emit('modal:open-brand', { clientName: filter.client, brand: filter.brand });
+  }
+}
+
+export function handleTreeToolbarDuplicate() {
+  const filter = state.selectedTreeFilter || { type: 'all' };
+  if (filter.type === 'client' && filter.client) {
+    const client = getClients().find(c => c.name.toLowerCase() === filter.client.toLowerCase());
+    if (client) duplicateClient(client.id);
+  } else if (filter.type === 'brand' && filter.brand && filter.client) {
+    duplicateBrand(filter.client, filter.brand);
+  }
+}
+
+export function handleTreeToolbarDelete() {
+  const filter = state.selectedTreeFilter || { type: 'all' };
+  if (filter.type === 'client' && filter.client) {
+    const client = getClients().find(c => c.name.toLowerCase() === filter.client.toLowerCase());
+    if (client && confirm(`¿Eliminar cliente "${client.name}" y todas sus marcas?`)) {
+      deleteClient(client.id);
+      selectTreeFilter('all', null, null);
+    }
+  } else if (filter.type === 'brand' && filter.brand && filter.client) {
+    if (confirm(`¿Eliminar marca "${filter.brand}" de ${filter.client}?`)) {
+      deleteBrand(filter.client, filter.brand);
+      selectTreeFilter('client', filter.client, null);
+    }
+  }
+}
+
+export function duplicateClient(clientId) {
+  const clients = getClients();
+  const source = clients.find(c => c.id === clientId);
+  if (!source) return;
+
+  let copyName = `${source.name} (Copia)`;
+  let counter = 2;
+  while (clients.some(c => c.name.toLowerCase() === copyName.toLowerCase())) {
+    copyName = `${source.name} (Copia ${counter++})`;
+  }
+
+  const newClient = {
+    id: `c-${Date.now()}`,
+    name: copyName,
+    color: source.color || 'emerald',
+    brands: Array.isArray(source.brands) ? [...source.brands] : []
+  };
+  clients.push(newClient);
+  saveClients(clients);
+  renderBinTree();
+  selectTreeFilter('client', newClient.name, null);
+}
+
+export function duplicateBrand(clientName, brandName) {
+  const clients = getClients();
+  const client = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+  if (!client) return;
+  if (!client.brands) client.brands = [];
+
+  let copyName = `${brandName} (Copia)`;
+  let counter = 2;
+  while (client.brands.some(b => b.toLowerCase() === copyName.toLowerCase())) {
+    copyName = `${brandName} (Copia ${counter++})`;
+  }
+
+  client.brands.push(copyName);
+  saveClients(clients);
+  renderBinTree();
+  selectTreeFilter('brand', client.name, copyName);
 }
 
 export function selectTreeFilter(type, client, brand) {
@@ -1047,6 +1184,7 @@ export function selectTreeFilter(type, client, brand) {
     }
   }
 
+  updateTreeToolbarState();
   renderBinTree();
   renderTrafficDesk();
 }
@@ -1287,7 +1425,7 @@ export function initSidebarResizer() {
     const savedWidth = localStorage.getItem('trafikeitor_sidebar_width');
     if (savedWidth) {
       const num = parseInt(savedWidth, 10);
-      if (!isNaN(num) && num >= 180 && num <= 480) {
+      if (!isNaN(num) && num >= 160 && num <= 420) {
         sidebar.style.width = `${num}px`;
       }
     }
@@ -1305,7 +1443,7 @@ export function initSidebarResizer() {
       if (!isResizing) return;
       const sidebarRect = sidebar.getBoundingClientRect();
       const newWidth = moveEvent.clientX - sidebarRect.left;
-      const clampedWidth = Math.min(Math.max(newWidth, 180), 480);
+      const clampedWidth = Math.min(Math.max(newWidth, 160), 420);
       sidebar.style.width = `${clampedWidth}px`;
     };
 
@@ -1382,6 +1520,13 @@ if (typeof window !== 'undefined') {
   window.renderBinTree = renderBinTree;
   window.toggleClientTreeCollapse = toggleClientTreeCollapse;
   window.selectTreeFilter = selectTreeFilter;
+  window.updateTreeToolbarState = updateTreeToolbarState;
+  window.handleTreeToolbarAdd = handleTreeToolbarAdd;
+  window.handleTreeToolbarEdit = handleTreeToolbarEdit;
+  window.handleTreeToolbarDuplicate = handleTreeToolbarDuplicate;
+  window.handleTreeToolbarDelete = handleTreeToolbarDelete;
+  window.duplicateClient = duplicateClient;
+  window.duplicateBrand = duplicateBrand;
   window.renderTrafficDesk = renderTrafficDesk;
   window.setMainDeskView = setMainDeskView;
   window.toggleSidebar = toggleSidebar;
