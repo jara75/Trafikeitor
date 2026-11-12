@@ -151,68 +151,94 @@
         </button>
       </div>
 
-      <!-- Barra de Herramientas Contextual del Árbol (Crear, Editar, Duplicar, Eliminar, Abrir/Cerrar Todo) -->
-      <div id="tree-action-bar" class="h-7 px-2 bg-resolve-panel/60 border-b border-resolve-border/60 flex items-center justify-between shrink-0 select-none">
-        <span id="tree-action-label" class="text-[10px] text-resolve-dimText font-medium truncate flex-1 min-w-0 pr-1" title="Acciones de Clientes">Clientes</span>
-        <div class="flex items-center gap-0.5 shrink-0">
+      <!-- Barra de Herramientas Contextual del Árbol (Menú Desplegable con Hamburguesa) -->
+      <div id="tree-action-bar" class="h-7 px-2.5 bg-resolve-panel/60 border-b border-resolve-border/60 flex items-center justify-between shrink-0 select-none relative">
+        <span id="tree-action-label" class="text-[11px] text-zinc-300 font-semibold truncate flex-1 min-w-0 pr-2" title="Clientes">Clientes</span>
+        
+        <!-- Botón Hamburguesa en el extremo derecho -->
+        <button 
+          id="tree-menu-btn" 
+          type="button" 
+          onclick="toggleTreeActionMenu(event)" 
+          title="Opciones de Clientes y Marcas" 
+          class="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+
+        <!-- Menú Desplegable Flotante (Pop-up estilo DaVinci / macOS) -->
+        <div 
+          id="tree-action-dropdown" 
+          class="hidden absolute right-2 top-8 z-50 w-48 bg-resolve-panel/95 backdrop-blur-md border border-white/[0.12] rounded-lg shadow-2xl shadow-black/90 py-1 text-xs select-none"
+        >
+          <!-- Vista de Carpetas -->
           <button 
-            id="tree-btn-expand-all" 
             type="button" 
-            onclick="expandAllClientTrees()" 
-            title="Abrir todo (Desplegar todas las marcas)" 
-            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+            onclick="expandAllClientTrees(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
-            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 13l-7 7-7-7m14-8l-7 7-7-7"/>
             </svg>
+            <span class="text-[11px] font-medium">Abrir todo</span>
           </button>
+
           <button 
-            id="tree-btn-collapse-all" 
             type="button" 
-            onclick="collapseAllClientTrees()" 
-            title="Cerrar todo (Colapsar todas las marcas)" 
-            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+            onclick="collapseAllClientTrees(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
-            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <svg class="w-3.5 h-3.5 text-zinc-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 11l7-7 7 7M5 19l7-7 7 7"/>
             </svg>
+            <span class="text-[11px] font-medium">Cerrar todo</span>
           </button>
-          <span class="w-px h-3 bg-white/[0.10] mx-0.5"></span>
+
+          <div class="my-1 border-t border-resolve-border"></div>
+
+          <!-- Modificadores CRUD Contextuales -->
           <button 
             id="tree-btn-add" 
-            type="button"
-            onclick="handleTreeToolbarAdd()" 
-            title="Crear Nuevo Cliente" 
-            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-300 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer font-bold text-xs"
+            type="button" 
+            onclick="handleTreeToolbarAdd(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-white/[0.08] text-zinc-200 hover:text-amber-400 transition-colors cursor-pointer"
           >
-            +
+            <span class="w-3.5 text-center font-bold text-amber-400 text-xs shrink-0">+</span>
+            <span id="tree-menu-add-label" class="text-[11px] font-medium">Nuevo Cliente</span>
           </button>
+
           <button 
             id="tree-btn-edit" 
-            type="button"
-            onclick="handleTreeToolbarEdit()" 
-            title="Editar seleccionado" 
-            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
+            type="button" 
+            onclick="handleTreeToolbarEdit(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-white/[0.08] text-zinc-300 hover:text-amber-400 transition-colors cursor-pointer"
           >
-            ✎
+            <span class="w-3.5 text-center text-zinc-400 text-xs shrink-0">✎</span>
+            <span id="tree-menu-edit-label" class="text-[11px] font-medium">Editar</span>
           </button>
+
           <button 
             id="tree-btn-duplicate" 
-            type="button"
-            onclick="handleTreeToolbarDuplicate()" 
-            title="Duplicar seleccionado" 
-            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px] font-serif"
+            type="button" 
+            onclick="handleTreeToolbarDuplicate(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-white/[0.08] text-zinc-300 hover:text-amber-400 transition-colors cursor-pointer"
           >
-            ⎘
+            <span class="w-3.5 text-center text-zinc-400 text-xs font-serif shrink-0">⎘</span>
+            <span id="tree-menu-duplicate-label" class="text-[11px] font-medium">Duplicar</span>
           </button>
+
+          <div class="my-1 border-t border-resolve-border"></div>
+
           <button 
             id="tree-btn-delete" 
-            type="button"
-            onclick="handleTreeToolbarDelete()" 
-            title="Eliminar seleccionado" 
-            class="w-[19px] h-[19px] rounded flex items-center justify-center text-zinc-400 hover:text-red-400 hover:bg-white/[0.08] transition-colors cursor-pointer text-[10px]"
+            type="button" 
+            onclick="handleTreeToolbarDelete(); closeTreeActionMenu();" 
+            class="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
           >
-            ✕
+            <span class="w-3.5 text-center text-red-400 text-xs shrink-0">✕</span>
+            <span id="tree-menu-delete-label" class="text-[11px] font-medium">Eliminar</span>
           </button>
         </div>
       </div>

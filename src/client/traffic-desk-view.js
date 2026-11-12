@@ -1029,16 +1029,32 @@ export function renderBinTree() {
 }
 
 // ============================================================================
-// BARRA DE HERRAMIENTAS CONTEXTUAL DEL ÁRBOL (CREAR, EDITAR, DUPLICAR, ELIMINAR)
+// BARRA DE HERRAMIENTAS CONTEXTUAL DEL ÁRBOL (MENÚ DESPLEGABLE CON HAMBURGUESA)
 // ============================================================================
+
+export function toggleTreeActionMenu(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('tree-action-dropdown');
+  if (!dropdown) return;
+  dropdown.classList.toggle('hidden');
+}
+
+export function closeTreeActionMenu() {
+  const dropdown = document.getElementById('tree-action-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+}
 
 export function updateTreeToolbarState() {
   if (typeof document === 'undefined') return;
   const label = document.getElementById('tree-action-label');
   const addBtn = document.getElementById('tree-btn-add');
+  const addLabel = document.getElementById('tree-menu-add-label');
   const editBtn = document.getElementById('tree-btn-edit');
+  const editLabel = document.getElementById('tree-menu-edit-label');
   const dupBtn = document.getElementById('tree-btn-duplicate');
+  const dupLabel = document.getElementById('tree-menu-duplicate-label');
   const delBtn = document.getElementById('tree-btn-delete');
+  const delLabel = document.getElementById('tree-menu-delete-label');
   if (!addBtn || !editBtn || !dupBtn || !delBtn) return;
 
   const filter = state.selectedTreeFilter || { type: 'all' };
@@ -1046,11 +1062,15 @@ export function updateTreeToolbarState() {
   if (filter.type === 'client' && filter.client) {
     if (label) {
       label.innerText = filter.client;
-      label.title = `Cliente: ${filter.client}`;
+      label.title = `Cliente seleccionado: ${filter.client}`;
     }
+    if (addLabel) addLabel.innerText = `Añadir Marca a ${filter.client}`;
     addBtn.title = `Añadir Marca a ${filter.client}`;
+    if (editLabel) editLabel.innerText = `Editar Cliente`;
     editBtn.title = `Editar Cliente ${filter.client}`;
+    if (dupLabel) dupLabel.innerText = `Duplicar Cliente`;
     dupBtn.title = `Duplicar Cliente ${filter.client}`;
+    if (delLabel) delLabel.innerText = `Eliminar Cliente`;
     delBtn.title = `Eliminar Cliente ${filter.client}`;
 
     [editBtn, dupBtn, delBtn].forEach(btn => {
@@ -1059,12 +1079,16 @@ export function updateTreeToolbarState() {
     });
   } else if (filter.type === 'brand' && filter.brand) {
     if (label) {
-      label.innerText = filter.brand;
+      label.innerText = `${filter.brand}`;
       label.title = `Marca: ${filter.brand} (${filter.client || ''})`;
     }
+    if (addLabel) addLabel.innerText = `Añadir Marca a ${filter.client || 'Cliente'}`;
     addBtn.title = `Añadir Marca a ${filter.client || 'Cliente'}`;
+    if (editLabel) editLabel.innerText = `Editar Marca`;
     editBtn.title = `Editar Marca ${filter.brand}`;
+    if (dupLabel) dupLabel.innerText = `Duplicar Marca`;
     dupBtn.title = `Duplicar Marca ${filter.brand}`;
+    if (delLabel) delLabel.innerText = `Eliminar Marca`;
     delBtn.title = `Eliminar Marca ${filter.brand}`;
 
     [editBtn, dupBtn, delBtn].forEach(btn => {
@@ -1077,9 +1101,13 @@ export function updateTreeToolbarState() {
       label.innerText = 'Clientes';
       label.title = 'Todos los Clientes';
     }
+    if (addLabel) addLabel.innerText = 'Nuevo Cliente';
     addBtn.title = 'Crear Nuevo Cliente';
+    if (editLabel) editLabel.innerText = 'Editar (Selecciona)';
     editBtn.title = 'Selecciona un cliente o marca para editar';
+    if (dupLabel) dupLabel.innerText = 'Duplicar (Selecciona)';
     dupBtn.title = 'Selecciona un cliente o marca para duplicar';
+    if (delLabel) delLabel.innerText = 'Eliminar (Selecciona)';
     delBtn.title = 'Selecciona un cliente o marca para eliminar';
 
     [editBtn, dupBtn, delBtn].forEach(btn => {
@@ -1181,6 +1209,7 @@ export function duplicateBrand(clientName, brandName) {
 
 export function selectTreeFilter(type, client, brand) {
   state.selectedTreeFilter = { type, client, brand };
+  closeTreeActionMenu();
 
   // Si se selecciona un cliente y estaba colapsado, desplegarlo automáticamente
   if (type === 'client' && client && state.collapsedTreeClients) {
@@ -1545,6 +1574,8 @@ if (typeof window !== 'undefined') {
   window.toggleClientTreeCollapse = toggleClientTreeCollapse;
   window.expandAllClientTrees = expandAllClientTrees;
   window.collapseAllClientTrees = collapseAllClientTrees;
+  window.toggleTreeActionMenu = toggleTreeActionMenu;
+  window.closeTreeActionMenu = closeTreeActionMenu;
   window.selectTreeFilter = selectTreeFilter;
   window.updateTreeToolbarState = updateTreeToolbarState;
   window.handleTreeToolbarAdd = handleTreeToolbarAdd;
@@ -1561,5 +1592,17 @@ if (typeof window !== 'undefined') {
   window.handleGlobalStatusChange = handleGlobalStatusChange;
   window.handleGlobalResponsibleChange = handleGlobalResponsibleChange;
   window.getClientColorClasses = getClientColorClasses;
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('tree-action-dropdown');
+    const menuBtn = document.getElementById('tree-menu-btn');
+    if (dropdown && !dropdown.classList.contains('hidden')) {
+      if (!dropdown.contains(e.target) && !menuBtn?.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    }
+  });
 }
 
