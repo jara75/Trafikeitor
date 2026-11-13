@@ -1,14 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-
-export const studios = sqliteTable('studios', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  slug: text('slug').notNull().unique(),
-  name: text('name').notNull(),
-  ownerEmail: text('owner_email').notNull(),
-  planStatus: text('plan_status').notNull().default('active'),
-  departmentsJson: text('departments_json').notNull().default('[]'),
-  createdAt: text('created_at').notNull(),
-});
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 export const organizations = sqliteTable('organizations', {
   id: text('id').primaryKey(),
@@ -17,6 +7,9 @@ export const organizations = sqliteTable('organizations', {
   logo: text('logo'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   metadata: text('metadata'),
+  status: text('status').notNull().default('active'),
+  subscriptionStatus: text('subscription_status').notNull().default('trialing'),
+  trialEndsAt: integer('trial_ends_at', { mode: 'timestamp' }),
 });
 
 export const users = sqliteTable('users', {
@@ -25,13 +18,13 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
   image: text('image'),
-  studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('director'),
-  shortName: text('short_name').notNull().default('Andrés J.'),
+  shortName: text('short_name'),
   color: text('color').notNull().default('cyan'),
   avatarMode: text('avatar_mode').notNull().default('initials'),
   avatarIcon: text('avatar_icon').notNull().default('pen'),
   departments: text('departments').notNull().default('["Cuentas","Tráfico","Creativos"]'),
+  phone: text('phone'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
@@ -78,6 +71,9 @@ export const members = sqliteTable('members', {
   organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('member'),
+  allowedClientId: text('allowed_client_id').notNull().default('*'),
+  status: text('status').notNull().default('active'),
+  roleTitle: text('role_title').notNull().default('Creativo'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
@@ -86,6 +82,7 @@ export const invitations = sqliteTable('invitations', {
   organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
   role: text('role'),
+  allowedClientId: text('allowed_client_id').notNull().default('*'),
   status: text('status').notNull().default('pending'),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
@@ -95,7 +92,6 @@ export const invitations = sqliteTable('invitations', {
 export const clients = sqliteTable('clients', {
   id: text('id').primaryKey(),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   color: text('color').notNull().default('emerald'),
   brandsJson: text('brands_json').notNull().default('[]'),
@@ -105,7 +101,6 @@ export const clients = sqliteTable('clients', {
 export const statuses = sqliteTable('statuses', {
   id: text('id').primaryKey(),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   color: text('color').notNull().default('amber'),
   sortOrder: integer('sort_order').notNull().default(0),
@@ -114,7 +109,7 @@ export const statuses = sqliteTable('statuses', {
 export const workOrders = sqliteTable('work_orders', {
   id: text('id').primaryKey(),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1).references(() => studios.id, { onDelete: 'cascade' }),
+  parentOtId: text('parent_ot_id'),
   ref: text('ref').notNull().default(''),
   discipline: text('discipline').notNull().default('advertising'),
   client: text('client').notNull(),
@@ -123,10 +118,11 @@ export const workOrders = sqliteTable('work_orders', {
   title: text('title').notNull(),
   media: text('media').notNull().default(''),
   status: text('status').notNull().default('En Redacción'),
-  responsible: text('responsible').notNull().default('Andrés J.'),
+  responsible: text('responsible').notNull().default(''),
   urgent: integer('urgent', { mode: 'boolean' }).notNull().default(false),
   brief: text('brief').notNull().default(''),
   legalText: text('legal_text').notNull().default(''),
+  reopenReason: text('reopen_reason'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
@@ -134,7 +130,6 @@ export const workOrders = sqliteTable('work_orders', {
 export const routeEntries = sqliteTable('route_entries', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1),
   otId: text('ot_id').notNull().references(() => workOrders.id, { onDelete: 'cascade' }),
   lineNumber: integer('line_number').notNull().default(1),
   fromDept: text('from_dept').notNull().default('Cuentas'),
@@ -142,7 +137,7 @@ export const routeEntries = sqliteTable('route_entries', {
   task: text('task').notNull().default(''),
   entryDate: text('entry_date').notNull(),
   deliveryDate: text('delivery_date').notNull().default(''),
-  sign: text('sign').default('Andrés J.'),
+  sign: text('sign').default(''),
   notes: text('notes').default(''),
   stamp: text('stamp'),
   completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
@@ -152,7 +147,6 @@ export const routeEntries = sqliteTable('route_entries', {
 export const mediaFiles = sqliteTable('media_files', {
   id: text('id').primaryKey(),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1),
   otId: text('ot_id').notNull().references(() => workOrders.id, { onDelete: 'cascade' }),
   routeEntryId: integer('route_entry_id'),
   name: text('name').notNull(),
@@ -164,12 +158,15 @@ export const mediaFiles = sqliteTable('media_files', {
   previewUrl: text('preview_url'),
   previewKind: text('preview_kind'),
   content: text('content'),
+  versionGroupId: text('version_group_id'),
+  versionNumber: integer('version_number').notNull().default(1),
+  reviewStatus: text('review_status').notNull().default('draft'),
 });
 
 export const stripboardStrips = sqliteTable('stripboard_strips', {
   id: text('id').primaryKey(),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1),
+  userId: text('user_id'),
   dateStr: text('date_str').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   type: text('type').notNull().default('ot'),
@@ -187,12 +184,38 @@ export const stripboardStrips = sqliteTable('stripboard_strips', {
 export const sharedReviews = sqliteTable('shared_reviews', {
   token: text('token').primaryKey(),
   organizationId: text('organization_id'),
-  studioId: integer('studio_id').notNull().default(1),
   otId: text('ot_id').notNull().references(() => workOrders.id, { onDelete: 'cascade' }),
+  mediaFileId: text('media_file_id'),
   routeEntryIdsJson: text('route_entry_ids_json').notNull().default('[]'),
   allowFullOt: integer('allow_full_ot', { mode: 'boolean' }).notNull().default(true),
   reviewerLabel: text('reviewer_label').default('Cliente'),
   expiresAt: text('expires_at'),
   revoked: integer('revoked', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull(),
+});
+
+export const reviewThreads = sqliteTable('review_threads', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
+  mediaFileId: text('media_file_id').notNull().references(() => mediaFiles.id, { onDelete: 'cascade' }),
+  pinNumber: integer('pin_number').notNull(),
+  xPercent: real('x_percent').notNull(),
+  yPercent: real('y_percent').notNull(),
+  pageNumber: integer('page_number').notNull().default(1),
+  pinColor: text('pin_color').notNull().default('teal'),
+  isResolved: integer('is_resolved', { mode: 'boolean' }).notNull().default(false),
+  resolvedByName: text('resolved_by_name'),
+  createdAt: text('created_at').notNull(),
+});
+
+export const reviewMessages = sqliteTable('review_messages', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id'),
+  mediaFileId: text('media_file_id').notNull().references(() => mediaFiles.id, { onDelete: 'cascade' }),
+  threadId: text('thread_id').references(() => reviewThreads.id, { onDelete: 'cascade' }),
+  authorUserId: text('author_user_id'),
+  authorName: text('author_name').notNull(),
+  authorRole: text('author_role').notNull().default('client'),
+  content: text('content').notNull(),
   createdAt: text('created_at').notNull(),
 });

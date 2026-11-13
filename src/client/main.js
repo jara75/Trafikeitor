@@ -7,15 +7,19 @@
 import {
   state,
   emit,
-  on
+  on,
+  clearScopedLocalCache
 } from './core-state.js';
 
 import {
   bootstrap,
   scheduleSync,
   getCurrentUser,
+  getCurrentOrganization,
   escapeHtml,
+  translateAuthError,
   getUserProfile,
+  deriveShortName,
   renderUserAvatarHtml
 } from './data-bridge.js';
 
@@ -296,6 +300,27 @@ function setupEventDelegation() {
   // 3. Atajos de Teclado Globales (Escape y Flechas de Visor)
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      const onboardingModal = document.getElementById('onboarding-studio-modal');
+      if (onboardingModal && !onboardingModal.classList.contains('hidden')) {
+        return;
+      }
+      const paywallModal = document.getElementById('subscription-paywall-modal');
+      if (paywallModal && !paywallModal.classList.contains('hidden')) {
+        if (paywallModal.dataset.blocking === 'true') {
+          return;
+        }
+        if (typeof closeSubscriptionPaywallModal === 'function') {
+          closeSubscriptionPaywallModal();
+        }
+        return;
+      }
+      const reassignModal = document.getElementById('member-reassign-modal');
+      if (reassignModal && !reassignModal.classList.contains('hidden')) {
+        if (typeof window.closeMemberReassignModal === 'function') {
+          window.closeMemberReassignModal();
+        }
+        return;
+      }
       const userProfileModal = document.getElementById('user-profile-modal');
       if (userProfileModal && !userProfileModal.classList.contains('hidden')) {
         closeUserProfileModal();
@@ -373,13 +398,57 @@ export function updateSyncBadge(stateText, isSaving) {
   }
 }
 
+export function updateTrialBadge(org) {
+  if (typeof document === 'undefined') return;
+  const badge = document.getElementById('header-trial-badge');
+  const textEl = document.getElementById('header-trial-text');
+  if (!badge) return;
+
+  if (!org) {
+    badge.classList.add('hidden');
+    badge.classList.remove('flex');
+    return;
+  }
+
+  const subStatus = org.subscriptionStatus || 'trialing';
+  const trialDaysLeft = typeof org.trialDaysLeft === 'number' ? org.trialDaysLeft : 14;
+
+  badge.classList.remove('hidden');
+  badge.classList.add('flex');
+
+  badge.className = 'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[10px] font-semibold border transition-all cursor-pointer select-none';
+
+  if (subStatus === 'active') {
+    badge.classList.add('bg-cyan-500/10', 'border-cyan-500/25', 'text-cyan-300', 'hover:bg-cyan-500/20');
+    if (textEl) textEl.innerText = 'Plan Pro Activo';
+    badge.title = 'Suscripción Pro activa y vigente';
+  } else if (trialDaysLeft <= 0) {
+    badge.classList.add('bg-rose-500/15', 'border-rose-500/35', 'text-rose-300', 'hover:bg-rose-500/25');
+    if (textEl) textEl.innerText = 'Prueba Finalizada';
+    badge.title = 'Período de prueba finalizado. Clic para activar con Bold.';
+  } else if (trialDaysLeft <= 3) {
+    badge.classList.add('bg-amber-500/15', 'border-amber-500/35', 'text-amber-300', 'hover:bg-amber-500/25', 'animate-pulse');
+    if (textEl) textEl.innerText = `Prueba Pro: ${trialDaysLeft} ${trialDaysLeft === 1 ? 'día' : 'días'}`;
+    badge.title = `Prueba por vencer (${trialDaysLeft} días restantes). Clic para activar con Bold.`;
+  } else {
+    badge.classList.add('bg-emerald-500/10', 'border-emerald-500/25', 'text-emerald-300', 'hover:bg-emerald-500/20');
+    if (textEl) textEl.innerText = `Prueba Pro: ${trialDaysLeft} días`;
+    badge.title = `Prueba Pro activa (${trialDaysLeft} días restantes). Clic para ver detalles.`;
+  }
+}
+
 export function updateUserPill(user) {
   if (typeof document === 'undefined') return;
   const container = document.getElementById('header-user-container');
   if (!container) return;
 
   const profile = getUserProfile();
-  const displayName = profile.shortName || (user && user.name ? user.name.split(' ')[0] : 'Andrés J.');
+  const rawShort = (profile.shortName || '').trim();
+  const cleanName = (user && user.name ? user.name : profile.fullName || '').trim();
+  const isResidual = rawShort === 'Andrés J.' && cleanName && !cleanName.toLowerCase().includes('andrés');
+  const displayName = (!rawShort || isResidual)
+    ? (deriveShortName(cleanName) || cleanName || 'Usuario')
+    : rawShort;
   const colorClasses = getResponsibleColorClasses(displayName);
 
   if (user) {
@@ -418,11 +487,13 @@ export function updateUserPill(user) {
   }
 }
 
-export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
+export function showAuthGate(hasAnyUsers = true, inviteIdParam = null, inviteInfo = null) {
   if (typeof document === 'undefined') return;
 
   const urlParams = new URLSearchParams(window.location.search);
   const inviteId = inviteIdParam || urlParams.get('invite');
+  const activeUser = getCurrentUser();
+  const invitedEmail = inviteInfo?.email || '';
 
   let gate = document.getElementById('elmarcante-auth-gate');
   if (gate) gate.remove();
@@ -456,8 +527,10 @@ export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
           <div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
             <span class="text-base leading-none pt-0.5">🤝</span>
             <div>
-              <div class="font-bold text-amber-300 text-[11px]">Invitación a Micro-Estudio</div>
-              <div class="text-[10px] text-zinc-300 leading-relaxed mt-0.5">Te han invitado a colaborar en un espacio de trabajo en El Marcante. Regístrate o inicia sesión con tu correo para unirte automáticamente al equipo.</div>
+              <div class="font-bold text-amber-300 text-[11px]">Invitación a ${escapeHtml(inviteInfo?.organizationName || 'Micro-Estudio')}</div>
+              <div class="text-[10px] text-zinc-300 leading-relaxed mt-0.5">
+                ${invitedEmail ? `Invitación dirigida a <strong class="text-white">${escapeHtml(invitedEmail)}</strong>. ` : ''}Regístrate o inicia sesión con ese correo para unirte automáticamente al equipo.
+              </div>
             </div>
           </div>
         ` : ''}
@@ -472,13 +545,13 @@ export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
           ${isRegisterMode ? `
             <div>
               <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre Completo *</label>
-              <input type="text" id="auth-name" required placeholder="Ej: Andrés Jaramillo" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+              <input type="text" id="auth-name" required placeholder="Ej: Carolina Cárdenas" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
             </div>
           ` : ''}
 
           <div>
             <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Correo Electrónico *</label>
-            <input type="email" id="auth-email" required placeholder="correo@estudio.com" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+            <input type="email" id="auth-email" required placeholder="correo@estudio.com" value="${escapeHtml(invitedEmail)}" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
           </div>
 
           <div>
@@ -566,6 +639,15 @@ export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
       const name = nameInput ? nameInput.value.trim() : (email.split('@')[0] || 'Colaborador');
 
       try {
+        if (inviteId && getCurrentUser()) {
+          await fetch('/api/auth/sign-out', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({}),
+          }).catch(() => {});
+        }
+
         const endpoint = isRegisterMode ? '/api/auth/sign-up/email' : '/api/auth/sign-in/email';
         const payload = isRegisterMode ? { name, email, password } : { email, password };
 
@@ -578,7 +660,7 @@ export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.error) {
-          throw new Error(data.message || data.error?.message || 'Credenciales inválidas o error de acceso.');
+          throw new Error(translateAuthError(data.message || data.error?.message, 'Credenciales inválidas o error de acceso.'));
         }
 
         // Si venía de una invitación, aceptarla y fijar la organización como activa
@@ -609,7 +691,11 @@ export function showAuthGate(hasAnyUsers = true, inviteIdParam = null) {
         gate.remove();
         await bootstrap();
         updateUserPill(getCurrentUser());
+        updateTrialBadge(getCurrentOrganization());
         refreshAllViews();
+        if (typeof window.loadTeamTabUI === 'function') {
+          window.loadTeamTabUI();
+        }
       } catch (err) {
         errEl.innerText = err.message || 'Error al autenticar';
         errEl.classList.remove('hidden');
@@ -633,6 +719,15 @@ on('sync:status', (e) => {
 on('data:ready', (e) => {
   if (!e || !e.detail) return;
   if (e.detail.user) updateUserPill(e.detail.user);
+  if (e.detail.organization) {
+    updateTrialBadge(e.detail.organization);
+    // Si la prueba expiró y no hay suscripción activa, abrir paywall bloqueante
+    if (e.detail.organization.trialDaysLeft <= 0 && e.detail.organization.subscriptionStatus !== 'active') {
+      if (typeof window.openSubscriptionPaywallModal === 'function') {
+        window.openSubscriptionPaywallModal(true);
+      }
+    }
+  }
   if (e.detail.authRequired) {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteId = urlParams.get('invite');
@@ -646,8 +741,147 @@ on('auth:required', (e) => {
   showAuthGate(e && e.detail ? e.detail.hasUsers : true, inviteId);
 });
 
+on('auth:no-organization', (e) => {
+  if (typeof window.openOnboardingStudioModal === 'function') {
+    window.openOnboardingStudioModal();
+  }
+});
+
+on('auth:account-deactivated', (e) => {
+  if (typeof document === 'undefined') return;
+  let overlay = document.getElementById('account-deactivated-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'account-deactivated-overlay';
+    overlay.className = 'fixed inset-0 bg-black/90 backdrop-blur-xl z-[10000] flex items-center justify-center p-4';
+    const msg = escapeHtml((e && e.detail && e.detail.message) || 'Tu cuenta ha sido desactivada en este estudio. Contacta al Director del espacio.');
+    overlay.innerHTML = `
+      <div class="w-full max-w-md bg-resolve-surface border border-rose-500/40 rounded-2xl shadow-2xl p-6 text-center space-y-4">
+        <div class="w-12 h-12 mx-auto rounded-full bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 text-xl font-bold">!</div>
+        <h2 class="text-base font-bold text-white">Acceso Suspendido</h2>
+        <p class="text-xs text-zinc-400 leading-relaxed">${msg}</p>
+        <button type="button" onclick="if(typeof handleUserSignOut==='function'){handleUserSignOut();}" class="w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-semibold text-xs transition-all cursor-pointer">
+          Cerrar Sesión
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+});
+
+on('billing:trial-expired', () => {
+  if (typeof window.openSubscriptionPaywallModal === 'function') {
+    window.openSubscriptionPaywallModal(true);
+  }
+});
+
+on('license:suspended', async (e) => {
+  if (typeof document === 'undefined') return;
+  const gate = document.getElementById('license-suspended-gate');
+  if (!gate) return;
+  gate.classList.remove('hidden');
+  gate.classList.add('flex');
+
+  const msgEl = document.getElementById('license-suspended-message');
+  if (msgEl && e?.detail?.message) {
+    msgEl.textContent = e.detail.message;
+  }
+
+  const switcherBox = document.getElementById('license-suspended-org-switcher');
+  if (switcherBox) {
+    try {
+      const res = await fetch('/api/auth/organization/list', { credentials: 'include' });
+      const orgs = res.ok ? await res.json() : [];
+      if (Array.isArray(orgs) && orgs.length > 1) {
+        const currentId = state.organizationId;
+        const buttons = orgs
+          .filter((o) => o && o.id && o.id !== currentId)
+          .map(
+            (o) =>
+              `<button type="button" onclick="window.switchActiveOrganization('${escapeHtml(o.id)}')" class="w-full py-2 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 border border-white/10 text-xs font-medium transition-all cursor-pointer truncate">Cambiar a ${escapeHtml(o.name || o.slug || o.id)}</button>`
+          )
+          .join('');
+        if (buttons) {
+          switcherBox.innerHTML = `<div class="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">Cambiar de estudio</div>${buttons}`;
+          switcherBox.classList.remove('hidden');
+        }
+      }
+    } catch {
+      // Ignorar fallo de red al listar estudios
+    }
+  }
+});
+
 on('user:profile-updated', () => {
   updateUserPill(getCurrentUser());
+});
+
+async function switchActiveOrganization(orgId) {
+  if (!orgId || orgId === state.organizationId) return;
+  try {
+    const res = await fetch('/api/auth/organization/set-active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ organizationId: orgId })
+    });
+    if (res.ok) {
+      clearScopedLocalCache();
+      window.location.reload();
+    }
+  } catch (err) {
+    console.error('Error al cambiar de organización:', err);
+  }
+}
+if (typeof window !== 'undefined') {
+  window.switchActiveOrganization = switchActiveOrganization;
+}
+
+async function syncRoleHeaderVisibilityAndOrgSwitcher() {
+  if (typeof document === 'undefined') return;
+  const restoreLabel = document.getElementById('header-restore-label');
+  if (restoreLabel) {
+    restoreLabel.classList.toggle('hidden', state.memberRole !== 'owner');
+  }
+
+  const userContainer = document.getElementById('header-user-container');
+  const existingSwitcher = document.getElementById('header-org-switcher');
+  if (!userContainer || !getCurrentUser()) {
+    if (existingSwitcher) existingSwitcher.remove();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/organization/list', { credentials: 'include' });
+    const orgs = res.ok ? await res.json() : [];
+    if (!Array.isArray(orgs) || orgs.length <= 1) {
+      if (existingSwitcher) existingSwitcher.remove();
+      return;
+    }
+
+    let select = existingSwitcher;
+    if (!select) {
+      select = document.createElement('select');
+      select.id = 'header-org-switcher';
+      select.title = 'Cambiar estudio activo';
+      select.className = 'h-7 max-w-[145px] px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 rounded-md border border-white/[0.08] focus:outline-none focus:border-amber-500/50 cursor-pointer truncate';
+      select.onchange = (ev) => switchActiveOrganization(ev.target.value);
+      userContainer.insertBefore(select, userContainer.firstChild);
+    }
+
+    select.innerHTML = orgs
+      .map(
+        (o) =>
+          `<option value="${escapeHtml(o.id)}" ${o.id === state.organizationId ? 'selected' : ''} class="bg-zinc-900 text-zinc-100">${escapeHtml(o.name || o.slug || o.id)}</option>`
+      )
+      .join('');
+  } catch {
+    // Ignorar error de red al consultar lista de estudios
+  }
+}
+
+on('data:ready', () => {
+  syncRoleHeaderVisibilityAndOrgSwitcher();
 });
 
 // ============================================================================
@@ -663,31 +897,49 @@ async function initializeApp() {
   try {
     await bootstrap();
 
-    // Si viene con un enlace de invitación ?invite=... y ya está autenticado, unirse automáticamente
+    // Si viene con un enlace de invitación ?invite=..., validar si coincide con la sesión actual
     const urlParams = new URLSearchParams(window.location.search);
     const inviteId = urlParams.get('invite');
-    if (inviteId && getCurrentUser()) {
+    if (inviteId) {
+      let inviteInfo = null;
       try {
-        const acceptRes = await fetch('/api/auth/organization/accept-invitation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ invitationId: inviteId })
-        });
-        const acceptData = await acceptRes.json().catch(() => ({}));
-        const orgId = acceptData?.invitation?.organizationId || acceptData?.member?.organizationId;
-        if (orgId) {
-          await fetch('/api/auth/organization/set-active', {
+        const invRes = await fetch(`/api/public/invite/${encodeURIComponent(inviteId)}`);
+        if (invRes.ok) {
+          const invJson = await invRes.json();
+          if (invJson?.ok) inviteInfo = invJson.invite;
+        }
+      } catch (_) {}
+
+      const current = getCurrentUser();
+      const sameUser = Boolean(
+        current?.email && inviteInfo?.email && current.email.toLowerCase() === inviteInfo.email.toLowerCase()
+      );
+
+      if (current && sameUser) {
+        try {
+          const acceptRes = await fetch('/api/auth/organization/accept-invitation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ organizationId: orgId })
+            body: JSON.stringify({ invitationId: inviteId })
           });
+          const acceptData = await acceptRes.json().catch(() => ({}));
+          const orgId = acceptData?.invitation?.organizationId || acceptData?.member?.organizationId;
+          if (orgId) {
+            await fetch('/api/auth/organization/set-active', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ organizationId: orgId })
+            });
+          }
+          window.history.replaceState({}, document.title, window.location.pathname);
+          await bootstrap();
+        } catch (e) {
+          console.warn('[Invite] Error procesando invitación de usuario autenticado:', e);
         }
-        window.history.replaceState({}, document.title, window.location.pathname);
-        await bootstrap();
-      } catch (e) {
-        console.warn('[Invite] Error procesando invitación de usuario autenticado:', e);
+      } else {
+        showAuthGate(true, inviteId, inviteInfo);
       }
     }
   } catch (err) {
@@ -695,6 +947,8 @@ async function initializeApp() {
   }
 
   updateUserPill(getCurrentUser());
+  updateTrialBadge(getCurrentOrganization());
+  syncRoleHeaderVisibilityAndOrgSwitcher();
 
   // 2. Renderizar componentes iniciales
   renderStatusSelects();
@@ -706,6 +960,14 @@ async function initializeApp() {
   updateClientsDatalist();
   updateDeptOptionsDatalist();
   initStripboard();
+
+  const otParam = new URLSearchParams(window.location.search).get('ot');
+  if (otParam && typeof window.openEnvelopeModal === 'function') {
+    window.openEnvelopeModal(otParam);
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('ot');
+    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+  }
 
   console.log('TRAFIKEITOR v1.1 // Listo.');
 }
@@ -723,6 +985,7 @@ if (typeof window !== 'undefined') {
   window.switchMainView = switchMainView;
   window.showAuthGate = showAuthGate;
   window.updateUserPill = updateUserPill;
+  window.updateTrialBadge = updateTrialBadge;
   window.updateSyncBadge = updateSyncBadge;
   window.initSidebarResizer = initSidebarResizer;
 }

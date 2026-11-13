@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revisión Colaborativa — Trafikeitor</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            resolve: {
+              bg: '#0d0e11',
+              panel: '#15161a',
+              surface: '#1b1c22',
+              card: '#22232a',
+              border: 'rgba(255, 255, 255, 0.08)',
+              lightText: '#f4f4f6',
+              dimText: '#9496a1',
+              accent: '#f59e0b',
+              teal: '#0BA2AC',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['"SF Mono"', '"JetBrains Mono"', 'ui-monospace', 'Menlo', 'Monaco', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/src/client/styles.css">
+</head>
+<body class="h-full bg-resolve-bg text-resolve-lightText font-sans antialiased flex flex-col overflow-hidden select-none">
+
+  <!-- HEADER BAR -->
+  <header class="h-14 shrink-0 bg-resolve-panel border-b border-resolve-border px-4 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <a id="rv-back-ot-btn" href="/" class="hidden items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-resolve-border text-xs font-semibold text-zinc-200 hover:text-white transition-colors shrink-0" title="Regresar a la Orden de Trabajo">
+        <span>←</span>
+        <span>Volver a la OT</span>
+      </a>
+      <div class="w-8 h-8 rounded-lg bg-[#0BA2AC]/15 border border-[#0BA2AC]/40 flex items-center justify-center text-[#0BA2AC] font-bold text-xs shrink-0">
+        RV
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span id="rv-ot-id" class="font-mono text-[11px] font-semibold text-[#0BA2AC] bg-[#0BA2AC]/10 border border-[#0BA2AC]/30 px-1.5 py-0.5 rounded">OT</span>
+          <h1 id="rv-title" class="text-sm font-semibold text-white truncate">Cargando pieza...</h1>
+          <span id="rv-status-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-resolve-border bg-white/[0.04] text-resolve-dimText">En Revisión</span>
+        </div>
+        <div id="rv-subtitle" class="text-[11px] text-resolve-dimText truncate">Mesa de Revisión Colaborativa</div>
+      </div>
+    </div>
+
+    <!-- CONTROLES CENTRALES: VERSIONES, ZOOM, PAGINACIÓN PDF -->
+    <div class="flex items-center gap-2 shrink-0">
+      <select id="rv-version-select" class="hidden bg-resolve-surface border border-resolve-border rounded-lg px-2.5 py-1 text-xs font-semibold text-white outline-none focus:border-[#0BA2AC] cursor-pointer"></select>
+
+      <div id="rv-pdf-pager" class="hidden items-center gap-1 bg-resolve-surface border border-resolve-border rounded-lg px-1.5 py-1 text-xs">
+        <button id="rv-pdf-prev" type="button" class="px-1.5 py-0.5 rounded hover:bg-white/[0.08] text-resolve-dimText hover:text-white cursor-pointer">◀</button>
+        <span id="rv-pdf-page-label" class="font-mono text-[11px] text-white px-1.5">1 / 1</span>
+        <button id="rv-pdf-next" type="button" class="px-1.5 py-0.5 rounded hover:bg-white/[0.08] text-resolve-dimText hover:text-white cursor-pointer">▶</button>
+      </div>
+
+      <div class="flex items-center gap-1 bg-resolve-surface border border-resolve-border rounded-lg px-1.5 py-1 text-xs">
+        <button id="rv-zoom-out" type="button" title="Alejar" class="px-1.5 py-0.5 rounded hover:bg-white/[0.08] text-resolve-dimText hover:text-white cursor-pointer">−</button>
+        <button id="rv-zoom-reset" type="button" title="Restablecer 100%" class="font-mono text-[11px] text-white px-1.5 hover:text-[#0BA2AC] cursor-pointer">100%</button>
+        <button id="rv-zoom-in" type="button" title="Acercar" class="px-1.5 py-0.5 rounded hover:bg-white/[0.08] text-resolve-dimText hover:text-white cursor-pointer">+</button>
+      </div>
+
+      <div id="rv-pin-color-picker" class="flex items-center gap-1 bg-resolve-surface border border-resolve-border rounded-lg px-2 py-1" title="Color de los pines para contrastar con el fondo"></div>
+
+      <button id="rv-toggle-resolved" type="button" class="px-2.5 py-1.5 rounded-lg border border-resolve-border bg-resolve-surface hover:bg-white/[0.06] text-xs text-resolve-dimText hover:text-white cursor-pointer transition-colors">
+        Ocultar resueltos
+      </button>
+    </div>
+
+    <!-- ACCIONES PRINCIPALES -->
+    <div class="flex items-center gap-2 shrink-0">
+      <div id="rv-author-pill" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-resolve-border text-[11px] text-resolve-dimText cursor-pointer" title="Cambiar nombre de firma">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#0BA2AC]"></span>
+        <span id="rv-author-name-label">Invitado</span>
+      </div>
+      <button id="rv-btn-changes" type="button" class="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold cursor-pointer transition-colors">
+        Solicitar Cambios
+      </button>
+      <button id="rv-btn-approve" type="button" class="px-3.5 py-1.5 rounded-lg bg-[#0BA2AC] hover:bg-[#098d96] text-white text-xs font-semibold border border-[#0BA2AC] cursor-pointer transition-colors">
+        Aprobar Pieza
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN SPLIT VIEW (70% CANVAS / 30% HILOS) -->
+  <main class="flex-1 flex min-h-0 overflow-hidden">
+    <!-- ÁREA CENTRAL: LIENZO -->
+    <section id="rv-canvas-viewport" class="flex-1 relative bg-[#090a0d] overflow-hidden flex items-center justify-center">
+      <div id="rv-empty-state" class="hidden text-center p-8 max-w-md">
+        <p class="text-sm font-semibold text-white mb-1">Enlace no disponible</p>
+        <p id="rv-error-msg" class="text-xs text-resolve-dimText">No fue posible cargar esta revisión.</p>
+      </div>
+
+      <!-- WRAPPER TRANSFORMABLE (ZOOM + PAN) -->
+      <div id="rv-transform-stage" class="relative origin-center will-change-transform hidden">
+        <!-- CAPA BASE: IMG / CANVAS PDF / VIDEO -->
+        <img id="rv-base-img" class="hidden max-w-none block rounded border border-resolve-border pointer-events-none" draggable="false" alt="Pieza en revisión">
+        <canvas id="rv-base-pdf" class="hidden block rounded border border-resolve-border pointer-events-none"></canvas>
+        <video id="rv-base-video" class="hidden max-w-[78vw] max-h-[78vh] rounded border border-resolve-border" controls></video>
+
+        <!-- CAPA OVERLAY DE PINES -->
+        <div id="rv-overlay" class="absolute inset-0 cursor-crosshair"></div>
+      </div>
+
+      <!-- POPOVER CREACIÓN RÁPIDA DE PIN -->
+      <form id="rv-pin-popover" class="hidden absolute z-30 w-72 bg-resolve-panel border border-resolve-border rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between text-[11px] text-resolve-dimText">
+          <span class="font-semibold text-white">Nuevo comentario anclado</span>
+          <button type="button" id="rv-pin-cancel" class="hover:text-white cursor-pointer">✕</button>
+        </div>
+        <textarea id="rv-pin-input" rows="3" placeholder="Escribe tu nota sobre este punto..." class="w-full bg-resolve-bg border border-resolve-border rounded-lg p-2 text-xs text-white placeholder-resolve-dimText outline-none focus:border-[#0BA2AC] resize-none"></textarea>
+        <div class="flex justify-end gap-2">
+          <button type="submit" class="px-3 py-1.5 rounded-lg bg-[#0BA2AC] hover:bg-[#098d96] text-white text-xs font-semibold cursor-pointer">Publicar Pin</button>
+        </div>
+      </form>
+
+      <div class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-resolve-panel/90 border border-resolve-border text-[10px] text-resolve-dimText pointer-events-none">
+        Clic en la pieza para anclar nota • Rueda para zoom • Arrastrar con clic derecho o Alt+clic para mover
+      </div>
+
+      <!-- BOTÓN FLOTANTE PARA EXPANDIR PANEL COLAPSADO -->
+      <button id="rv-sidebar-expand-btn" type="button" class="hidden absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-resolve-panel/95 hover:bg-resolve-card border border-resolve-border text-xs font-semibold text-zinc-200 hover:text-white shadow-xl cursor-pointer transition-all" title="Mostrar panel de comentarios">
+        <svg class="w-3.5 h-3.5 text-[#0BA2AC]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <span>Comentarios</span>
+        <span id="rv-sidebar-expand-count" class="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-white/[0.08] text-amber-300">0</span>
+      </button>
+    </section>
+
+    <!-- DIVISOR REDIMENSIONABLE (1px hairline con área táctil amplia) -->
+    <div id="rv-sidebar-resizer" class="relative w-px shrink-0 bg-white/[0.08] hover:bg-amber-400/80 active:bg-amber-400 cursor-col-resize transition-colors group" title="Arrastra para redimensionar el panel">
+      <div class="absolute inset-y-0 -left-1.5 w-3 cursor-col-resize"></div>
+    </div>
+
+    <!-- PANEL LATERAL: HILOS Y COMENTARIOS GENERALES -->
+    <aside id="rv-sidebar" class="w-80 lg:w-96 shrink-0 bg-resolve-panel flex flex-col min-h-0">
+      <div class="px-4 py-3 border-b border-resolve-border flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-white">Comentarios y Pines</span>
+        <div class="flex items-center gap-2">
+          <button id="rv-toggle-collapse-all" type="button" class="text-[10px] px-2 py-0.5 rounded border border-resolve-border bg-white/[0.04] hover:bg-white/[0.10] text-resolve-dimText hover:text-white cursor-pointer transition-colors">Contraer todo</button>
+          <span id="rv-threads-count" class="text-[11px] font-mono text-resolve-dimText">0</span>
+          <button id="rv-sidebar-collapse-btn" type="button" class="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.05] hover:bg-white/[0.12] border border-resolve-border text-zinc-300 hover:text-white cursor-pointer transition-colors" title="Ocultar panel hacia la derecha">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="rv-threads-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 select-text"></div>
+
+      <!-- COMENTARIO GENERAL -->
+      <form id="rv-general-form" class="p-3 border-t border-resolve-border bg-resolve-surface/60 space-y-2">
+        <textarea id="rv-general-input" rows="2" placeholder="Añadir comentario general sobre la pieza..." class="w-full bg-resolve-bg border border-resolve-border rounded-lg p-2 text-xs text-white placeholder-resolve-dimText outline-none focus:border-[#0BA2AC] resize-none"></textarea>
+        <div class="flex justify-end">
+          <button type="submit" class="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] border border-resolve-border text-xs font-semibold text-white cursor-pointer">Enviar comentario</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+
+  <!-- MODAL DE BIENVENIDA PARA INVITADOS -->
+  <div id="rv-guest-modal" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <form id="rv-guest-form" class="w-full max-w-sm bg-resolve-panel border border-resolve-border rounded-xl p-5 space-y-3">
+      <h2 class="text-sm font-semibold text-white">¿Cuál es tu nombre para firmar tus notas?</h2>
+      <p class="text-xs text-resolve-dimText">No necesitas crear cuenta. Tu nombre aparecerá junto a tus pines y decisiones en la hoja de ruta.</p>
+      <input id="rv-guest-input" type="text" required placeholder="Ej: María Gómez (Cliente)" class="w-full bg-resolve-bg border border-resolve-border rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#0BA2AC]">
+      <div class="flex justify-end">
+        <button type="submit" class="px-4 py-1.5 rounded-lg bg-[#0BA2AC] hover:bg-[#098d96] text-white text-xs font-semibold cursor-pointer">Continuar</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="/src/client/review-viewer.js"></script>
+</body>
+</html>
+

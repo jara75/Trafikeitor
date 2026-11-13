@@ -1,7 +1,7 @@
 /**
  * TRAFIKEITOR // CONTROLADOR DE MODALES Y VISORES
  * Módulo 5: Gestión unificada de los 8 modales de la aplicación, visualizador multimedia fullscreen,
- * motor de previsualización inline, hoja de ruta, sellos retro y respaldos JSON.
+ * motor de previsualización inline, hoja de ruta, firmas retro y respaldos JSON.
  */
 
 import {
@@ -15,13 +15,17 @@ import {
   STATUSES_STORAGE_KEY,
   RESPONSIBLES_STORAGE_KEY,
   STRIPBOARD_STORAGE_KEY,
-  USER_AVATAR_ICONS
+  USER_AVATAR_ICONS,
+  isOtTerminal
 } from './core-state.js';
 
 import {
   getOrders,
   saveOrders,
+  createOt,
   getOrderById,
+  deleteOt,
+  clearScopedLocalCache,
   getClients,
   saveClients,
   addClient,
@@ -38,6 +42,8 @@ import {
   getDepartments,
   addDepartment,
   getDepartmentOptionsHtml,
+  getActiveRoute,
+  syncOtStatusAndRoute,
   getAllStripboardStorage,
   getDayStrips,
   saveDayStrips,
@@ -45,14 +51,19 @@ import {
   toIsoDateTime,
   fromIsoToDisplay,
   escapeHtml,
+  translateAuthError,
   uploadOtFiles,
+  shareMediaForReview,
+  uploadMediaVersion,
   getUserProfile,
   saveUserProfile,
   getActiveUserShortName,
+  deriveShortName,
   renderUserAvatarHtml,
   getCurrentUser,
   getCurrentOrganization,
-  fetchFullOrganization
+  fetchFullOrganization,
+  bootstrap
 } from './data-bridge.js';
 
 import {
@@ -139,11 +150,14 @@ export function openEnvelopeModal(otId) {
   renderStatusSelects();
   renderResponsibleSelects();
 
-  if (document.getElementById('modal-ot-status')) {
-    document.getElementById('modal-ot-status').value = ot.status || 'Tráfico';
+  const modalStatusEl = document.getElementById('modal-ot-status');
+  if (modalStatusEl) {
+    const currentStatus = ot.status || 'Tráfico';
+    modalStatusEl.innerHTML = getStatusOptionsHtml(currentStatus);
+    modalStatusEl.value = currentStatus;
   }
   if (document.getElementById('modal-ot-responsible')) {
-    document.getElementById('modal-ot-responsible').value = ot.responsible || 'Andrés J.';
+    document.getElementById('modal-ot-responsible').value = ot.responsible || getActiveUserShortName() || 'Usuario';
   }
 
   const briefEl = document.getElementById('modal-ot-brief');
@@ -183,10 +197,82 @@ export function openEnvelopeModal(otId) {
   renderRouteSheetRows(ot.routes || []);
   renderMediaPool(ot.mediaFiles || []);
   renderInlineEnvelopeMedia(ot.mediaFiles || []);
+  applyEnvelopeSectionCollapseState();
+
+  // Guardas RBAC y modo solo lectura para Archivada
+  const delBtn = document.getElementById('btn-delete-active-ot');
+  if (delBtn) {
+    if (state.memberRole !== 'owner') delBtn.classList.add('hidden');
+    else delBtn.classList.remove('hidden');
+  }
+
+  const clientInput = document.getElementById('modal-ot-client');
+  if (clientInput) {
+    clientInput.disabled = state.memberRole === 'client' || ot.status === 'Archivada';
+  }
+
+  const isArchived = ot.status === 'Archivada';
+  const reopenBtn = document.getElementById('btn-reopen-archived-ot');
+  if (reopenBtn) {
+    if (isArchived && state.memberRole === 'owner') reopenBtn.classList.remove('hidden');
+    else reopenBtn.classList.add('hidden');
+  }
+
+  const modalEl = document.getElementById('envelope-modal');
+  if (modalEl) {
+    modalEl.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.id === 'modal-schedule-date-input') return;
+      if (isArchived) {
+        el.disabled = true;
+      } else if (el.id !== 'modal-ot-client') {
+        el.disabled = false;
+      }
+    });
+  }
 
   switchOtTab('hoja-ruta');
   const modal = document.getElementById('envelope-modal');
   if (modal) modal.classList.remove('hidden');
+}
+
+export function reopenArchivedOt() {
+  if (state.memberRole !== 'owner' || !state.activeOtId) return;
+  const reason = typeof window !== 'undefined'
+    ? window.prompt('Nota de justificación obligatoria para reabrir esta OT archivada:')
+    : '';
+  if (!reason || !reason.trim()) return;
+
+  const orders = getOrders();
+  const ot = orders.find(o => o.id === state.activeOtId);
+  if (!ot) return;
+  ot.status = 'Tráfico';
+  ot.reopenReason = reason.trim();
+  saveOrders(orders);
+  openEnvelopeModal(ot.id);
+  refreshAllViews();
+}
+
+export function applyEnvelopeSectionCollapseState() {
+  if (typeof document === 'undefined') return;
+  const sections = [
+    { key: 'bitacora', bodyId: 'envelope-bitacora-body', iconId: 'toggle-envelope-bitacora-icon' },
+    { key: 'mediapool', bodyId: 'envelope-mediapool-body', iconId: 'toggle-envelope-mediapool-icon' },
+  ];
+  sections.forEach(({ key, bodyId, iconId }) => {
+    const collapsed = localStorage.getItem(`trafikeitor_env_collapse_${key}`) === '1';
+    const body = document.getElementById(bodyId);
+    const icon = document.getElementById(iconId);
+    if (body) body.classList.toggle('hidden', collapsed);
+    if (icon) icon.classList.toggle('-rotate-90', collapsed);
+  });
+}
+
+export function toggleEnvelopeSection(section) {
+  if (typeof document === 'undefined') return;
+  const storageKey = `trafikeitor_env_collapse_${section}`;
+  const nextCollapsed = localStorage.getItem(storageKey) !== '1';
+  localStorage.setItem(storageKey, nextCollapsed ? '1' : '0');
+  applyEnvelopeSectionCollapseState();
 }
 
 export function closeEnvelopeModal() {
@@ -243,12 +329,11 @@ export function updateActiveOtField(field, value) {
 }
 
 export function deleteActiveOt() {
+  if (state.memberRole !== 'owner') return;
   if (!state.activeOtId) return;
   if (typeof window !== 'undefined' && !window.confirm("¿Deseas eliminar permanentemente esta Orden de Trabajo de la mesa?")) return;
 
-  let orders = getOrders();
-  orders = orders.filter(o => o.id !== state.activeOtId);
-  saveOrders(orders);
+  deleteOt(state.activeOtId);
   closeEnvelopeModal();
 }
 
@@ -324,7 +409,7 @@ export function scheduleActiveOtFromModal() {
 }
 
 // ============================================================================
-// 2. HOJA DE RUTA (7 COLUMNAS) Y SELLOS DE TINTA RETRO
+// 2. HOJA DE RUTA (7 COLUMNAS) Y FIRMAS DE TINTA RETRO
 // ============================================================================
 
 export function renderRouteSheetRows(routes) {
@@ -359,7 +444,7 @@ export function renderRouteSheetRows(routes) {
     } else {
       stampHtml = `
         <button onclick="openStampModal(${index})" class="text-[10px] text-zinc-400 hover:text-white font-medium underline cursor-pointer">
-          + Sello
+          + Firma
         </button>
       `;
     }
@@ -368,39 +453,40 @@ export function renderRouteSheetRows(routes) {
     const zebraClass = isOdd ? 'bg-white/[0.025]' : 'bg-transparent';
 
     return `
-      <tr class="${zebraClass} hover:bg-white/[0.08] transition-colors ${row.completed ? 'opacity-70 bg-black/20' : ''}">
+      <tr class="${zebraClass} hover:bg-white/[0.08] transition-colors text-[11px] ${row.completed ? 'opacity-70 bg-black/20' : ''}">
         <!-- 1. DE: -->
-        <td class="p-2 border-r border-resolve-border align-middle">
+        <td class="p-2 border-r border-resolve-border align-middle text-[11px]">
           <select 
             onchange="handleRouteDeptChange(${index}, 'from', this.value)" 
-            class="w-full bg-black/50 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-1 text-xs font-semibold text-amber-300 focus:border-amber-500/60 focus:outline-none cursor-pointer"
+            class="w-full bg-black/50 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300 focus:border-amber-500/60 focus:outline-none cursor-pointer"
           >
             ${getDepartmentOptionsHtml(row.from || 'Tráfico')}
           </select>
         </td>
 
         <!-- 2. PARA: -->
-        <td class="p-2 border-r border-resolve-border align-middle">
+        <td class="p-2 border-r border-resolve-border align-middle text-[11px]">
           <select 
             onchange="handleRouteDeptChange(${index}, 'to', this.value)" 
-            class="w-full bg-black/50 border border-resolve-border hover:border-sky-400/50 rounded px-1.5 py-1 text-xs font-semibold text-sky-300 focus:border-sky-500/60 focus:outline-none cursor-pointer"
+            class="w-full bg-black/50 border border-resolve-border hover:border-sky-400/50 rounded px-1.5 py-0.5 text-[11px] font-medium text-sky-300 focus:border-sky-500/60 focus:outline-none cursor-pointer"
           >
             ${getDepartmentOptionsHtml(row.to || 'Creativos')}
           </select>
         </td>
 
         <!-- 3. DESCRIPCIÓN -->
-        <td class="p-2 border-r border-resolve-border align-top">
-          <textarea 
-            rows="2" 
+        <td class="p-2 border-r border-resolve-border align-middle text-[11px]">
+          <input 
+            type="text" 
+            value="${escapeHtml(row.task || '')}" 
             onchange="updateRouteCell(${index}, 'task', this.value)" 
             placeholder="Instrucción del relevo..." 
-            class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 text-xs text-zinc-100 leading-relaxed resize-y font-sans"
-          >${escapeHtml(row.task || '')}</textarea>
+            class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 text-[11px] text-zinc-100 px-1 py-0.5 leading-tight"
+          />
         </td>
 
         <!-- 4. ENTRADA -->
-        <td class="p-2 border-r border-resolve-border align-top">
+        <td class="p-2 border-r border-resolve-border align-middle">
           <div class="flex items-center gap-1">
             <input 
               type="datetime-local" 
@@ -408,13 +494,13 @@ export function renderRouteSheetRows(routes) {
               onchange="updateRouteDateCell(${index}, 'entryDate', this.value)" 
               onclick="try { this.showPicker(); } catch(e) {}"
               style="color-scheme: dark;"
-              class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded-lg px-2 py-1 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
+              class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-0.5 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
             />
             <button 
               type="button" 
               title="Poner fecha y hora actual" 
               onclick="stampCurrentTime(${index}, 'entryDate')" 
-              class="p-1 text-zinc-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors shrink-0"
+              class="p-0.5 text-zinc-400 hover:text-white hover:bg-white/[0.08] rounded transition-colors shrink-0"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </button>
@@ -422,59 +508,63 @@ export function renderRouteSheetRows(routes) {
         </td>
 
         <!-- 5. ENTREGA -->
-        <td class="p-2 border-r border-resolve-border align-top">
-          <div class="flex items-center gap-1">
-            <input 
-              type="datetime-local" 
-              value="${toIsoDateTime(row.deliveryDate)}" 
-              onchange="updateRouteDateCell(${index}, 'deliveryDate', this.value)" 
-              onclick="try { this.showPicker(); } catch(e) {}"
-              style="color-scheme: dark;"
-              class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded-lg px-2 py-1 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
-            />
-            <button 
-              type="button" 
-              title="Poner fecha y hora actual" 
-              onclick="stampCurrentTime(${index}, 'deliveryDate')" 
-              class="p-1 text-zinc-400 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors shrink-0"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </button>
-          </div>
+        <td class="p-2 border-r border-resolve-border align-middle">
+          ${(() => {
+            const isLocked = state.memberRole !== 'owner' && Boolean(row.deliveryDate && String(row.deliveryDate).trim());
+            return `
+              <div class="flex items-center gap-1">
+                <input 
+                  type="datetime-local" 
+                  value="${toIsoDateTime(row.deliveryDate)}" 
+                  ${isLocked ? 'disabled title="Solo el Dueño puede modificar una fecha límite comprometida"' : `onchange="updateRouteDateCell(${index}, 'deliveryDate', this.value)" onclick="try { this.showPicker(); } catch(e) {}"`}
+                  style="color-scheme: dark;"
+                  class="w-full bg-black/40 border border-resolve-border rounded px-1.5 py-0.5 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none ${isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-black/60 hover:border-amber-400/50 cursor-pointer'}"
+                />
+                <button 
+                  type="button" 
+                  ${isLocked ? 'disabled title="Solo el Dueño puede modificar una fecha límite comprometida"' : `title="Poner fecha y hora actual" onclick="stampCurrentTime(${index}, 'deliveryDate')"`}
+                  class="p-0.5 text-zinc-400 rounded transition-colors shrink-0 ${isLocked ? 'opacity-40 cursor-not-allowed' : 'hover:text-white hover:bg-white/[0.08]'}"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+              </div>
+            `;
+          })()}
         </td>
 
         <!-- 6. FIRMA -->
-        <td class="p-2 border-r border-resolve-border align-top">
-          <div class="flex flex-col gap-1">
+        <td class="p-2 border-r border-resolve-border align-middle">
+          <div class="flex items-center gap-1.5">
             <select 
               onchange="handleRouteSignChange(${index}, this.value)" 
-              class="w-full bg-black/50 border border-resolve-border hover:${getResponsibleColorClasses(row.sign || row.from || 'Andrés J.').border} rounded px-1.5 py-1 text-[11px] font-semibold ${getResponsibleColorClasses(row.sign || row.from || 'Andrés J.').text} focus:border-current focus:outline-none cursor-pointer"
+              class="w-full bg-black/50 border border-resolve-border hover:${getResponsibleColorClasses(row.sign || row.from || getActiveUserShortName() || 'Usuario').border} rounded px-1.5 py-0.5 text-[11px] font-semibold ${getResponsibleColorClasses(row.sign || row.from || getActiveUserShortName() || 'Usuario').text} focus:border-current focus:outline-none cursor-pointer"
             >
-              ${getResponsibleOptionsHtml(row.sign || row.from || 'Andrés J.')}
+              ${getResponsibleOptionsHtml(row.sign || row.from || getActiveUserShortName() || 'Usuario')}
             </select>
-            <div class="text-center pt-0.5">
+            <div class="shrink-0">
               ${stampHtml}
             </div>
           </div>
         </td>
 
         <!-- 7. NOTAS -->
-        <td class="p-2 border-r border-resolve-border align-top">
-          <textarea 
-            rows="2" 
+        <td class="p-2 border-r border-resolve-border align-middle">
+          <input 
+            type="text" 
+            value="${escapeHtml(row.notes || '')}" 
             onchange="updateRouteCell(${index}, 'notes', this.value)" 
-            placeholder="Notas o comentarios..." 
-            class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 p-1 text-xs text-zinc-300 leading-relaxed resize-y font-sans"
-          >${escapeHtml(row.notes || '')}</textarea>
+            placeholder="Notas..." 
+            class="w-full bg-transparent border-0 border-b border-transparent hover:border-resolve-border focus:border-amber-500 focus:ring-0 text-[11px] text-zinc-300 px-1 py-0.5 leading-tight"
+          />
         </td>
 
         <!-- ACCIONES -->
         <td class="p-2 align-middle text-center">
           <div class="flex items-center justify-center gap-1">
-            <button onclick="toggleRouteDone(${index})" title="${row.completed ? 'Marcar pendiente' : 'Completado'}" class="p-1 ${row.completed ? 'text-emerald-400' : 'text-resolve-dimText hover:text-white'}">
+            <button onclick="toggleRouteDone(${index})" title="${row.completed ? 'Marcar pendiente' : 'Completado'}" class="p-0.5 ${row.completed ? 'text-emerald-400' : 'text-resolve-dimText hover:text-white'}">
               ✓
             </button>
-            <button onclick="deleteRouteRow(${index})" title="Eliminar fila" class="p-1 text-resolve-dimText hover:text-red-400">
+            <button onclick="deleteRouteRow(${index})" title="Eliminar fila" class="p-0.5 text-resolve-dimText hover:text-red-400">
               ✕
             </button>
           </div>
@@ -510,7 +600,7 @@ export function addNewRouteRow() {
     task: "",
     entryDate: getNowFormatted(),
     deliveryDate: "",
-    sign: activeUserShort || ot.responsible || "Andrés J.",
+    sign: activeUserShort || ot.responsible || "Usuario",
     notes: "",
     stamp: null,
     completed: false
@@ -537,6 +627,21 @@ export function updateRouteDateCell(index, field, isoValue) {
   updateRouteCell(index, field, displayVal);
 }
 
+function isActiveOrLatestRoute(ot, index) {
+  if (!ot || !Array.isArray(ot.routes) || ot.routes.length === 0) return false;
+  const activeRoute = getActiveRoute(ot);
+  return ot.routes[index] === activeRoute || index === ot.routes.length - 1;
+}
+
+function syncHeaderStatusSelect(statusName) {
+  if (typeof document === 'undefined') return;
+  const sel = document.getElementById('modal-ot-status');
+  if (sel) {
+    sel.innerHTML = getStatusOptionsHtml(statusName);
+    sel.value = statusName;
+  }
+}
+
 export function handleRouteDeptChange(index, field, val) {
   if (!state.activeOtId) return;
 
@@ -547,6 +652,11 @@ export function handleRouteDeptChange(index, field, val) {
       updateDeptOptionsDatalist();
       updateRouteCell(index, field, clean);
       const ot = getOrders().find(o => o.id === state.activeOtId);
+      if (ot && field === 'to' && isActiveOrLatestRoute(ot, index)) {
+        syncOtStatusAndRoute(state.activeOtId, clean, { syncLatestRouteTo: true });
+        syncHeaderStatusSelect(clean);
+        refreshAllViews();
+      }
       if (ot) renderRouteSheetRows(ot.routes);
     } else {
       const ot = getOrders().find(o => o.id === state.activeOtId);
@@ -556,26 +666,51 @@ export function handleRouteDeptChange(index, field, val) {
   }
 
   updateRouteCell(index, field, val);
+  if (field === 'to') {
+    const ot = getOrders().find(o => o.id === state.activeOtId);
+    if (ot && isActiveOrLatestRoute(ot, index)) {
+      syncOtStatusAndRoute(state.activeOtId, val, { syncLatestRouteTo: true });
+      syncHeaderStatusSelect(val);
+      refreshAllViews();
+    }
+  }
 }
 
 export function handleRouteSignChange(index, val) {
   if (!state.activeOtId) return;
 
+  let resolvedVal = val;
   if (val === '__NEW_RESPONSIBLE__') {
     const newName = typeof window !== 'undefined' ? window.prompt("Nombre propio del responsable que firma / entrega:") : null;
     if (newName && newName.trim()) {
-      const clean = addResponsible(newName.trim());
-      updateRouteCell(index, 'sign', clean);
-      const ot = getOrders().find(o => o.id === state.activeOtId);
-      if (ot) renderRouteSheetRows(ot.routes);
+      resolvedVal = addResponsible(newName.trim());
+      updateRouteCell(index, 'sign', resolvedVal);
     } else {
       const ot = getOrders().find(o => o.id === state.activeOtId);
       if (ot) renderRouteSheetRows(ot.routes);
+      return;
     }
-    return;
+  } else {
+    updateRouteCell(index, 'sign', resolvedVal);
   }
 
-  updateRouteCell(index, 'sign', val);
+  const orders = getOrders();
+  const ot = orders.find(o => o.id === state.activeOtId);
+  if (ot && isActiveOrLatestRoute(ot, index)) {
+    ot.responsible = resolvedVal;
+    saveOrders(orders);
+    if (typeof document !== 'undefined') {
+      const respSel = document.getElementById('modal-ot-responsible');
+      if (respSel) {
+        respSel.innerHTML = getResponsibleOptionsHtml(resolvedVal);
+        respSel.value = resolvedVal;
+      }
+    }
+    refreshAllViews();
+  }
+  if (val === '__NEW_RESPONSIBLE__' && ot) {
+    renderRouteSheetRows(ot.routes);
+  }
 }
 
 export function stampCurrentTime(index, field) {
@@ -606,7 +741,7 @@ export function deleteRouteRow(index) {
   renderRouteSheetRows(ot.routes);
 }
 
-// Control del Modal de Sellos de Tinta Retro
+// Control del Modal de Firmas de Tinta Retro
 export function openStampModal(index) {
   stampingRowIndex = index;
   const modal = document.getElementById('stamp-modal');
@@ -627,7 +762,25 @@ export function applyStamp(stampText) {
 
   ot.routes[stampingRowIndex].stamp = stampText;
   saveOrders(orders);
+
+  if (isActiveOrLatestRoute(ot, stampingRowIndex)) {
+    const statuses = getStatuses();
+    let mappedStatus = null;
+    if (stampText === 'APROBADO') {
+      mappedStatus = statuses.find(s => /aprob/i.test(s.name))?.name || 'Aprobación';
+    } else if (stampText === 'AJUSTES') {
+      mappedStatus = statuses.find(s => /ajuste|correcc|revisi/i.test(s.name))?.name || 'Ajustes';
+    } else if (stampText === 'ENTREGADO') {
+      mappedStatus = statuses.find(s => /entreg/i.test(s.name))?.name || 'Entregado';
+    }
+    if (mappedStatus) {
+      syncOtStatusAndRoute(state.activeOtId, mappedStatus, { syncLatestRouteTo: true });
+      syncHeaderStatusSelect(mappedStatus);
+    }
+  }
+
   renderRouteSheetRows(ot.routes);
+  refreshAllViews();
   closeStampModal();
 }
 
@@ -756,6 +909,19 @@ export function copyMediaCodeText(text, btn) {
   }
 }
 
+function getReviewStatusBadgeHtml(status) {
+  if (status === 'in_review') {
+    return '<span class="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border border-[#0BA2AC]/40 bg-[#0BA2AC]/15 text-[#0BA2AC]">En Revisión</span>';
+  }
+  if (status === 'changes_requested') {
+    return '<span class="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/15 text-amber-300">Ajustes</span>';
+  }
+  if (status === 'approved') {
+    return '<span class="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 text-emerald-300">Aprobado</span>';
+  }
+  return '';
+}
+
 export function renderMediaPool(files) {
   if (typeof document === 'undefined') return;
   const container = document.getElementById('media-pool-container');
@@ -771,6 +937,8 @@ export function renderMediaPool(files) {
   if (mediaPoolViewMode === 'grid') {
     container.innerHTML = '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">' + files.map((file, idx) => {
       const meta = getMediaMeta(file);
+      const nextVersion = (file.versionNumber || 1) + 1;
+      const reviewBadge = getReviewStatusBadgeHtml(file.reviewStatus);
       const thumb = (meta.type === 'image' && file.url && file.url !== '#')
         ? `<img src="${file.url}" alt="${escapeHtml(file.name)}" class="w-full h-full object-cover">`
         : `<div class="flex flex-col items-center text-center p-2"><span class="px-2 py-0.5 rounded-lg font-semibold text-xs" style="${meta.badgeStyle}">${meta.badge}</span><span class="text-[9px] text-resolve-dimText mt-1.5 uppercase font-semibold">${escapeHtml(meta.subLabel)}</span></div>`;
@@ -781,9 +949,19 @@ export function renderMediaPool(files) {
             <button onclick="removeMediaItem(${idx})" title="Eliminar del Media Pool" class="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-900 text-white rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
           </div>
           <div class="text-[11px]">
-            <div class="font-semibold text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
-            <div class="text-resolve-dimText text-[10px] flex justify-between mt-1"><span>${file.size || 'Web'}</span><span>${file.date ? file.date.split(' ')[0] : ''}</span></div>
-            ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="mt-2 block text-center py-1 bg-white/[0.05] hover:bg-white/[0.10] text-amber-300 font-semibold text-[10px] rounded-lg border border-resolve-border transition-all">Descargar</a>` : ''}
+            <div class="font-semibold text-white truncate flex items-center gap-1.5" title="${escapeHtml(file.name)}">
+              <span class="truncate">${escapeHtml(file.name)}</span>
+              ${file.versionNumber ? `<span class="shrink-0 font-mono text-[9px] px-1 py-0.2 rounded bg-white/[0.08] text-zinc-300">v${file.versionNumber}</span>` : ''}
+            </div>
+            <div class="text-resolve-dimText text-[10px] flex justify-between items-center mt-1 gap-1">
+              <span>${file.size || 'Web'}</span>
+              ${reviewBadge || `<span>${file.date ? file.date.split(' ')[0] : ''}</span>`}
+            </div>
+            <div class="mt-2 flex items-center gap-1">
+              ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="flex-1 text-center py-1 bg-white/[0.05] hover:bg-white/[0.10] text-amber-300 font-semibold text-[10px] rounded-lg border border-resolve-border transition-all">Descargar</a>` : ''}
+              <button type="button" onclick="shareMediaItem(${idx})" title="Compartir para Revisar" class="px-2 py-1 bg-[#0BA2AC]/15 hover:bg-[#0BA2AC]/25 text-[#0BA2AC] font-semibold text-[10px] rounded-lg border border-[#0BA2AC]/40 transition-all cursor-pointer">Revisar</button>
+              <button type="button" onclick="promptUploadMediaVersion(${idx})" title="Subir nueva versión (v${nextVersion})" class="px-1.5 py-1 bg-white/[0.05] hover:bg-white/[0.12] text-zinc-200 font-mono font-semibold text-[10px] rounded-lg border border-resolve-border transition-all cursor-pointer">v${nextVersion}</button>
+            </div>
           </div>
         </div>`;
     }).join('') + '</div>';
@@ -792,20 +970,24 @@ export function renderMediaPool(files) {
       <div class="border border-resolve-border rounded-xl overflow-hidden bg-resolve-surface">
         <table class="w-full text-left text-xs border-collapse">
           <thead><tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
-            <th class="p-2">NOMBRE DEL ARCHIVO</th><th class="p-2 w-32">TIPO</th><th class="p-2 w-24">TAMAÑO</th><th class="p-2 w-36">FECHA SUBIDA</th><th class="p-2 w-28 text-center">ACCIONES</th>
+            <th class="p-2">NOMBRE DEL ARCHIVO</th><th class="p-2 w-32">TIPO</th><th class="p-2 w-24">TAMAÑO</th><th class="p-2 w-36">FECHA SUBIDA</th><th class="p-2 w-36 text-center">ACCIONES</th>
           </tr></thead>
           <tbody class="divide-y divide-resolve-border bg-resolve-bg text-stone-200">
             ${files.map((file, idx) => {
               const meta = getMediaMeta(file);
+              const nextVersion = (file.versionNumber || 1) + 1;
+              const reviewBadge = getReviewStatusBadgeHtml(file.reviewStatus);
               const isOdd = (idx % 2 === 1);
               const zebraClass = isOdd ? 'bg-white/[0.025]' : 'bg-transparent';
               return `<tr class="${zebraClass} hover:bg-white/[0.08] transition-colors">
-                <td class="p-2 font-bold text-white flex items-center gap-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="${meta.badgeStyle}">${meta.badge}</span><span class="truncate">${escapeHtml(file.name)}</span></td>
+                <td class="p-2 font-bold text-white flex items-center gap-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="${meta.badgeStyle}">${meta.badge}</span><span class="truncate">${escapeHtml(file.name)}</span>${file.versionNumber ? `<span class="shrink-0 font-mono text-[9px] px-1 rounded bg-white/[0.08] text-zinc-300">v${file.versionNumber}</span>` : ''}${reviewBadge}</td>
                 <td class="p-2 text-resolve-dimText uppercase text-[10px]">${escapeHtml(meta.subLabel)}</td>
                 <td class="p-2 text-resolve-dimText">${file.size || 'N/A'}</td>
                 <td class="p-2 text-resolve-dimText">${file.date || '--'}</td>
                 <td class="p-2 text-center"><div class="flex items-center justify-center gap-2">
                   ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="text-resolve-accent hover:underline text-[11px]">Abrir</a>` : ''}
+                  <button type="button" onclick="shareMediaItem(${idx})" title="Compartir para Revisar" class="text-[#0BA2AC] hover:underline text-[11px] font-semibold cursor-pointer">Revisar</button>
+                  <button type="button" onclick="promptUploadMediaVersion(${idx})" title="Subir nueva versión (v${nextVersion})" class="text-zinc-300 hover:text-white text-[10px] font-mono cursor-pointer">v${nextVersion}</button>
                   <button onclick="removeMediaItem(${idx})" class="text-resolve-dimText hover:text-red-400">✕</button>
                 </div></td></tr>`;
             }).join('')}
@@ -819,57 +1001,147 @@ export async function handleMediaPoolUpload(e) {
   const files = e.target.files;
   if (!files || files.length === 0 || !state.activeOtId) return;
 
-  const orders = getOrders();
-  const ot = orders.find(o => o.id === state.activeOtId);
-  if (!ot) return;
-  if (!ot.mediaFiles) ot.mediaFiles = [];
-
-  const list = Array.from(files);
-  let pending = list.length;
-
-  const finalize = () => {
-    pending--;
-    if (pending > 0) return;
-    try { saveOrders(orders); } catch (err) { console.warn('Almacenamiento lleno, piezas grandes no persistirán:', err); }
+  const uploaded = await uploadOtFiles(state.activeOtId, files);
+  const ot = getOrderById(state.activeOtId);
+  if (ot) {
+    if (!ot.mediaFiles) ot.mediaFiles = [];
     renderMediaPool(ot.mediaFiles);
-    state.selectedMediaIndex = Math.max(0, ot.mediaFiles.length - 1);
-    renderInlineEnvelopeMedia(ot.mediaFiles);
-  };
-
-  list.forEach(file => {
-    const meta = getMediaMeta({ name: file.name, type: file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : '') });
-    const entry = {
-      id: 'm-' + Date.now() + Math.random().toString(36).substring(2, 8),
-      name: file.name,
-      type: meta.type,
-      ext: meta.ext,
-      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-      date: getNowFormatted(),
-      url: ''
-    };
-    const push = () => { ot.mediaFiles.push(entry); finalize(); };
-    const readAs = (mode, cb) => {
-      const r = new FileReader();
-      r.onload = ev => cb(ev.target.result);
-      r.onerror = () => { entry.url = URL.createObjectURL(file); push(); };
-      if (mode === 'text') r.readAsText(file); else r.readAsDataURL(file);
-    };
-
-    if (meta.type === 'image' && file.size < 3 * 1024 * 1024) {
-      readAs('data', u => { entry.url = u; push(); });
-    } else if (meta.type === 'font' && file.size < 3 * 1024 * 1024) {
-      readAs('data', u => { entry.url = u; push(); });
-    } else if (meta.type === 'pdf' && file.size < 3 * 1024 * 1024) {
-      readAs('data', u => { entry.url = u; push(); });
-    } else if ((meta.type === 'code' || meta.type === 'markdown') && file.size < 1024 * 1024) {
-      readAs('text', txt => { entry.content = txt; entry.url = URL.createObjectURL(file); push(); });
-    } else {
-      entry.url = URL.createObjectURL(file);
-      push();
+    if (uploaded.length > 0) {
+      state.selectedMediaIndex = Math.max(0, ot.mediaFiles.length - 1);
+      renderInlineEnvelopeMedia(ot.mediaFiles);
     }
-  });
+  }
 
   if (e.target && 'value' in e.target) e.target.value = '';
+}
+
+export async function shareMediaItem(idx) {
+  if (!state.activeOtId) return;
+  const ot = getOrderById(state.activeOtId);
+  const file = ot?.mediaFiles?.[idx];
+  if (!file) return;
+
+  try {
+    const res = await shareMediaForReview(ot.id, file.id);
+    if (!res?.url) return;
+    const fullUrl = window.location.origin + res.url;
+    renderMediaPool(ot.mediaFiles);
+    renderInlineEnvelopeMedia(ot.mediaFiles);
+    openShareReviewPopover(fullUrl, ot, file);
+  } catch (err) {
+    if (typeof window !== 'undefined') {
+      window.alert(err?.message || 'Error generando enlace de revisión.');
+    }
+  }
+}
+
+let sharePopoverEscHandler = null;
+
+export function openShareReviewPopover(reviewUrl, ot, mediaItem) {
+  if (typeof document === 'undefined') return;
+  const modal = document.getElementById('share-review-popover');
+  if (!modal) return;
+
+  const otId = ot?.id || '';
+  const ref = ot?.reference ? ` (${ot.reference})` : '';
+  const fileName = mediaItem?.name || 'Pieza';
+  const msg = `Hola, te comparto la pieza "${fileName}" de la orden ${otId}${ref} para tu revisión y aprobación:\n${reviewUrl}`;
+  const subject = `Revisión ${otId}${ref} — ${fileName}`;
+
+  const subtitleEl = document.getElementById('share-review-subtitle');
+  const urlInput = document.getElementById('share-review-url-input');
+  const copyBtn = document.getElementById('share-review-copy-btn');
+  const waBtn = document.getElementById('share-review-whatsapp-btn');
+  const emailBtn = document.getElementById('share-review-email-btn');
+  const smsBtn = document.getElementById('share-review-sms-btn');
+  const nativeBtn = document.getElementById('share-review-native-btn');
+  const openBtn = document.getElementById('share-review-open-btn');
+
+  if (subtitleEl) subtitleEl.innerText = `${otId}${ref} • ${fileName}`;
+  if (urlInput) urlInput.value = reviewUrl;
+  if (waBtn) waBtn.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  if (emailBtn) emailBtn.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg)}`;
+  if (smsBtn) smsBtn.href = `sms:?&body=${encodeURIComponent(msg)}`;
+  if (openBtn) openBtn.href = reviewUrl;
+
+  if (copyBtn) {
+    copyBtn.innerText = 'Copiar';
+    copyBtn.onclick = async () => {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(reviewUrl);
+        } else if (urlInput) {
+          urlInput.select();
+          document.execCommand('copy');
+        }
+        copyBtn.innerText = '✓ Copiado';
+        setTimeout(() => { copyBtn.innerText = 'Copiar'; }, 2000);
+      } catch {}
+    };
+  }
+
+  if (nativeBtn) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      nativeBtn.classList.remove('hidden');
+      nativeBtn.classList.add('flex');
+      nativeBtn.onclick = async () => {
+        try {
+          await navigator.share({ title: subject, text: msg, url: reviewUrl });
+        } catch {}
+      };
+    } else {
+      nativeBtn.classList.add('hidden');
+      nativeBtn.classList.remove('flex');
+    }
+  }
+
+  if (sharePopoverEscHandler) {
+    document.removeEventListener('keydown', sharePopoverEscHandler);
+  }
+  sharePopoverEscHandler = (ev) => {
+    if (ev.key === 'Escape') closeShareReviewPopover();
+  };
+  document.addEventListener('keydown', sharePopoverEscHandler);
+
+  modal.classList.remove('hidden');
+}
+
+export function closeShareReviewPopover() {
+  if (typeof document === 'undefined') return;
+  const modal = document.getElementById('share-review-popover');
+  if (modal) modal.classList.add('hidden');
+  if (sharePopoverEscHandler) {
+    document.removeEventListener('keydown', sharePopoverEscHandler);
+    sharePopoverEscHandler = null;
+  }
+}
+
+export function promptUploadMediaVersion(idx) {
+  if (!state.activeOtId || typeof document === 'undefined') return;
+  const ot = getOrderById(state.activeOtId);
+  const parent = ot?.mediaFiles?.[idx];
+  if (!parent) return;
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      await uploadMediaVersion(ot.id, parent.id, file);
+      const refreshed = getOrderById(state.activeOtId);
+      if (refreshed) {
+        renderMediaPool(refreshed.mediaFiles || []);
+        state.selectedMediaIndex = Math.max(0, (refreshed.mediaFiles || []).length - 1);
+        renderInlineEnvelopeMedia(refreshed.mediaFiles || []);
+      }
+    } catch (err) {
+      if (typeof window !== 'undefined') {
+        window.alert(err?.message || 'Error subiendo nueva versión.');
+      }
+    }
+  };
+  input.click();
 }
 
 export function promptAddMediaLink() {
@@ -930,23 +1202,35 @@ export function renderInlineEnvelopeMedia(files) {
   listContainer.innerHTML = files.map((file, idx) => {
     const sel = idx === state.selectedMediaIndex;
     const meta = getMediaMeta(file);
+    const nextVersion = (file.versionNumber || 1) + 1;
+    const reviewBadge = getReviewStatusBadgeHtml(file.reviewStatus);
     const icon = (meta.type === 'image' && file.url && file.url !== '#')
       ? `<img src="${file.url}" class="w-8 h-8 rounded object-cover border border-resolve-border shrink-0">`
       : `<div class="w-8 h-8 rounded flex items-center justify-center text-[9px] font-bold shrink-0" style="${meta.badgeStyle}">${meta.badge}</div>`;
     return `
-      <div onclick="selectInlinePreviewMedia(${idx})" class="p-2 rounded border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${sel ? 'bg-resolve-card border-amber-500 text-white' : 'bg-resolve-panel border-resolve-border hover:bg-resolve-card/70 text-stone-300'}">
+      <div onclick="selectInlinePreviewMedia(${idx})" class="p-2 rounded border transition-all cursor-pointer flex items-center justify-between gap-2 ${sel ? 'bg-resolve-card border-amber-500 text-white' : 'bg-resolve-panel border-resolve-border hover:bg-resolve-card/70 text-stone-300'}">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
           ${icon}
           <div class="min-w-0 flex-1">
-            <div class="font-bold text-[11px] truncate ${sel ? 'text-amber-400' : 'text-white'}" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
-            <div class="text-[10px] text-resolve-dimText flex items-center gap-2 mt-0.5"><span class="uppercase font-bold">${escapeHtml(meta.subLabel)}</span><span>•</span><span>${file.size || 'Web'}</span></div>
+            <div class="font-bold text-[11px] truncate flex items-center gap-1.5 ${sel ? 'text-amber-400' : 'text-white'}" title="${escapeHtml(file.name)}">
+              <span class="truncate">${escapeHtml(file.name)}</span>
+              <span class="shrink-0 font-mono text-[9px] px-1 rounded bg-white/[0.08] text-zinc-300">v${file.versionNumber || 1}</span>
+            </div>
+            <div class="text-[10px] text-resolve-dimText flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span class="uppercase font-bold">${escapeHtml(meta.subLabel)}</span>
+              <span>•</span>
+              <span>${file.size || 'Web'}</span>
+              ${reviewBadge}
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <button type="button" onclick="event.stopPropagation(); openMediaPreviewModal(${idx})" title="Ampliar" class="p-1 hover:bg-resolve-surface rounded text-resolve-dimText hover:text-white">
+          <button type="button" onclick="event.stopPropagation(); shareMediaItem(${idx})" title="Compartir para Revisar" class="px-2 py-1 bg-[#0BA2AC]/15 hover:bg-[#0BA2AC]/25 text-[#0BA2AC] font-semibold text-[10px] rounded-md border border-[#0BA2AC]/40 transition-all cursor-pointer">Compartir</button>
+          <button type="button" onclick="event.stopPropagation(); promptUploadMediaVersion(${idx})" title="Subir nueva versión (v${nextVersion})" class="px-1.5 py-1 bg-white/[0.05] hover:bg-white/[0.12] text-zinc-200 font-mono font-semibold text-[10px] rounded-md border border-resolve-border transition-all cursor-pointer">v${nextVersion}</button>
+          <button type="button" onclick="event.stopPropagation(); openMediaPreviewModal(${idx})" title="Ampliar" class="p-1 hover:bg-resolve-surface rounded text-resolve-dimText hover:text-white cursor-pointer">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
           </button>
-          <button type="button" onclick="event.stopPropagation(); removeMediaItem(${idx})" title="Quitar del sobre" class="p-1 hover:text-red-400 text-resolve-dimText">✕</button>
+          <button type="button" onclick="event.stopPropagation(); removeMediaItem(${idx})" title="Quitar del sobre" class="p-1 hover:text-red-400 text-resolve-dimText cursor-pointer">✕</button>
         </div>
       </div>`;
   }).join('');
@@ -1129,14 +1413,19 @@ export function renderInlineViewer() {
   if (!file) { viewer.innerHTML = buildMediaViewerHtml(null); return; }
 
   const meta = getMediaMeta(file);
+  const nextVersion = (file.versionNumber || 1) + 1;
+  const reviewBadge = getReviewStatusBadgeHtml(file.reviewStatus);
   viewer.innerHTML = `
-    <div class="h-9 px-3 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between shrink-0">
+    <div class="h-9 px-3 bg-resolve-panel/90 border-b border-resolve-border flex items-center justify-between gap-2 shrink-0">
       <div class="flex items-center gap-2 truncate min-w-0">
         <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
         <span class="font-semibold text-white text-[11px] truncate">${escapeHtml(file.name)}</span>
-        <span class="text-[10px] text-resolve-dimText uppercase shrink-0 font-medium">(${escapeHtml(meta.subLabel)})</span>
+        <span class="shrink-0 font-mono text-[9px] px-1 rounded bg-white/[0.08] text-zinc-300">v${file.versionNumber || 1}</span>
+        ${reviewBadge}
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" onclick="shareMediaItem(${state.selectedMediaIndex})" class="px-2 py-0.5 rounded-md bg-[#0BA2AC]/15 hover:bg-[#0BA2AC]/25 border border-[#0BA2AC]/40 text-[#0BA2AC] text-[10px] font-semibold cursor-pointer transition-colors" title="Compartir enlace de revisión colaborativa">Compartir</button>
+        <button type="button" onclick="promptUploadMediaVersion(${state.selectedMediaIndex})" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-zinc-200 font-mono text-[10px] font-semibold cursor-pointer transition-colors" title="Subir nueva versión (v${nextVersion})">+ v${nextVersion}</button>
         <button type="button" onclick="openMediaPreviewModal(${state.selectedMediaIndex})" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-amber-300 text-[10px] font-semibold cursor-pointer transition-colors" title="Pantalla completa">Ampliar</button>
         ${file.url && file.url !== '#' ? `<a href="${file.url}" target="_blank" download="${escapeHtml(file.name)}" class="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-resolve-border text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors">Descargar ↓</a>` : ''}
       </div>
@@ -1235,8 +1524,9 @@ export function openNewOtModal() {
   const newStatus = document.getElementById('new-ot-status');
   if (newStatus) newStatus.value = 'Tráfico';
 
+  const defaultResp = getActiveUserShortName() || 'Usuario';
   const newResp = document.getElementById('new-ot-responsible');
-  if (newResp) newResp.value = 'Andrés J.';
+  if (newResp) newResp.value = defaultResp;
 
   updateClientsDatalist();
   syncNewOtBrandSuggestions();
@@ -1269,35 +1559,36 @@ export function syncNewOtBrandSuggestions() {
   }
 }
 
-export function handleCreateOt(e) {
+export async function handleCreateOt(e) {
   if (e) e.preventDefault();
   if (typeof document === 'undefined') return;
 
-  const orders = getOrders();
   const clients = getClients();
 
-  const newId = document.getElementById('new-id-input')?.value || `OT-26-${Date.now()}`;
+  const defaultResp = getActiveUserShortName() || 'Usuario';
   const ref = (document.getElementById('new-ref-input')?.value || '').trim();
   const client = (document.getElementById('new-client-input')?.value || '').trim();
   const brand = (document.getElementById('new-brand-input')?.value || '').trim();
   const product = (document.getElementById('new-product-input')?.value || '').trim();
-  const responsible = (document.getElementById('new-ot-responsible')?.value) || 'Andrés J.';
+  const responsible = (document.getElementById('new-ot-responsible')?.value) || defaultResp;
   const status = (document.getElementById('new-ot-status')?.value) || 'Tráfico';
   const media = (document.getElementById('new-media-input')?.value || '').trim();
   const title = (document.getElementById('new-title-input')?.value || '').trim();
   const firstTask = (document.getElementById('new-first-task-input')?.value || '').trim();
   const urgent = !!document.getElementById('new-urgent-input')?.checked;
 
-  let existingClient = clients.find(c => c.name.toLowerCase() === client.toLowerCase());
-  if (!existingClient) {
-    existingClient = { id: 'c-' + Date.now(), name: client, brands: brand ? [brand] : [] };
-    clients.push(existingClient);
-    saveClients(clients);
-  } else {
-    if (!existingClient.brands) existingClient.brands = [];
-    if (brand && !existingClient.brands.some(b => b.toLowerCase() === brand.toLowerCase())) {
-      existingClient.brands.push(brand);
+  if (state.memberRole === 'owner') {
+    let existingClient = clients.find(c => c.name.toLowerCase() === client.toLowerCase());
+    if (!existingClient) {
+      existingClient = { id: 'c-' + Date.now(), name: client, brands: brand ? [brand] : [] };
+      clients.push(existingClient);
       saveClients(clients);
+    } else {
+      if (!existingClient.brands) existingClient.brands = [];
+      if (brand && !existingClient.brands.some(b => b.toLowerCase() === brand.toLowerCase())) {
+        existingClient.brands.push(brand);
+        saveClients(clients);
+      }
     }
   }
 
@@ -1306,41 +1597,37 @@ export function handleCreateOt(e) {
   }
 
   const initialRoutes = [];
-  const respVal = (responsible && responsible !== '__NEW_RESPONSIBLE__') ? responsible : 'Andrés J.';
+  const respVal = (responsible && responsible !== '__NEW_RESPONSIBLE__') ? responsible : defaultResp;
   initialRoutes.push({
-    from: "Tráfico",
-    to: "Creativos",
-    task: firstTask || title || "",
+    from: state.memberRole === 'client' ? 'Cliente' : 'Tráfico',
+    to: 'Creativos',
+    task: firstTask || title || '',
     entryDate: getNowFormatted(),
-    deliveryDate: "",
+    deliveryDate: '',
     sign: respVal,
-    notes: "",
-    stamp: firstTask ? "RECIBIDO" : null,
+    notes: '',
+    stamp: firstTask ? 'RECIBIDO' : null,
     completed: false
   });
 
-  const newOt = {
-    id: newId,
-    ref: ref,
-    createdAt: getNowFormatted(),
-    client: client,
-    brand: brand,
-    product: product || brand,
-    title: title,
-    media: media,
-    urgent: urgent,
-    status: status !== '__NEW__' ? status : 'Tráfico',
-    responsible: responsible !== '__NEW_RESPONSIBLE__' ? responsible : 'Andrés J.',
-    brief: "",
-    legalText: "",
-    mediaFiles: [],
-    routes: initialRoutes
-  };
-
-  orders.unshift(newOt);
-  saveOrders(orders);
-  closeNewOtModal();
-  openEnvelopeModal(newOt.id);
+  try {
+    const createdOt = await createOt({
+      ref,
+      client,
+      brand,
+      product: product || brand,
+      title,
+      media,
+      urgent,
+      status: status !== '__NEW__' ? status : 'Tráfico',
+      responsible: responsible !== '__NEW_RESPONSIBLE__' ? responsible : defaultResp,
+      routes: initialRoutes
+    });
+    closeNewOtModal();
+    if (createdOt) openEnvelopeModal(createdOt.id);
+  } catch (err) {
+    if (typeof window !== 'undefined') window.alert(err?.message || 'Error al crear la OT.');
+  }
 }
 
 export function updateClientsDatalist() {
@@ -1544,6 +1831,7 @@ export function handleSaveClient(e) {
 }
 
 export function deleteClientAction(clientId) {
+  if (state.memberRole !== 'owner') return;
   const clients = getClients();
   const client = clients.find(c => c.id === clientId);
   if (!client) return;
@@ -1856,6 +2144,7 @@ export function exportBackupData() {
 }
 
 export function importBackupData(event) {
+  if (state.memberRole !== 'owner') return;
   const file = event.target.files[0];
   if (!file) return;
 
@@ -1919,13 +2208,15 @@ on('modal:open-custom-task', e => {
 // ============================================================================
 
 let currentProfileDraft = null;
+let lastLoadedOrgMembers = [];
 
 export function openUserProfileModal() {
   const profile = getUserProfile();
   currentProfileDraft = {
     fullName: profile.fullName || '',
-    shortName: profile.shortName || 'Andrés J.',
+    shortName: profile.shortName || deriveShortName(profile.fullName) || 'Usuario',
     email: profile.email || '',
+    phone: profile.phone || '',
     color: profile.color || 'cyan',
     avatarMode: profile.avatarMode || 'initials',
     avatarIcon: profile.avatarIcon || 'pen',
@@ -1941,12 +2232,14 @@ export function openUserProfileModal() {
   const fnInput = document.getElementById('user-modal-fullname');
   const snInput = document.getElementById('user-modal-shortname');
   const emInput = document.getElementById('user-modal-email');
+  const phInput = document.getElementById('user-modal-phone');
   const feedback = document.getElementById('user-password-feedback');
   const pwdDetails = document.getElementById('user-password-details');
 
   if (fnInput) fnInput.value = currentProfileDraft.fullName;
   if (snInput) snInput.value = currentProfileDraft.shortName;
   if (emInput) emInput.value = currentProfileDraft.email;
+  if (phInput) phInput.value = currentProfileDraft.phone;
   if (feedback) {
     feedback.className = 'hidden';
     feedback.innerHTML = '';
@@ -1959,6 +2252,35 @@ export function openUserProfileModal() {
     if (curr) curr.value = '';
     if (newP) newP.value = '';
     if (confP) confP.value = '';
+  }
+
+  const canViewTeamTab = state.memberRole === 'owner' || state.memberRole === 'member';
+  const teamTabBtn = document.getElementById('user-modal-tab-team-btn');
+  if (teamTabBtn) {
+    teamTabBtn.classList.toggle('hidden', !canViewTeamTab);
+  }
+
+  const roleBadgeEl = document.getElementById('user-profile-role-badge');
+  const scopeLabelEl = document.getElementById('user-profile-scope-label');
+  if (roleBadgeEl) {
+    if (state.memberRole === 'owner') {
+      roleBadgeEl.innerText = 'Dueño';
+      roleBadgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300';
+    } else if (state.memberRole === 'client') {
+      roleBadgeEl.innerText = 'Cliente';
+      roleBadgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300';
+    } else {
+      roleBadgeEl.innerText = 'Colaborador';
+      roleBadgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300';
+    }
+  }
+  if (scopeLabelEl) {
+    if (state.allowedClientId && state.allowedClientId !== '*') {
+      const assignedClient = getClients().find((c) => c.id === state.allowedClientId);
+      scopeLabelEl.innerText = assignedClient ? assignedClient.name : state.allowedClientId;
+    } else {
+      scopeLabelEl.innerText = 'Todo el estudio';
+    }
   }
 
   renderUserProfileModalUI();
@@ -1977,10 +2299,12 @@ export function handleUserProfileInputChange() {
   const fnInput = document.getElementById('user-modal-fullname');
   const snInput = document.getElementById('user-modal-shortname');
   const emInput = document.getElementById('user-modal-email');
+  const phInput = document.getElementById('user-modal-phone');
 
   if (fnInput) currentProfileDraft.fullName = fnInput.value;
   if (snInput) currentProfileDraft.shortName = snInput.value;
   if (emInput) currentProfileDraft.email = emInput.value;
+  if (phInput) currentProfileDraft.phone = phInput.value;
 
   if (currentProfileDraft.avatarMode === 'initials') {
     renderUserProfileModalAvatarPreview();
@@ -2171,8 +2495,22 @@ export function renderUserProfileDepartments() {
   const container = document.getElementById('user-modal-departments-container');
   if (!container) return;
 
+  const isOwner = state.memberRole === 'owner';
   const allDepts = getDepartments();
   const selectedDepts = currentProfileDraft.departments || [];
+
+  if (!isOwner) {
+    container.innerHTML = `
+      ${selectedDepts.map(dept => `
+        <span class="px-2.5 py-1 rounded-md text-[11px] border bg-amber-500/15 text-amber-300 border-amber-500/40 font-semibold flex items-center gap-1.5 select-none">
+          <span>✓</span>
+          <span>${escapeHtml(dept)}</span>
+        </span>
+      `).join('')}
+      <span class="w-full text-[10px] text-zinc-500 mt-1">Asignados por el Dueño del estudio (solo lectura).</span>
+    `;
+    return;
+  }
 
   container.innerHTML = `
     ${allDepts.map(dept => {
@@ -2199,6 +2537,7 @@ export function renderUserProfileDepartments() {
 }
 
 export function toggleUserProfileDepartment(deptName) {
+  if (state.memberRole !== 'owner') return;
   if (!currentProfileDraft) return;
   if (!Array.isArray(currentProfileDraft.departments)) {
     currentProfileDraft.departments = [];
@@ -2215,6 +2554,7 @@ export function toggleUserProfileDepartment(deptName) {
 }
 
 export function promptAddUserProfileDepartment() {
+  if (state.memberRole !== 'owner') return;
   if (typeof window === 'undefined') return;
   const newName = window.prompt("Nombre del nuevo departamento / área:");
   if (newName && newName.trim()) {
@@ -2300,10 +2640,12 @@ export async function handleSaveUserProfile(event) {
   const fnInput = document.getElementById('user-modal-fullname');
   const snInput = document.getElementById('user-modal-shortname');
   const emInput = document.getElementById('user-modal-email');
+  const phInput = document.getElementById('user-modal-phone');
 
   if (fnInput) currentProfileDraft.fullName = fnInput.value.trim();
-  if (snInput) currentProfileDraft.shortName = snInput.value.trim() || 'Andrés J.';
+  if (snInput) currentProfileDraft.shortName = snInput.value.trim() || deriveShortName(currentProfileDraft.fullName) || 'Usuario';
   if (emInput) currentProfileDraft.email = emInput.value.trim();
+  if (phInput) currentProfileDraft.phone = phInput.value.trim();
 
   if (!currentProfileDraft.departments || currentProfileDraft.departments.length === 0) {
     currentProfileDraft.departments = ['Tráfico'];
@@ -2320,6 +2662,9 @@ export async function handleSaveUserProfile(event) {
 }
 
 export function switchUserProfileTab(tabKey = 'profile') {
+  if (tabKey === 'team' && state.memberRole === 'client') {
+    tabKey = 'profile';
+  }
   const profileTabBtn = document.getElementById('user-modal-tab-profile-btn');
   const teamTabBtn = document.getElementById('user-modal-tab-team-btn');
   const profileView = document.getElementById('user-modal-view-profile');
@@ -2343,12 +2688,22 @@ export function switchUserProfileTab(tabKey = 'profile') {
 }
 
 export async function loadTeamTabUI() {
+  const inviteBox = document.getElementById('user-modal-invite-box');
+  const invContainer = document.getElementById('user-team-invitations-container');
+  const isViewerOwner = state.memberRole === 'owner';
+  if (state.memberRole === 'client') {
+    if (inviteBox) inviteBox.classList.add('hidden');
+    if (invContainer) invContainer.classList.add('hidden');
+    return;
+  }
+  if (inviteBox) inviteBox.classList.toggle('hidden', !isViewerOwner);
+  if (!isViewerOwner && invContainer) invContainer.classList.add('hidden');
+
   const orgNameEl = document.getElementById('user-modal-org-name');
   const orgSlugEl = document.getElementById('user-modal-org-slug');
   const orgQuotaEl = document.getElementById('user-modal-org-quota');
   const orgRoleEl = document.getElementById('user-modal-org-role-badge');
   const membersListEl = document.getElementById('user-team-members-list');
-  const invContainer = document.getElementById('user-team-invitations-container');
   const invListEl = document.getElementById('user-team-invitations-list');
 
   if (membersListEl) {
@@ -2363,13 +2718,21 @@ export async function loadTeamTabUI() {
     if (orgSlugEl) orgSlugEl.innerText = org.slug || '--';
 
     const members = Array.isArray(org.members) ? org.members : [];
-    const memberCount = members.length;
+    lastLoadedOrgMembers = members;
+    const activeTeamMembers = members.filter(m => m.status !== 'deactivated' && m.role !== 'client');
     if (orgQuotaEl) {
-      orgQuotaEl.innerText = `${memberCount} / 6 miembros`;
+      orgQuotaEl.innerText = `${activeTeamMembers.length} / 6 miembros activos`;
+    }
+
+    const inviteClientSelect = document.getElementById('user-team-invite-client');
+    if (inviteClientSelect) {
+      const clientsList = getClients();
+      inviteClientSelect.innerHTML = `<option value="">Selecciona cliente asignado...</option>` +
+        clientsList.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
     }
 
     const myMembership = user ? members.find(m => m.userId === user.id) : null;
-    const isOwner = myMembership ? myMembership.role === 'owner' : true;
+    const isOwner = isViewerOwner && (myMembership ? myMembership.role === 'owner' : true);
 
     if (orgRoleEl) {
       if (isOwner) {
@@ -2389,6 +2752,7 @@ export async function loadTeamTabUI() {
         membersListEl.innerHTML = members.map(m => {
           const mUser = m.user || {};
           const isCurrentUser = user && m.userId === user.id;
+          const isDeactivated = m.status === 'deactivated';
           const memberProfile = {
             fullName: mUser.name || '',
             shortName: mUser.shortName || mUser.name || 'Usuario',
@@ -2400,35 +2764,66 @@ export async function loadTeamTabUI() {
             departments: []
           };
           const isOwnerMember = m.role === 'owner';
+          const canManage = isViewerOwner && isOwner && !isOwnerMember && !isCurrentUser;
+
+          const statusPill = isDeactivated
+            ? '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600/50">Inactivo</span>'
+            : '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Activo</span>';
+
+          let memberDepts = ['Tráfico'];
+          try {
+            const parsed = typeof mUser.departments === 'string' ? JSON.parse(mUser.departments) : mUser.departments;
+            if (Array.isArray(parsed) && parsed.length > 0) memberDepts = parsed;
+          } catch {}
+          const clientsList = getClients();
+          const currentAllowed = m.allowedClientId || m.allowed_client_id || '*';
+          const scopeObj = currentAllowed !== '*' ? clientsList.find(c => c.id === currentAllowed) : null;
+          const scopeLabel = currentAllowed === '*' ? 'Todo el estudio' : (scopeObj ? scopeObj.name : currentAllowed);
+
           return `
-            <div class="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-resolve-border/60">
-              <div class="flex items-center gap-2.5 min-w-0">
-                ${renderUserAvatarHtml('w-8 h-8 text-xs', memberProfile)}
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <span class="font-semibold text-white text-xs truncate">${escapeHtml(mUser.name || 'Sin nombre')}</span>
-                    ${isCurrentUser ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-white/[0.08] text-zinc-400 font-mono">Tú</span>' : ''}
-                  </div>
-                  <div class="text-[10px] text-zinc-400 truncate flex items-center gap-1.5">
-                    <span class="font-mono text-zinc-300">${escapeHtml(memberProfile.shortName)}</span>
-                    <span class="text-zinc-600">•</span>
-                    <span class="truncate">${escapeHtml(mUser.email || '')}</span>
+            <div ${canManage ? `onclick="openTeamMemberDetailModal('${escapeHtml(m.id)}')" role="button" tabindex="0"` : ''} class="p-2.5 rounded-xl bg-black/40 border border-resolve-border/60 ${canManage ? 'cursor-pointer hover:border-amber-500/45 hover:bg-black/55 transition-all' : ''} ${isDeactivated ? 'opacity-65' : ''} space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  ${renderUserAvatarHtml('w-8 h-8 text-xs', memberProfile)}
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-semibold text-white text-xs truncate">${escapeHtml(mUser.name || 'Sin nombre')}</span>
+                      ${isCurrentUser ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-white/[0.08] text-zinc-400 font-mono">Tú</span>' : ''}
+                      ${statusPill}
+                    </div>
+                    <div class="text-[10px] text-zinc-400 truncate flex items-center gap-1.5 mt-0.5">
+                      <span class="font-mono text-zinc-300">${escapeHtml(memberProfile.shortName)}</span>
+                      <span class="text-zinc-600">•</span>
+                      <span class="truncate">${escapeHtml(mUser.email || '')}</span>
+                      ${mUser.phone ? `<span class="text-zinc-600">•</span><span class="font-mono text-zinc-300">${escapeHtml(mUser.phone)}</span>` : ''}
+                    </div>
                   </div>
                 </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-semibold ${isOwnerMember ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : m.role === 'client' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}">
+                    ${isOwnerMember ? 'Dueño' : m.role === 'client' ? 'Cliente' : 'Colaborador'}
+                  </span>
+                  ${canManage ? '<span class="text-[10px] text-amber-400/80 font-medium pl-1">Editar ›</span>' : ''}
+                </div>
               </div>
-              <span class="px-2 py-0.5 rounded-full text-[9px] font-semibold ${isOwnerMember ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}">
-                ${isOwnerMember ? 'Dueño' : 'Colaborador'}
-              </span>
+              <div class="pt-1.5 border-t border-resolve-border/30 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                <span class="text-zinc-400">Alcance: <strong class="text-zinc-200 font-medium">${escapeHtml(scopeLabel)}</strong></span>
+                ${m.role !== 'client' ? `
+                  <div class="flex flex-wrap items-center gap-1">
+                    ${memberDepts.map(d => `<span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/25 font-medium">${escapeHtml(d)}</span>`).join('')}
+                  </div>
+                ` : ''}
+              </div>
             </div>
           `;
         }).join('');
       }
     }
 
-    // Renderizar invitaciones pendientes
+    // Renderizar invitaciones pendientes (solo Dueño)
     const invitations = Array.isArray(org.invitations) ? org.invitations.filter(i => i.status === 'pending') : [];
     if (invContainer && invListEl) {
-      if (invitations.length > 0) {
+      if (isViewerOwner && invitations.length > 0) {
         invContainer.classList.remove('hidden');
         invListEl.innerHTML = invitations.map(inv => {
           return `
@@ -2438,6 +2833,16 @@ export async function loadTeamTabUI() {
                 <div class="text-[10px] text-zinc-500">Pendiente de registro / aceptación</div>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
+                <button 
+                  type="button" 
+                  data-email="${escapeHtml(inv.email)}"
+                  data-role="${escapeHtml(inv.role || 'member')}"
+                  onclick="handleResendTeamInvite(this.dataset.email, this.dataset.role, this)" 
+                  class="px-2 py-1 bg-[#0BA2AC]/15 hover:bg-[#0BA2AC]/25 text-[#0BA2AC] border border-[#0BA2AC]/40 rounded-lg text-[10px] font-medium transition-colors cursor-pointer"
+                  title="Reenviar correo de invitación"
+                >
+                  Reenviar
+                </button>
                 <button 
                   type="button" 
                   onclick="handleCopyTeamInviteLink('${inv.id}', this)" 
@@ -2470,13 +2875,271 @@ export async function loadTeamTabUI() {
   }
 }
 
+export function openTeamMemberDetailModal(memberId) {
+  if (state.memberRole !== 'owner' || !memberId) return;
+  const member = lastLoadedOrgMembers.find(m => m.id === memberId);
+  if (!member) return;
+
+  const modal = document.getElementById('team-member-detail-modal');
+  if (!modal) return;
+
+  const mUser = member.user || {};
+  const isDeactivated = member.status === 'deactivated';
+  const roleVal = member.role === 'client' ? 'client' : 'member';
+  const currentAllowed = member.allowedClientId || member.allowed_client_id || '*';
+  const memberProfile = {
+    fullName: mUser.name || '',
+    shortName: mUser.shortName || mUser.name || 'Usuario',
+    email: mUser.email || '',
+    color: mUser.color || 'cyan',
+    avatarMode: mUser.avatarMode || 'initials',
+    avatarIcon: mUser.avatarIcon || 'pen',
+    avatarImage: mUser.image || '',
+    departments: []
+  };
+
+  let memberDepts = ['Tráfico'];
+  try {
+    const parsed = typeof mUser.departments === 'string' ? JSON.parse(mUser.departments) : mUser.departments;
+    if (Array.isArray(parsed) && parsed.length > 0) memberDepts = parsed;
+  } catch {}
+
+  const idEl = document.getElementById('team-member-modal-id');
+  const avatarEl = document.getElementById('team-member-modal-avatar');
+  const nameEl = document.getElementById('team-member-modal-name');
+  const shortEl = document.getElementById('team-member-modal-shortname');
+  const statusEl = document.getElementById('team-member-modal-status-badge');
+  const emailEl = document.getElementById('team-member-modal-email');
+  const phoneEl = document.getElementById('team-member-modal-phone');
+  const roleEl = document.getElementById('team-member-modal-role');
+  const clientEl = document.getElementById('team-member-modal-client');
+  const deptsContainer = document.getElementById('team-member-modal-depts-container');
+  const feedbackEl = document.getElementById('team-member-modal-feedback');
+  const toggleBtn = document.getElementById('team-member-modal-toggle-status-btn');
+  const removeBtn = document.getElementById('team-member-modal-remove-btn');
+
+  if (idEl) idEl.value = member.id;
+  if (avatarEl) avatarEl.innerHTML = renderUserAvatarHtml('w-10 h-10 text-sm', memberProfile);
+  if (nameEl) nameEl.innerText = mUser.name || 'Sin nombre';
+  if (shortEl) shortEl.innerText = memberProfile.shortName;
+  if (statusEl) {
+    statusEl.innerText = isDeactivated ? 'Inactivo' : 'Activo';
+    statusEl.className = isDeactivated
+      ? 'px-2 py-0.5 rounded-full text-[9px] font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600/50'
+      : 'px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+  }
+  if (emailEl) emailEl.value = mUser.email || '';
+  if (phoneEl) phoneEl.value = mUser.phone || '';
+  if (roleEl) roleEl.value = roleVal;
+
+  if (clientEl) {
+    const clientsList = getClients();
+    clientEl.innerHTML = `<option value="*" ${roleVal === 'client' ? 'disabled' : ''}>Todo el estudio (*)</option>` +
+      clientsList.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+    clientEl.value = currentAllowed;
+  }
+
+  if (deptsContainer) {
+    const allDepts = getDepartments();
+    deptsContainer.innerHTML = allDepts.map(d => `
+      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] border border-white/10 bg-black/40 text-zinc-200 cursor-pointer hover:border-amber-500/40">
+        <input type="checkbox" class="team-member-modal-dept-cb accent-amber-400" value="${escapeHtml(d)}" ${memberDepts.includes(d) ? 'checked' : ''} />
+        <span>${escapeHtml(d)}</span>
+      </label>
+    `).join('');
+  }
+
+  if (feedbackEl) {
+    feedbackEl.className = 'hidden';
+    feedbackEl.innerText = '';
+  }
+
+  if (toggleBtn) {
+    toggleBtn.innerText = isDeactivated ? 'Reactivar' : 'Desactivar';
+    toggleBtn.className = isDeactivated
+      ? 'px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
+      : 'px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer bg-white/[0.06] hover:bg-amber-500/15 text-zinc-300 hover:text-amber-300 border-white/[0.12]';
+    toggleBtn.onclick = async () => {
+      await handleToggleMemberStatus(member.id, isDeactivated ? 'active' : 'deactivated');
+      closeTeamMemberDetailModal();
+    };
+  }
+
+  if (removeBtn) {
+    removeBtn.onclick = () => {
+      closeTeamMemberDetailModal();
+      handleRequestRemoveMember(member.id, mUser.name || memberProfile.shortName, memberProfile.shortName);
+    };
+  }
+
+  handleTeamMemberModalRoleChange(roleVal);
+  modal.classList.remove('hidden');
+}
+
+export function closeTeamMemberDetailModal() {
+  const modal = document.getElementById('team-member-detail-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+export function handleTeamMemberModalRoleChange(nextRole) {
+  const clientSelect = document.getElementById('team-member-modal-client');
+  const deptsWrap = document.getElementById('team-member-modal-depts-wrap');
+  if (clientSelect) {
+    const allOpt = clientSelect.querySelector('option[value="*"]');
+    if (allOpt) allOpt.disabled = nextRole === 'client';
+    if (nextRole === 'client' && clientSelect.value === '*') {
+      const firstSpecific = Array.from(clientSelect.options).find(o => o.value !== '*');
+      if (firstSpecific) clientSelect.value = firstSpecific.value;
+    }
+  }
+  if (deptsWrap) {
+    deptsWrap.classList.toggle('hidden', nextRole === 'client');
+  }
+}
+
+export async function saveTeamMemberDetailModal(event) {
+  if (event) event.preventDefault();
+  if (state.memberRole !== 'owner') return;
+
+  const memberId = document.getElementById('team-member-modal-id')?.value || '';
+  const phone = document.getElementById('team-member-modal-phone')?.value.trim() || '';
+  const role = document.getElementById('team-member-modal-role')?.value || 'member';
+  const allowedClientId = document.getElementById('team-member-modal-client')?.value || '*';
+  const deptCheckboxes = document.querySelectorAll('.team-member-modal-dept-cb:checked');
+  const departments = Array.from(deptCheckboxes).map(cb => cb.value).filter(Boolean);
+  const feedbackEl = document.getElementById('team-member-modal-feedback');
+  const saveBtn = document.getElementById('team-member-modal-save-btn');
+
+  if (!memberId) return;
+  if (role === 'client' && (!allowedClientId || allowedClientId === '*')) {
+    if (feedbackEl) {
+      feedbackEl.className = 'text-xs p-2 rounded-lg font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300';
+      feedbackEl.innerText = 'Selecciona un cliente específico para el rol Cliente.';
+    }
+    return;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerText = 'Guardando...';
+  }
+
+  try {
+    const res = await fetch('/api/studio/team/member/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ memberId, role, allowedClientId, departments, phone })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      if (feedbackEl) {
+        feedbackEl.className = 'text-xs p-2 rounded-lg font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300';
+        feedbackEl.innerText = data.message || 'No se pudieron guardar los cambios.';
+      }
+    } else {
+      closeTeamMemberDetailModal();
+      await loadTeamTabUI();
+    }
+  } catch (err) {
+    console.error('Error guardando detalle de miembro:', err);
+    if (feedbackEl) {
+      feedbackEl.className = 'text-xs p-2 rounded-lg font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300';
+      feedbackEl.innerText = 'Error de conexión al guardar permisos.';
+    }
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerText = 'Guardar';
+    }
+  }
+}
+
+export function handleTeamMemberRoleChange(memberId, nextRole) {
+  const clientSelect = document.getElementById(`team-member-client-${memberId}`);
+  const deptsWrap = document.getElementById(`team-member-depts-wrap-${memberId}`);
+  if (clientSelect) {
+    const allOpt = clientSelect.querySelector('option[value="*"]');
+    if (allOpt) allOpt.disabled = nextRole === 'client';
+    if (nextRole === 'client' && clientSelect.value === '*') {
+      const firstSpecific = Array.from(clientSelect.options).find(o => o.value !== '*');
+      if (firstSpecific) clientSelect.value = firstSpecific.value;
+    }
+  }
+  if (deptsWrap) {
+    deptsWrap.classList.toggle('hidden', nextRole === 'client');
+  }
+}
+
+export async function handleUpdateTeamMember(memberId, btnEl) {
+  if (state.memberRole !== 'owner' || !memberId) return;
+  const roleSelect = document.getElementById(`team-member-role-${memberId}`);
+  const clientSelect = document.getElementById(`team-member-client-${memberId}`);
+  const deptCheckboxes = document.querySelectorAll(`.team-member-dept-cb-${memberId}:checked`);
+
+  const role = roleSelect ? roleSelect.value : 'member';
+  const allowedClientId = clientSelect ? clientSelect.value : '*';
+  const departments = Array.from(deptCheckboxes).map(cb => cb.value).filter(Boolean);
+
+  if (role === 'client' && (!allowedClientId || allowedClientId === '*')) {
+    alert('Selecciona un cliente específico para el rol Cliente.');
+    return;
+  }
+
+  const origText = btnEl ? btnEl.innerText : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerText = 'Guardando...';
+  }
+
+  try {
+    const res = await fetch('/api/studio/team/member/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ memberId, role, allowedClientId, departments })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      alert(data.message || 'No se pudo actualizar el rol/privilegios del colaborador.');
+    } else {
+      await loadTeamTabUI();
+    }
+  } catch (err) {
+    console.error('Error actualizando miembro:', err);
+    alert('Error de conexión al guardar permisos.');
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerText = origText || 'Guardar Rol y Privilegios';
+    }
+  }
+}
+
+export function handleInviteRoleSelectChange(role) {
+  const clientSelect = document.getElementById('user-team-invite-client');
+  if (!clientSelect) return;
+  if (role === 'client') {
+    clientSelect.classList.remove('hidden');
+    clientSelect.required = true;
+  } else {
+    clientSelect.classList.add('hidden');
+    clientSelect.required = false;
+  }
+}
+
 export async function handleSendTeamInvite(event) {
   if (event) event.preventDefault();
+  if (state.memberRole !== 'owner') return;
   const emailInput = document.getElementById('user-team-invite-email');
+  const roleSelect = document.getElementById('user-team-invite-role');
+  const clientSelect = document.getElementById('user-team-invite-client');
   const feedbackEl = document.getElementById('user-team-invite-feedback');
   const btnEl = document.getElementById('user-team-invite-btn');
 
   const email = emailInput ? emailInput.value.trim() : '';
+  const role = roleSelect ? roleSelect.value : 'member';
+  const allowedClientId = role === 'client' ? (clientSelect?.value || '') : '*';
   if (!email) return;
 
   const showFeedback = (msg, isSuccess = false) => {
@@ -2485,6 +3148,11 @@ export async function handleSendTeamInvite(event) {
     feedbackEl.innerText = msg;
     feedbackEl.classList.remove('hidden');
   };
+
+  if (role === 'client' && !allowedClientId) {
+    showFeedback('Selecciona el cliente asignado para el rol Cliente / Cuentas.');
+    return;
+  }
 
   if (btnEl) {
     btnEl.disabled = true;
@@ -2496,15 +3164,15 @@ export async function handleSendTeamInvite(event) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ email, role: 'member' })
+      body: JSON.stringify({ email, role, allowedClientId })
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      showFeedback(`Invitación enviada a ${email}. Copia el enlace o espera a que se registre.`, true);
+      showFeedback(`Invitación enviada a ${email}. También puedes copiar el enlace directo abajo.`, true);
       if (emailInput) emailInput.value = '';
       await loadTeamTabUI();
     } else {
-      showFeedback(data.message || data.error || 'No se pudo enviar la invitación (límite de miembros o error de permisos).');
+      showFeedback(translateAuthError(data.message || data.error, 'No se pudo enviar la invitación (límite de miembros o error de permisos).'));
     }
   } catch (err) {
     showFeedback('Error de conexión al enviar la invitación.');
@@ -2513,6 +3181,47 @@ export async function handleSendTeamInvite(event) {
       btnEl.disabled = false;
       btnEl.innerText = 'Invitar';
     }
+  }
+}
+
+export async function handleResendTeamInvite(email, role = 'member', btnEl = null) {
+  if (state.memberRole !== 'owner' || !email) return;
+  const orig = btnEl ? btnEl.innerText : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerText = 'Enviando...';
+  }
+  try {
+    const res = await fetch('/api/auth/organization/invite-member', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, role: role || 'member', resend: true })
+    });
+    if (res.ok) {
+      if (btnEl) {
+        btnEl.innerText = '¡Reenviado!';
+        btnEl.classList.add('text-emerald-300');
+        setTimeout(() => {
+          btnEl.disabled = false;
+          btnEl.innerText = orig || 'Reenviar';
+          btnEl.classList.remove('text-emerald-300');
+        }, 2200);
+      }
+    } else {
+      const data = await res.json().catch(() => ({}));
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerText = orig || 'Reenviar';
+      }
+      window.alert(translateAuthError(data.message || data.error, 'No se pudo reenviar el correo de invitación.'));
+    }
+  } catch (err) {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerText = orig || 'Reenviar';
+    }
+    window.alert('Error de conexión al reenviar la invitación.');
   }
 }
 
@@ -2535,6 +3244,7 @@ export async function handleCopyTeamInviteLink(inviteId, btnEl) {
 }
 
 export async function handleCancelTeamInvite(invitationId) {
+  if (state.memberRole !== 'owner') return;
   if (!confirm('¿Cancelar esta invitación?')) return;
   try {
     const res = await fetch('/api/auth/organization/cancel-invitation', {
@@ -2553,6 +3263,7 @@ export async function handleCancelTeamInvite(invitationId) {
 
 export async function handleUserSignOut() {
   if (!confirm('¿Cerrar sesión en El Marcante?')) return;
+  clearScopedLocalCache();
   try {
     await fetch('/api/auth/sign-out', {
       method: 'POST',
@@ -2585,6 +3296,430 @@ export function togglePasswordVisibility(inputId, btn) {
 }
 
 // ============================================================================
+// MODAL ONBOARDING: NOMBRA TU ESTUDIO (PLG FORZOSO)
+// ============================================================================
+export function openOnboardingStudioModal() {
+  const modal = document.getElementById('onboarding-studio-modal');
+  if (!modal) return;
+
+  const nameInput = document.getElementById('onboarding-studio-name');
+  const slugInput = document.getElementById('onboarding-studio-slug');
+  const errorEl = document.getElementById('onboarding-studio-error');
+  const submitBtn = document.getElementById('onboarding-studio-submit-btn');
+
+  if (nameInput) {
+    nameInput.value = '';
+    // Derivar slug en vivo
+    nameInput.oninput = () => {
+      if (slugInput) {
+        slugInput.value = nameInput.value
+          .toLowerCase()
+          .trim()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      }
+    };
+  }
+  if (slugInput) slugInput.value = '';
+  if (errorEl) {
+    errorEl.classList.add('hidden');
+    errorEl.innerText = '';
+  }
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<span>Comenzar Prueba Gratuita (14 Días)</span><span class="text-sm font-black">→</span>`;
+  }
+
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    if (nameInput) nameInput.focus();
+  }, 50);
+}
+
+export function closeOnboardingStudioModal() {
+  const modal = document.getElementById('onboarding-studio-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+export async function handleCreateStudioOnboarding(event) {
+  if (event) event.preventDefault();
+
+  const nameInput = document.getElementById('onboarding-studio-name');
+  const slugInput = document.getElementById('onboarding-studio-slug');
+  const errorEl = document.getElementById('onboarding-studio-error');
+  const submitBtn = document.getElementById('onboarding-studio-submit-btn');
+
+  const name = nameInput ? nameInput.value.trim() : '';
+  let slug = slugInput ? slugInput.value.trim() : '';
+
+  if (!name) {
+    if (errorEl) {
+      errorEl.innerText = 'Por favor ingresa un nombre para tu estudio o agencia.';
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (!slug) {
+    slug = name
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+  if (!slug) {
+    slug = 'estudio-' + Date.now().toString(36);
+  }
+
+  try {
+    if (errorEl) {
+      errorEl.classList.add('hidden');
+      errorEl.innerText = '';
+    }
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-black" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        <span>Creando tu espacio...</span>
+      `;
+    }
+
+    // 1. Invocar endpoint nativo de Better Auth para crear organización
+    const res = await fetch('/api/auth/organization/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name, slug })
+    });
+
+    const orgData = await res.json().catch(() => null);
+
+    if (!res.ok || !orgData || !orgData.id) {
+      const msg = orgData?.message || orgData?.error || 'No se pudo crear el estudio. Intenta con otro nombre.';
+      throw new Error(msg);
+    }
+
+    // 2. Fijar la organización recién creada como activa
+    await fetch('/api/auth/organization/set-active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ organizationId: orgData.id })
+    }).catch(() => {});
+
+    // 3. Cerrar modal y ejecutar bootstrap limpio
+    closeOnboardingStudioModal();
+    await bootstrap();
+  } catch (err) {
+    console.error('Error en creación de estudio onboarding:', err);
+    if (errorEl) {
+      errorEl.innerText = err.message || 'Error al crear el estudio. Intenta nuevamente.';
+      errorEl.classList.remove('hidden');
+    }
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Comenzar Prueba Gratuita (14 Días)</span><span class="text-sm font-black">→</span>`;
+    }
+  }
+}
+
+// ============================================================================
+// MODAL DE SUSCRIPCIÓN / PAYWALL BOLD
+// ============================================================================
+export function openSubscriptionPaywallModal(isBlocking = false) {
+  const modal = document.getElementById('subscription-paywall-modal');
+  if (!modal) return;
+
+  modal.dataset.blocking = isBlocking ? 'true' : 'false';
+
+  const closeBtn = document.getElementById('subscription-modal-close-btn');
+  if (closeBtn) {
+    if (isBlocking) {
+      closeBtn.classList.add('hidden');
+    } else {
+      closeBtn.classList.remove('hidden');
+    }
+  }
+
+  const org = getCurrentOrganization();
+  const orgNameEl = document.getElementById('subscription-modal-org-name');
+  const daysTextEl = document.getElementById('subscription-modal-days-text');
+  const statusBadgeEl = document.getElementById('subscription-modal-status-badge');
+  const titleEl = document.getElementById('subscription-modal-title');
+  const subtitleEl = document.getElementById('subscription-modal-subtitle');
+  const checkoutBtn = document.getElementById('paywall-bold-checkout-btn');
+
+  if (orgNameEl) {
+    orgNameEl.innerText = (org && org.name) || 'Mi Estudio';
+  }
+
+  const subStatus = (org && org.subscriptionStatus) || 'trialing';
+  const trialDaysLeft = typeof (org && org.trialDaysLeft) === 'number' ? org.trialDaysLeft : 14;
+
+  if (subStatus === 'active') {
+    if (statusBadgeEl) {
+      statusBadgeEl.innerText = 'PLAN PRO ACTIVO';
+      statusBadgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 border border-cyan-500/25 text-cyan-300';
+    }
+    if (daysTextEl) {
+      daysTextEl.innerText = 'Suscripción Pro Activa';
+      daysTextEl.className = 'font-bold text-cyan-400 text-xs';
+    }
+    if (titleEl) titleEl.innerText = 'Trafikeitor Plan Pro';
+    if (subtitleEl) subtitleEl.innerText = 'Tu espacio cuenta con todas las funciones Pro habilitadas.';
+    if (checkoutBtn) {
+      checkoutBtn.innerHTML = `<span>Gestionar Suscripción con Bold</span><span class="text-sm font-black">→</span>`;
+    }
+  } else if (trialDaysLeft <= 0) {
+    if (statusBadgeEl) {
+      statusBadgeEl.innerText = 'PRUEBA FINALIZADA';
+      statusBadgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 border border-rose-500/25 text-rose-300';
+    }
+    if (daysTextEl) {
+      daysTextEl.innerText = '0 días restantes (Expirado)';
+      daysTextEl.className = 'font-bold text-rose-400 text-xs';
+    }
+    if (titleEl) titleEl.innerText = 'Activa tu Suscripción Pro';
+    if (subtitleEl) subtitleEl.innerText = 'Tu período de prueba de 14 días ha concluido. Activa tu plan con Bold para continuar editando tus OTs.';
+    if (checkoutBtn) {
+      checkoutBtn.innerHTML = `<span>Activar Plan Pro con Bold ($49 USD)</span><span class="text-sm font-black">→</span>`;
+    }
+  } else {
+    if (statusBadgeEl) {
+      statusBadgeEl.innerText = 'PRUEBA ACTIVA';
+      statusBadgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-300';
+    }
+    if (daysTextEl) {
+      daysTextEl.innerText = `${trialDaysLeft} ${trialDaysLeft === 1 ? 'día restante' : 'días restantes'}`;
+      daysTextEl.className = 'font-bold text-amber-400 text-xs';
+    }
+    if (titleEl) titleEl.innerText = 'Trafikeitor Plan Pro';
+    if (subtitleEl) subtitleEl.innerText = 'Impulsa el flujo de trabajo creativo de tu agencia con máxima capacidad.';
+    if (checkoutBtn) {
+      checkoutBtn.innerHTML = `<span>Activar Plan Pro con Bold ($49 USD)</span><span class="text-sm font-black">→</span>`;
+    }
+  }
+
+  modal.classList.remove('hidden');
+}
+
+export function closeSubscriptionPaywallModal() {
+  const modal = document.getElementById('subscription-paywall-modal');
+  if (!modal) return;
+  if (modal.dataset.blocking === 'true') {
+    // Si el paywall es bloqueante, no permitir cierre sin activar
+    return;
+  }
+  modal.classList.add('hidden');
+}
+
+export function handleBoldCheckoutClick() {
+  const org = getCurrentOrganization();
+  const orgId = org ? org.id : '';
+  const boldBaseUrl = (typeof window !== 'undefined' && window.BOLD_CHECKOUT_URL) || 'https://checkout.bold.co/payment/LNK_TRAFIKEITOR_PRO';
+  const checkoutUrl = orgId ? `${boldBaseUrl}?reference=${encodeURIComponent(orgId)}` : boldBaseUrl;
+  if (typeof window !== 'undefined') {
+    window.open(checkoutUrl, '_blank');
+  }
+}
+
+// ============================================================================
+// GOBERNANZA DE EQUIPO: DESACTIVACIÓN Y REASIGNACIÓN SEGURA
+// ============================================================================
+export async function handleToggleMemberStatus(memberId, nextStatus) {
+  if (state.memberRole !== 'owner' || !memberId || !nextStatus) return;
+  try {
+    const res = await fetch('/api/studio/team/member/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ memberId, status: nextStatus })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      alert(data.message || 'No se pudo actualizar el estado del colaborador.');
+      return;
+    }
+    await bootstrap();
+    await loadTeamTabUI();
+    refreshAllViews();
+  } catch (err) {
+    console.error('Error alternando estado de miembro:', err);
+    alert('Error de conexión al actualizar estado.');
+  }
+}
+
+export async function handleRequestRemoveMember(memberId, memberName, memberShortName) {
+  if (state.memberRole !== 'owner' || !memberId) return;
+
+  const orders = getOrders();
+  const shortClean = (memberShortName || '').trim();
+  const activeOrders = shortClean
+    ? orders.filter(o => o.responsible === shortClean && !isOtTerminal(o.status))
+    : [];
+
+  let activeRoutesCount = 0;
+  if (shortClean) {
+    orders.forEach(o => {
+      if (Array.isArray(o.routes)) {
+        o.routes.forEach(r => {
+          if (r.sign === shortClean && !r.completed) activeRoutesCount++;
+        });
+      }
+    });
+  }
+
+  let activeStripsCount = 0;
+  const sb = getAllStripboardStorage();
+  if (shortClean && sb && typeof sb === 'object') {
+    Object.values(sb).forEach(strips => {
+      if (Array.isArray(strips)) {
+        strips.forEach(st => {
+          if (st.assignee === shortClean && st.shiftStatus !== 'Entregado') activeStripsCount++;
+        });
+      }
+    });
+  }
+
+  if (activeOrders.length > 0 || activeRoutesCount > 0 || activeStripsCount > 0) {
+    openMemberReassignModal(memberId, memberName, activeOrders.length, activeRoutesCount, activeStripsCount);
+    return;
+  }
+
+  const confirmed = confirm(`¿Retirar definitivamente a ${memberName || 'este colaborador'} del equipo? Sus firmas históricas permanecerán intactas.`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/api/studio/team/member/reassign-and-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ memberId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      if (data.error === 'reassignment_required') {
+        openMemberReassignModal(
+          memberId,
+          memberName,
+          data.activeWorkOrdersCount || 0,
+          data.activeRoutesCount || 0,
+          data.activeStripsCount || 0
+        );
+        return;
+      }
+      alert(data.message || 'No se pudo retirar al colaborador.');
+      return;
+    }
+    await bootstrap();
+    await loadTeamTabUI();
+    refreshAllViews();
+  } catch (err) {
+    console.error('Error retirando miembro:', err);
+    alert('Error de conexión al retirar colaborador.');
+  }
+}
+
+export function openMemberReassignModal(memberId, memberName, ordersCount, routesCount, stripsCount) {
+  const modal = document.getElementById('member-reassign-modal');
+  const summaryEl = document.getElementById('member-reassign-summary');
+  const targetInput = document.getElementById('member-reassign-target-id');
+  const selectEl = document.getElementById('member-reassign-successor-select');
+  const errorEl = document.getElementById('member-reassign-error');
+  if (!modal || !targetInput || !selectEl) return;
+
+  targetInput.value = memberId;
+  if (errorEl) errorEl.classList.add('hidden');
+
+  if (summaryEl) {
+    const parts = [];
+    if (ordersCount > 0) parts.push(`${ordersCount} OT(s) activas`);
+    if (routesCount > 0) parts.push(`${routesCount} paso(s) de ruta`);
+    if (stripsCount > 0) parts.push(`${stripsCount} tira(s) de stripboard`);
+    summaryEl.innerHTML = `<strong>${escapeHtml(memberName || 'Este colaborador')}</strong> tiene ${parts.join(', ')} pendientes. Selecciona al miembro activo que asumirá estas responsabilidades antes de retirar su acceso.`;
+  }
+
+  const org = getCurrentOrganization();
+  const members = Array.isArray(org?.members) ? org.members : [];
+  const candidates = members.filter(m => m.id !== memberId && m.status !== 'deactivated');
+
+  selectEl.innerHTML = candidates.length > 0
+    ? candidates.map(m => {
+        const u = m.user || {};
+        const label = `${u.name || 'Sin nombre'} (${u.shortName || u.name || 'Usuario'})`;
+        return `<option value="${escapeHtml(m.id)}">${escapeHtml(label)}</option>`;
+      }).join('')
+    : '<option value="">No hay otros miembros activos disponibles</option>';
+
+  modal.classList.remove('hidden');
+}
+
+export function closeMemberReassignModal() {
+  const modal = document.getElementById('member-reassign-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+export async function handleConfirmReassignAndDelete(event) {
+  if (event) event.preventDefault();
+  const memberId = document.getElementById('member-reassign-target-id')?.value || '';
+  const targetMemberId = document.getElementById('member-reassign-successor-select')?.value || '';
+  const errorEl = document.getElementById('member-reassign-error');
+  const submitBtn = document.getElementById('member-reassign-submit-btn');
+
+  if (!memberId || !targetMemberId) {
+    if (errorEl) {
+      errorEl.innerText = 'Debes seleccionar un miembro activo sucesor.';
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Transfiriendo...';
+  }
+
+  try {
+    const res = await fetch('/api/studio/team/member/reassign-and-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ memberId, targetMemberId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      if (errorEl) {
+        errorEl.innerText = data.message || 'No se pudo completar la reasignación.';
+        errorEl.classList.remove('hidden');
+      }
+      return;
+    }
+
+    closeMemberReassignModal();
+    await bootstrap();
+    await loadTeamTabUI();
+    refreshAllViews();
+  } catch (err) {
+    if (errorEl) {
+      errorEl.innerText = 'Error de conexión durante la reasignación.';
+      errorEl.classList.remove('hidden');
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = 'Transferir y Retirar Miembro';
+    }
+  }
+}
+
+// ============================================================================
 // EXPOSICIÓN GLOBAL EN WINDOW PARA RETROCOMPATIBILIDAD
 // ============================================================================
 if (typeof window !== 'undefined') {
@@ -2604,13 +3739,28 @@ if (typeof window !== 'undefined') {
   window.handleUserChangePassword = handleUserChangePassword;
   window.handleSaveUserProfile = handleSaveUserProfile;
   window.handleUserSignOut = handleUserSignOut;
+  window.handleInviteRoleSelectChange = handleInviteRoleSelectChange;
+  window.reopenArchivedOt = reopenArchivedOt;
   window.switchUserProfileTab = switchUserProfileTab;
   window.loadTeamTabUI = loadTeamTabUI;
   window.handleSendTeamInvite = handleSendTeamInvite;
+  window.handleTeamMemberRoleChange = handleTeamMemberRoleChange;
+  window.handleUpdateTeamMember = handleUpdateTeamMember;
+  window.openTeamMemberDetailModal = openTeamMemberDetailModal;
+  window.closeTeamMemberDetailModal = closeTeamMemberDetailModal;
+  window.handleTeamMemberModalRoleChange = handleTeamMemberModalRoleChange;
+  window.saveTeamMemberDetailModal = saveTeamMemberDetailModal;
   window.handleCopyTeamInviteLink = handleCopyTeamInviteLink;
+  window.handleResendTeamInvite = handleResendTeamInvite;
   window.handleCancelTeamInvite = handleCancelTeamInvite;
+  window.handleToggleMemberStatus = handleToggleMemberStatus;
+  window.handleRequestRemoveMember = handleRequestRemoveMember;
+  window.openMemberReassignModal = openMemberReassignModal;
+  window.closeMemberReassignModal = closeMemberReassignModal;
+  window.handleConfirmReassignAndDelete = handleConfirmReassignAndDelete;
   window.openEnvelopeModal = openEnvelopeModal;
   window.closeEnvelopeModal = closeEnvelopeModal;
+  window.toggleEnvelopeSection = toggleEnvelopeSection;
   window.switchOtTab = switchOtTab;
   window.updateActiveOtField = updateActiveOtField;
   window.deleteActiveOt = deleteActiveOt;
@@ -2674,5 +3824,15 @@ if (typeof window !== 'undefined') {
   window.deleteStatusAction = deleteStatusAction;
   window.exportBackupData = exportBackupData;
   window.importBackupData = importBackupData;
+  window.openOnboardingStudioModal = openOnboardingStudioModal;
+  window.closeOnboardingStudioModal = closeOnboardingStudioModal;
+  window.handleCreateStudioOnboarding = handleCreateStudioOnboarding;
+  window.openSubscriptionPaywallModal = openSubscriptionPaywallModal;
+  window.closeSubscriptionPaywallModal = closeSubscriptionPaywallModal;
+  window.handleBoldCheckoutClick = handleBoldCheckoutClick;
+  window.shareMediaItem = shareMediaItem;
+  window.openShareReviewPopover = openShareReviewPopover;
+  window.closeShareReviewPopover = closeShareReviewPopover;
+  window.promptUploadMediaVersion = promptUploadMediaVersion;
 }
 

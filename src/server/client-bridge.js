@@ -114,13 +114,13 @@
             ${isRegisterMode ? `
               <div>
                 <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Nombre del Director *</label>
-                <input type="text" id="auth-name" required value="Andrés Jaramillo" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+                <input type="text" id="auth-name" required placeholder="Ej: Carolina Cárdenas" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
               </div>
             ` : ''}
 
             <div>
               <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Correo Electrónico *</label>
-              <input type="email" id="auth-email" required placeholder="contacto@marcanter.com" value="contacto@marcanter.com" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
+              <input type="email" id="auth-email" required placeholder="tu@estudio.com" value="" class="w-full bg-black/40 border border-white/[0.10] rounded-lg px-3 py-2 text-white font-medium focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-all">
             </div>
 
             <div>

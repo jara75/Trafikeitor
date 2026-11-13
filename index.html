@@ -85,7 +85,7 @@
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span class="hidden sm:inline">Backup</span>
       </button>
-      <label title="Restaurar Archivo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] shadow-xs">
+      <label id="header-restore-label" title="Restaurar Archivo JSON" class="h-7 px-2 text-[11px] font-medium bg-white/[0.05] hover:bg-white/[0.10] text-resolve-dimText hover:text-white rounded-md border border-resolve-border flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] shadow-xs">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
         <span class="hidden sm:inline">Restaurar</span>
         <input type="file" id="import-input" accept=".json" onchange="importBackupData(event)" class="hidden">
@@ -95,6 +95,18 @@
       <button onclick="openNewOtModal()" class="h-7 px-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-[11px] rounded-md shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1 transition-all active:scale-[0.97] cursor-pointer">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
         <span>Nueva OT</span>
+      </button>
+
+      <!-- Badge de Prueba Gratuita / Suscripción PLG -->
+      <button 
+        id="header-trial-badge" 
+        type="button" 
+        onclick="openSubscriptionPaywallModal(false)"
+        class="hidden items-center gap-1.5 h-7 px-2.5 rounded-full text-[10px] font-semibold border transition-all cursor-pointer select-none"
+        title="Ver estado de suscripción y prueba Pro"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+        <span id="header-trial-text">Prueba Pro</span>
       </button>
 
       <!-- Divisor vertical hacia la sección de usuario en el extremo derecho -->
@@ -981,9 +993,14 @@
         <!-- PESTAÑA 1: HOJA DE RUTA (BITÁCORA DE RELEVOS) -->
         <div id="ot-tab-hoja-ruta" class="space-y-3">
           <div class="flex items-center justify-between pb-1">
-            <div>
-              <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos</h3>
-              <p class="text-[11px] text-resolve-dimText">Historial físico y digital de pases entre departamentos.</p>
+            <div class="flex items-center gap-2.5">
+              <button type="button" id="toggle-envelope-bitacora-btn" onclick="toggleEnvelopeSection('bitacora')" class="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.05] hover:bg-white/[0.12] border border-resolve-border text-zinc-300 hover:text-white cursor-pointer transition-colors shrink-0" title="Contraer o expandir Bitácora">
+                <svg id="toggle-envelope-bitacora-icon" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div onclick="toggleEnvelopeSection('bitacora')" class="cursor-pointer select-none">
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Bitácora de Relevos y Movimientos</h3>
+                <p class="text-[11px] text-resolve-dimText">Historial físico y digital de pases entre departamentos.</p>
+              </div>
             </div>
             <button onclick="addNewRouteRow()" class="px-3.5 py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs rounded-lg shadow-sm shadow-amber-950/40 border border-amber-300/40 flex items-center gap-1.5 transition-all active:scale-[0.98]">
               <span>+ AGREGAR MOVIMIENTO</span>
@@ -991,8 +1008,8 @@
           </div>
 
           <!-- Tabla de Relevos -->
-          <div class="border border-resolve-border rounded-xl bg-black/20 overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
+          <div id="envelope-bitacora-body" class="border border-resolve-border rounded-xl bg-black/20 overflow-x-auto">
+            <table class="w-full text-left text-[11px] border-collapse">
               <thead>
                 <tr class="bg-resolve-panel/90 border-b border-resolve-border text-[10px] text-resolve-dimText uppercase tracking-wider font-semibold">
                   <th class="p-2 border-r border-resolve-border w-28">De:</th>
@@ -1016,12 +1033,17 @@
           <!-- ============================================================== -->
           <div class="pt-3 border-t border-resolve-border">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-              <div>
-                <h3 class="font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-2">
-                  <span>Contenido dentro del Sobre (Previsualización Directa)</span>
-                  <span id="inline-envelope-files-count" class="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.06] text-amber-300 text-[10px] font-bold">0 piezas</span>
-                </h3>
-                <p class="text-[11px] text-resolve-dimText">Selecciona cualquier foto, boceto, video o PDF adjunto al sobre para previsualizarlo aquí mismo sin cambiar de pestaña.</p>
+              <div class="flex items-center gap-2.5">
+                <button type="button" id="toggle-envelope-mediapool-btn" onclick="toggleEnvelopeSection('mediapool')" class="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.05] hover:bg-white/[0.12] border border-resolve-border text-zinc-300 hover:text-white cursor-pointer transition-colors shrink-0" title="Contraer o expandir Media Pool del sobre">
+                  <svg id="toggle-envelope-mediapool-icon" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div onclick="toggleEnvelopeSection('mediapool')" class="cursor-pointer select-none">
+                  <h3 class="font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                    <span>Contenido dentro del Sobre (Previsualización Directa)</span>
+                    <span id="inline-envelope-files-count" class="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.06] text-amber-300 text-[10px] font-bold">0 piezas</span>
+                  </h3>
+                  <p class="text-[11px] text-resolve-dimText">Selecciona cualquier foto, boceto, video o PDF adjunto al sobre para previsualizarlo aquí mismo sin cambiar de pestaña.</p>
+                </div>
               </div>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="promptAddMediaLink()" class="px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.10] text-zinc-200 hover:text-white rounded-lg border border-resolve-border text-xs font-medium transition-all cursor-pointer">
@@ -1034,7 +1056,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+            <div id="envelope-mediapool-body" class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
               <!-- Lista de Piezas dentro del Sobre (5 columnas) con Zona de Soltar / Importar directa -->
               <div class="lg:col-span-5 flex flex-col gap-2 max-h-[410px]">
                 <div 
@@ -1143,10 +1165,15 @@
 
       <!-- Pie del Sobre -->
       <div class="h-12 px-4 bg-resolve-panel border-t border-resolve-border flex items-center justify-between shrink-0">
-        <button onclick="deleteActiveOt()" class="px-3 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 rounded flex items-center gap-1.5 transition-colors cursor-pointer">
-          <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          <span>Eliminar OT</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-delete-active-ot" onclick="deleteActiveOt()" class="px-3 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 rounded flex items-center gap-1.5 transition-colors cursor-pointer">
+            <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span>Eliminar OT</span>
+          </button>
+          <button id="btn-reopen-archived-ot" type="button" onclick="reopenArchivedOt()" class="hidden px-3 py-1 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 rounded flex items-center gap-1.5 transition-colors cursor-pointer text-xs font-semibold">
+            <span>Reabrir OT</span>
+          </button>
+        </div>
         <button onclick="closeEnvelopeModal()" class="px-4 py-1.5 bg-resolve-accent hover:bg-resolve-accentHover text-stone-950 font-bold rounded transition-colors cursor-pointer">
           Cerrar Sobre
         </button>
@@ -1182,8 +1209,49 @@
     </div>
   </div>
 
-  
-  <!-- MODAL PARA GESTIONAR / EDITAR / CREAR ESTADOS DE TRÁFICO -->
+  <!-- MODAL DE DESPACHO: COMPARTIR ENLACE DE REVISIÓN (#share-review-popover) -->
+  <div id="share-review-popover" onclick="if(event.target === this) closeShareReviewPopover()" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[80] hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/98 border border-white/[0.14] rounded-2xl shadow-2xl shadow-black/90 p-5 text-xs text-zinc-200 space-y-4">
+      <div class="flex items-start justify-between border-b border-resolve-border pb-3 gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#0BA2AC] shrink-0"></span>
+            <h4 class="font-bold text-white uppercase text-xs tracking-wider">Compartir para Revisión</h4>
+          </div>
+          <p id="share-review-subtitle" class="text-[11px] text-zinc-400 truncate mt-0.5 font-mono">OT • Pieza</p>
+        </div>
+        <button type="button" onclick="closeShareReviewPopover()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="Cerrar (Esc)">✕</button>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-[10px] uppercase text-zinc-400 font-semibold">Enlace público de revisión</label>
+        <div class="flex items-center gap-2">
+          <input id="share-review-url-input" type="text" readonly class="flex-1 bg-black/50 border border-resolve-border rounded-lg px-2.5 py-2 text-[11px] text-[#0BA2AC] font-mono focus:outline-none select-all" />
+          <button id="share-review-copy-btn" type="button" class="px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold text-xs transition-colors cursor-pointer shrink-0">Copiar</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <a id="share-review-whatsapp-btn" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 font-semibold text-xs transition-colors">
+          <span>WhatsApp</span>
+        </a>
+        <a id="share-review-email-btn" href="#" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/35 text-sky-300 font-semibold text-xs transition-colors">
+          <span>Correo</span>
+        </a>
+        <a id="share-review-sms-btn" href="#" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-300 font-semibold text-xs transition-colors">
+          <span>SMS / Mensajes</span>
+        </a>
+        <div class="flex items-center gap-1.5">
+          <button id="share-review-native-btn" type="button" class="hidden flex-1 items-center justify-center px-2.5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-resolve-border text-zinc-200 font-semibold text-xs transition-colors cursor-pointer">
+            Más opciones
+          </button>
+          <a id="share-review-open-btn" href="#" target="_blank" rel="noopener" class="flex-1 flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-[#0BA2AC]/20 hover:bg-[#0BA2AC]/30 border border-[#0BA2AC]/45 text-[#0BA2AC] font-semibold text-xs transition-colors">
+            <span>Abrir visor ↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="status-manager-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-resolve-surface/95 border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-6 text-xs">
       <div class="flex items-center justify-between border-b border-resolve-border pb-2.5 mb-3">
@@ -1725,6 +1793,18 @@
           </div>
         </div>
 
+        <!-- ROL Y ALCANCE EN EL ESTUDIO (SOLO LECTURA) -->
+        <div id="user-profile-role-scope-card" class="bg-black/30 border border-resolve-border/60 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">Rol:</span>
+            <span id="user-profile-role-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">Dueño</span>
+          </div>
+          <div class="text-[11px] text-zinc-300 truncate">
+            <span class="text-zinc-500">Alcance:</span>
+            <span id="user-profile-scope-label" class="font-medium text-white">Todo el estudio</span>
+          </div>
+        </div>
+
         <!-- SECCIÓN 2: IDENTIDAD Y FIRMA OPERATIVA -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <!-- Nombre Completo -->
@@ -1765,6 +1845,18 @@
               placeholder="contacto@marcanter.com" 
               oninput="handleUserProfileInputChange()"
               class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 text-zinc-300 font-mono focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none"
+            >
+          </div>
+
+          <!-- Celular / WhatsApp -->
+          <div class="md:col-span-2">
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Celular / WhatsApp</label>
+            <input 
+              type="tel" 
+              id="user-modal-phone" 
+              placeholder="+57 300 000 0000" 
+              oninput="handleUserProfileInputChange()"
+              class="w-full bg-black/40 border border-resolve-border rounded-lg px-3 py-1.5 text-zinc-200 font-mono focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 focus:outline-none"
             >
           </div>
         </div>
@@ -1938,6 +2030,22 @@
             <span class="text-[10px] text-zinc-500">Micro-estudio (hasta 6 en total)</span>
           </div>
           <form onsubmit="handleSendTeamInvite(event)" class="space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <select
+                id="user-team-invite-role"
+                onchange="handleInviteRoleSelectChange(this.value)"
+                class="bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 text-xs focus:border-amber-500/60 focus:outline-none"
+              >
+                <option value="member">Colaborador (consume cupo)</option>
+                <option value="client">Cliente / Cuentas Colaborativo (ilimitado)</option>
+              </select>
+              <select
+                id="user-team-invite-client"
+                class="hidden bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 text-xs focus:border-amber-500/60 focus:outline-none"
+              >
+                <option value="">Selecciona cliente asignado...</option>
+              </select>
+            </div>
             <div class="flex items-center gap-2">
               <input 
                 type="email" 
@@ -1967,7 +2075,7 @@
               <span class="text-xs">⟳</span>
             </button>
           </div>
-          <div id="user-team-members-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div id="user-team-members-list" class="space-y-2 max-h-72 overflow-y-auto pr-1">
             <!-- Inyectado dinámicamente -->
           </div>
         </div>
@@ -1991,6 +2099,289 @@
           </button>
         </div>
       </div><!-- /#user-modal-view-team -->
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL ONBOARDING: NOMBRA TU ESTUDIO (PLG FORZOSO)                    -->
+  <!-- ==================================================================== -->
+  <div id="onboarding-studio-modal" data-blocking="true" class="fixed inset-0 bg-black/85 backdrop-blur-xl z-[9999] hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/98 border border-white/[0.15] rounded-2xl shadow-2xl shadow-black/95 p-6 flex flex-col text-xs text-zinc-300 relative">
+      <!-- Encabezado macOS Dark -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg shrink-0">
+          🏛️
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-white tracking-tight">Nombra tu Estudio o Agencia</h2>
+          <p class="text-xs text-zinc-400 mt-0.5">Configura tu espacio para iniciar tus 14 días de prueba Pro sin costo.</p>
+        </div>
+      </div>
+
+      <!-- Formulario de 1 solo campo -->
+      <form id="onboarding-studio-form" onsubmit="handleCreateStudioOnboarding(event)" class="space-y-4">
+        <div>
+          <label for="onboarding-studio-name" class="block text-[11px] uppercase tracking-wider text-zinc-400 font-semibold mb-1.5">
+            Nombre del Estudio o Agencia
+          </label>
+          <input 
+            type="text" 
+            id="onboarding-studio-name" 
+            name="name" 
+            required 
+            placeholder="Ej. Central Constructora de Marcas" 
+            autocomplete="organization"
+            class="w-full px-3.5 py-2.5 bg-black/60 border border-white/[0.15] rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/80 focus:ring-1 focus:ring-amber-500/80 text-sm transition-all"
+            autofocus
+          >
+          <input type="hidden" id="onboarding-studio-slug" name="slug">
+        </div>
+
+        <div id="onboarding-studio-error" class="hidden px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs"></div>
+
+        <button 
+          type="submit" 
+          id="onboarding-studio-submit-btn" 
+          class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>Comenzar Prueba Gratuita (14 Días)</span>
+          <span class="text-sm font-black">→</span>
+        </button>
+
+        <p class="text-[10px] text-zinc-500 text-center leading-relaxed">
+          Sin tarjeta de crédito requerida • 14 días de acceso Pro completo • Invita a tu equipo
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL DE EDICIÓN DE MIEMBRO DEL EQUIPO (#team-member-detail-modal)   -->
+  <!-- ==================================================================== -->
+  <div id="team-member-detail-modal" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[70] hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="w-full max-w-md bg-resolve-surface/98 border border-white/[0.14] rounded-2xl shadow-2xl shadow-black/90 p-5 text-xs text-zinc-200 my-auto space-y-4">
+      <div class="flex items-start justify-between border-b border-resolve-border pb-3 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="team-member-modal-avatar" class="shrink-0"></div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 id="team-member-modal-name" class="font-bold text-white text-sm truncate">Miembro</h4>
+              <span id="team-member-modal-status-badge" class="px-2 py-0.5 rounded-full text-[9px] font-semibold">Activo</span>
+            </div>
+            <div class="text-[11px] text-zinc-400 font-mono truncate" id="team-member-modal-shortname">--</div>
+          </div>
+        </div>
+        <button type="button" onclick="closeTeamMemberDetailModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="Cerrar">✕</button>
+      </div>
+
+      <form onsubmit="saveTeamMemberDetailModal(event)" class="space-y-3.5">
+        <input type="hidden" id="team-member-modal-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Correo Electrónico</label>
+            <input type="email" id="team-member-modal-email" readonly class="w-full bg-black/30 border border-resolve-border/60 rounded-lg px-2.5 py-1.5 text-zinc-400 font-mono text-[11px] focus:outline-none cursor-not-allowed" />
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Celular / WhatsApp</label>
+            <input type="tel" id="team-member-modal-phone" placeholder="+57 300 000 0000" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono text-[11px] focus:border-amber-500/60 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Rol en el Estudio</label>
+            <select id="team-member-modal-role" onchange="handleTeamMemberModalRoleChange(this.value)" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 text-xs focus:border-amber-500/60 focus:outline-none">
+              <option value="member">Colaborador</option>
+              <option value="client">Cliente / Cuentas</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1">Alcance / Cliente</label>
+            <select id="team-member-modal-client" class="w-full bg-black/40 border border-resolve-border rounded-lg px-2.5 py-1.5 text-zinc-200 text-xs focus:border-amber-500/60 focus:outline-none">
+              <option value="*">Todo el estudio (*)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="team-member-modal-depts-wrap" class="bg-black/30 border border-resolve-border/60 rounded-xl p-3 space-y-2">
+          <label class="block text-[10px] uppercase text-zinc-400 font-bold tracking-wider">Departamentos / Privilegios Operativos</label>
+          <div id="team-member-modal-depts-container" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <div id="team-member-modal-feedback" class="hidden text-xs p-2 rounded-lg font-medium"></div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-resolve-border">
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="team-member-modal-toggle-status-btn" class="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer">Desactivar</button>
+            <button type="button" id="team-member-modal-remove-btn" class="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors cursor-pointer">Retirar</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeTeamMemberDetailModal()" class="px-3 py-1.5 rounded-lg border border-resolve-border bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs transition-colors cursor-pointer">Cancelar</button>
+            <button type="submit" id="team-member-modal-save-btn" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-semibold text-xs shadow-sm border border-amber-300/40 transition-all cursor-pointer">Guardar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL DE SUSCRIPCIÓN / PAYWALL BOLD                                   -->
+  <!-- ==================================================================== -->
+  <div id="subscription-paywall-modal" class="fixed inset-0 bg-black/85 backdrop-blur-xl z-[9999] hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-resolve-surface/98 border border-white/[0.15] rounded-2xl shadow-2xl shadow-black/95 p-6 flex flex-col text-xs text-zinc-300 relative">
+      
+      <!-- Botón de Cerrar (Visible en Soft Paywall, oculto en Hard Paywall) -->
+      <button 
+        type="button" 
+        id="subscription-modal-close-btn" 
+        onclick="closeSubscriptionPaywallModal()" 
+        class="absolute top-4 right-4 p-1.5 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+        title="Cerrar ventana"
+      >
+        ✕
+      </button>
+
+      <!-- Encabezado con Ícono y Badge -->
+      <div class="flex items-center gap-3 mb-4 pr-6">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xl shrink-0">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="subscription-modal-title" class="text-base font-bold text-white tracking-tight">Trafikeitor Plan Pro</h2>
+            <span id="subscription-modal-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-300">
+              PRUEBA ACTIVA
+            </span>
+          </div>
+          <p id="subscription-modal-subtitle" class="text-xs text-zinc-400 mt-0.5">
+            Impulsa el flujo de trabajo creativo de tu agencia con máxima capacidad.
+          </p>
+        </div>
+      </div>
+
+      <!-- Estado Actual / Días Restantes -->
+      <div id="subscription-modal-info-box" class="p-3.5 rounded-xl bg-black/40 border border-white/[0.10] mb-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-400 text-xs">Espacio de Trabajo:</span>
+          <span id="subscription-modal-org-name" class="font-bold text-white text-xs truncate max-w-[240px]">Mi Estudio</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-400 text-xs">Estado de Suscripción:</span>
+          <span id="subscription-modal-days-text" class="font-bold text-amber-400 text-xs">14 días restantes</span>
+        </div>
+      </div>
+
+      <!-- Beneficios del Plan Pro -->
+      <div class="space-y-2 mb-5">
+        <div class="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold mb-2">Incluido en el Plan Pro:</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+          <div class="flex items-center gap-2 text-zinc-300">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>Órdenes de Trabajo ilimitadas</span>
+          </div>
+          <div class="flex items-center gap-2 text-zinc-300">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>Hasta 6 miembros de equipo</span>
+          </div>
+          <div class="flex items-center gap-2 text-zinc-300">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>Media Pool & Stripboard</span>
+          </div>
+          <div class="flex items-center gap-2 text-zinc-300">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>Revisiones ilimitadas para clientes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones de Pago y Respaldo -->
+      <div class="space-y-2.5 pt-2 border-t border-white/[0.08]">
+        <button 
+          type="button" 
+          id="paywall-bold-checkout-btn" 
+          onclick="handleBoldCheckoutClick()" 
+          class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>Activar Plan Pro con Bold ($49 USD)</span>
+          <span class="text-sm font-black">→</span>
+        </button>
+
+        <button 
+          type="button" 
+          id="paywall-export-backup-btn" 
+          onclick="exportBackupData()" 
+          class="w-full py-2 px-3 rounded-lg border border-white/[0.10] bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 hover:text-white font-medium text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>Descargar Respaldo de Mis Datos (JSON)</span>
+        </button>
+      </div>
+
+      <div class="mt-3 text-center">
+        <span class="text-[10px] text-zinc-500">
+          Pagos procesados de forma segura mediante <strong>Bold.co</strong> (Tarjeta Débito/Crédito, PSE, Nequi)
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL DE REASIGNACIÓN SEGURA DE OTS (#member-reassign-modal)        -->
+  <!-- ==================================================================== -->
+  <div id="member-reassign-modal" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[60] hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-surface/98 border border-white/[0.15] rounded-2xl shadow-2xl shadow-black/90 p-5 text-xs text-zinc-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-resolve-border pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+          <h4 class="font-semibold text-white uppercase text-xs tracking-wider">Reasignar Responsabilidades</h4>
+        </div>
+        <button type="button" onclick="closeMemberReassignModal()" class="p-1 hover:bg-white/[0.10] text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="Cerrar (Esc)">✕</button>
+      </div>
+
+      <div id="member-reassign-summary" class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
+        <!-- Resumen de carga activa -->
+      </div>
+
+      <form id="member-reassign-form" onsubmit="handleConfirmReassignAndDelete(event)" class="space-y-4">
+        <input type="hidden" id="member-reassign-target-id" value="">
+        <div>
+          <label for="member-reassign-successor-select" class="block text-[10px] uppercase text-zinc-400 font-semibold mb-1.5">
+            Nuevo Responsable Activo *
+          </label>
+          <select id="member-reassign-successor-select" required class="w-full bg-black/50 border border-resolve-border rounded-lg px-3 py-2 text-white text-xs focus:border-amber-500/60 focus:outline-none">
+            <!-- Opciones inyectadas dinámicamente -->
+          </select>
+        </div>
+
+        <div id="member-reassign-error" class="hidden px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-resolve-border">
+          <button type="button" onclick="closeMemberReassignModal()" class="px-3.5 py-1.5 rounded-lg border border-resolve-border bg-white/[0.05] hover:bg-white/[0.10] text-zinc-300 hover:text-white font-medium text-xs transition-colors cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" id="member-reassign-submit-btn" class="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer">
+            Transferir y Retirar Miembro
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- OVERLAY BLOQUEANTE: LICENCIA SUSPENDIDA -->
+  <div id="license-suspended-gate" class="hidden fixed inset-0 z-[10050] bg-black/90 backdrop-blur-md items-center justify-center p-4">
+    <div class="w-full max-w-md bg-resolve-panel border border-rose-500/40 rounded-2xl p-6 shadow-2xl space-y-4 text-center">
+      <div class="w-12 h-12 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">!</div>
+      <h2 class="text-lg font-bold text-white">Suscripción Suspendida</h2>
+      <p id="license-suspended-message" class="text-xs text-zinc-300 leading-relaxed">
+        Este estudio se encuentra suspendido. No es posible consultar ni editar órdenes de trabajo hasta regularizar la licencia.
+      </p>
+      <div id="license-suspended-org-switcher" class="hidden space-y-2 pt-2 border-t border-resolve-border/60"></div>
+      <div class="pt-2">
+        <button type="button" onclick="handleUserSignOut()" class="w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-semibold text-xs transition-all cursor-pointer">
+          Cerrar Sesión
+        </button>
+      </div>
     </div>
   </div>
 

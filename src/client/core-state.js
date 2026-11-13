@@ -14,6 +14,12 @@ export const RESPONSIBLES_STORAGE_KEY = 'resolve_traffic_responsibles_v2';
 export const DEPARTMENTS_STORAGE_KEY = 'resolve_traffic_departments_v2';
 export const USER_PROFILE_STORAGE_KEY = 'resolve_traffic_user_profile_v2';
 
+export const TERMINAL_OT_STATUSES = ['Cerrado', 'Cancelado', 'Archivada', 'Aprobado'];
+
+export function isOtTerminal(status) {
+  return TERMINAL_OT_STATUSES.includes(status);
+}
+
 export const CLIENT_COLOR_PALETTE = [
   { name: 'emerald', label: 'Esmeralda', hex: '#34d399', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', badge: 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60', dot: 'bg-emerald-400' },
   { name: 'sky',     label: 'Azul Cielo', hex: '#38bdf8', text: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     badge: 'bg-sky-950/40 text-sky-300 border-sky-700/60',         dot: 'bg-sky-400' },
@@ -63,9 +69,9 @@ export const USER_AVATAR_ICONS = {
 };
 
 export const DEFAULT_USER_PROFILE = {
-  fullName: 'Andrés Jaramillo',
-  shortName: 'Andrés J.',
-  email: 'contacto@marcanter.com',
+  fullName: '',
+  shortName: '',
+  email: '',
   color: 'cyan',
   avatarMode: 'initials', // 'initials' | 'icon' | 'image'
   avatarIcon: 'pen',
@@ -73,9 +79,7 @@ export const DEFAULT_USER_PROFILE = {
   departments: ['Cuentas', 'Tráfico', 'Creativos']
 };
 
-export const defaultResponsibles = [
-  "Andrés J."
-];
+export const defaultResponsibles = [];
 
 export const legacyGenericRoles = [
   "Cuentas",
@@ -153,6 +157,11 @@ export const SUITE_DEFS = {
 // OBJETO DE ESTADO MUTABLE CENTRALIZADO
 // ============================================================================
 export const state = {
+  organizationId: null,
+  memberRole: 'owner',                  // 'owner' | 'member' | 'client'
+  allowedClientId: '*',
+  isSuperAdmin: false,
+  currentUser: null,
   currentMainView: 'desk',              // 'desk' | 'stripboard'
   currentDeskMode: 'list',              // 'grid' | 'list'
   currentStripboardSubView: 'day',      // 'day' | 'week' | 'gantt' | 'month'
@@ -192,6 +201,36 @@ export const state = {
     dropPosition: null                  // 'before' | 'after'
   }
 };
+
+// ============================================================================
+export function getScopedStorageKey(baseKey) {
+  return `${state.organizationId || 'anon'}_${state.currentUser?.id || 'guest'}_${baseKey}`;
+}
+
+export function clearScopedLocalCache() {
+  if (typeof localStorage === 'undefined') return;
+  const baseKeys = [
+    STORAGE_KEY,
+    CLIENTS_STORAGE_KEY,
+    STATUSES_STORAGE_KEY,
+    STRIPBOARD_STORAGE_KEY,
+    RESPONSIBLES_STORAGE_KEY,
+    DEPARTMENTS_STORAGE_KEY,
+    USER_PROFILE_STORAGE_KEY,
+  ];
+  for (const baseKey of baseKeys) {
+    localStorage.removeItem(baseKey);
+    localStorage.removeItem(getScopedStorageKey(baseKey));
+  }
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && baseKeys.some((b) => k.endsWith(`_${b}`))) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch (_) {}
+}
 
 // ============================================================================
 // EVENT BUS NATIVO

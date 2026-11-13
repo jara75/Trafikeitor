@@ -20,8 +20,13 @@ import {
   defaultDepartments,
   defaultStatuses,
   statusDescriptions,
+  state,
+  getScopedStorageKey,
+  clearScopedLocalCache,
   emit
 } from './core-state.js';
+
+export { clearScopedLocalCache };
 
 // ============================================================================
 // DATOS SEMILLA (FALLBACK SI STORAGE Y SERVIDOR ESTÁN VACÍOS)
@@ -140,6 +145,7 @@ let ordersCache = [];
 let clientsCache = [];
 let statusesCache = [];
 let responsiblesCache = [];
+let inactiveResponsiblesCache = [];
 let departmentsCache = [];
 let stripboardCache = {};
 let currentUser = null;
@@ -158,6 +164,37 @@ export function escapeHtml(string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+export function translateAuthError(rawMsg, fallback = 'Ocurrió un error inesperado.') {
+  const text = typeof rawMsg === 'string' ? rawMsg.trim() : '';
+  if (!text) return fallback;
+  const lower = text.toLowerCase();
+  if (lower.includes('already invited to this organization')) {
+    return 'Este usuario ya tiene una invitación pendiente en el estudio. Usa el botón «Reenviar» en la lista.';
+  }
+  if (lower.includes('already a member of this organization')) {
+    return 'Este usuario ya es miembro activo de este estudio.';
+  }
+  if (lower.includes('membership limit')) {
+    return 'Se alcanzó el límite de 6 miembros activos. Desactiva un miembro para liberar un cupo.';
+  }
+  if (lower.includes('not allowed')) {
+    return 'No tienes permisos para realizar esta acción.';
+  }
+  if (lower.includes('invalid email or password')) {
+    return 'Correo o contraseña incorrectos.';
+  }
+  if (lower.includes('user already exists')) {
+    return 'Ya existe una cuenta registrada con este correo.';
+  }
+  if (lower.includes('invitation not found')) {
+    return 'Invitación no encontrada o ya fue utilizada.';
+  }
+  if (lower.includes('invitation expired')) {
+    return 'Esta invitación ha expirado. Solicita un reenvío.';
+  }
+  return text;
 }
 
 export function getNowFormatted() {
@@ -211,7 +248,8 @@ export function formatDateKeyLocal(date) {
 function readLocal(key, fallback) {
   if (typeof localStorage === 'undefined') return fallback;
   try {
-    const raw = localStorage.getItem(key);
+    const scopedKey = getScopedStorageKey(key);
+    const raw = localStorage.getItem(scopedKey);
     return raw ? JSON.parse(raw) : fallback;
   } catch (e) {
     return fallback;
@@ -221,7 +259,8 @@ function readLocal(key, fallback) {
 function writeLocal(key, value) {
   if (typeof localStorage === 'undefined') return;
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const scopedKey = getScopedStorageKey(key);
+    localStorage.setItem(scopedKey, JSON.stringify(value));
   } catch (e) {
     console.warn(`[DataBridge] Error escribiendo en localStorage para ${key}:`, e);
   }
@@ -230,6 +269,24 @@ function writeLocal(key, value) {
 // ============================================================================
 // PERFIL DE USUARIO Y FIRMA OPERATIVA (NATIVO BETTER AUTH)
 // ============================================================================
+export function deriveShortName(name) {
+  if (!name || typeof name !== 'string') return '';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[1].charAt(0).toUpperCase()}.`;
+}
+
+export function resolveValidShortName(name, shortName) {
+  const cleanName = typeof name === 'string' ? name.trim() : '';
+  const cleanShort = typeof shortName === 'string' ? shortName.trim() : '';
+  const isResidual = cleanShort === 'Andrés J.' && cleanName && !cleanName.toLowerCase().includes('andrés');
+  if (!cleanShort || isResidual) {
+    return deriveShortName(cleanName) || cleanName || 'Usuario';
+  }
+  return cleanShort;
+}
+
 export function getUserProfile() {
   if (currentUser) {
     let depts = DEFAULT_USER_PROFILE.departments;
@@ -238,19 +295,26 @@ export function getUserProfile() {
         depts = typeof currentUser.departments === 'string' ? JSON.parse(currentUser.departments) : currentUser.departments;
       } catch (_) {}
     }
+    const cleanName = (currentUser.name || '').trim();
+    const shortName = resolveValidShortName(cleanName, currentUser.shortName);
     return {
-      fullName: currentUser.name || DEFAULT_USER_PROFILE.fullName,
-      shortName: (currentUser.shortName || DEFAULT_USER_PROFILE.shortName || 'Andrés J.').trim(),
+      fullName: cleanName || DEFAULT_USER_PROFILE.fullName,
+      shortName: shortName,
       email: currentUser.email || DEFAULT_USER_PROFILE.email,
       color: currentUser.color || DEFAULT_USER_PROFILE.color,
       avatarMode: currentUser.avatarMode || DEFAULT_USER_PROFILE.avatarMode,
       avatarIcon: currentUser.avatarIcon || DEFAULT_USER_PROFILE.avatarIcon,
       avatarImage: currentUser.image || '',
+      phone: currentUser.phone || '',
       departments: Array.isArray(depts) && depts.length > 0 ? depts : DEFAULT_USER_PROFILE.departments,
     };
   }
 
   const profile = readLocal(USER_PROFILE_STORAGE_KEY, DEFAULT_USER_PROFILE);
+  const isDefaultAndres = profile.fullName === 'Andrés Jaramillo' && profile.email === 'contacto@marcanter.com';
+  if (isDefaultAndres) {
+    return { ...DEFAULT_USER_PROFILE };
+  }
   const merged = { ...DEFAULT_USER_PROFILE, ...profile };
   if (!Array.isArray(merged.departments) || merged.departments.length === 0) {
     merged.departments = [...DEFAULT_USER_PROFILE.departments];
@@ -260,8 +324,8 @@ export function getUserProfile() {
 
 export function getActiveUserShortName() {
   const profile = getUserProfile();
-  const shortName = (profile.shortName || 'Andrés J.').trim();
-  if (Array.isArray(responsiblesCache) && !responsiblesCache.includes(shortName)) {
+  const shortName = (profile.shortName || deriveShortName(profile.fullName) || 'Usuario').trim();
+  if (shortName && shortName !== 'Usuario' && Array.isArray(responsiblesCache) && !responsiblesCache.includes(shortName)) {
     responsiblesCache.unshift(shortName);
     writeLocal(RESPONSIBLES_STORAGE_KEY, responsiblesCache);
   }
@@ -273,18 +337,27 @@ export async function saveUserProfile(profileData) {
   const oldProfile = getUserProfile();
   const oldShortName = (oldProfile.shortName || '').trim();
 
+  const fullName = (profileData.fullName !== undefined ? profileData.fullName : oldProfile.fullName || '').trim();
+  const shortName = (profileData.shortName !== undefined
+    ? profileData.shortName
+    : (oldProfile.shortName || deriveShortName(fullName) || 'Usuario')
+  ).trim();
+
   const merged = {
     ...oldProfile,
     ...profileData,
-    fullName: (profileData.fullName !== undefined ? profileData.fullName : oldProfile.fullName || '').trim(),
-    shortName: (profileData.shortName !== undefined ? profileData.shortName : oldProfile.shortName || 'Andrés J.').trim(),
+    fullName: fullName,
+    shortName: shortName || deriveShortName(fullName) || 'Usuario',
     email: (profileData.email !== undefined ? profileData.email : oldProfile.email || '').trim(),
     color: profileData.color || oldProfile.color || 'cyan',
     avatarMode: profileData.avatarMode || oldProfile.avatarMode || 'initials',
     avatarIcon: profileData.avatarIcon || oldProfile.avatarIcon || 'pen',
     avatarImage: typeof profileData.avatarImage === 'string' ? profileData.avatarImage : (oldProfile.avatarImage || ''),
-    departments: Array.isArray(profileData.departments) && profileData.departments.length > 0
-      ? profileData.departments
+    phone: profileData.phone !== undefined ? String(profileData.phone).trim() : (oldProfile.phone || ''),
+    departments: state.memberRole === 'owner'
+      ? (Array.isArray(profileData.departments) && profileData.departments.length > 0
+          ? profileData.departments
+          : (oldProfile.departments || ['Tráfico']))
       : (oldProfile.departments || ['Tráfico'])
   };
 
@@ -297,6 +370,7 @@ export async function saveUserProfile(profileData) {
     currentUser.color = merged.color;
     currentUser.avatarMode = merged.avatarMode;
     currentUser.avatarIcon = merged.avatarIcon;
+    currentUser.phone = merged.phone;
     currentUser.departments = JSON.stringify(merged.departments);
     currentUser.image = merged.avatarMode === 'image' ? (merged.avatarImage || '') : '';
   }
@@ -315,7 +389,8 @@ export async function saveUserProfile(profileData) {
           color: merged.color,
           avatarMode: merged.avatarMode,
           avatarIcon: merged.avatarIcon,
-          departments: JSON.stringify(merged.departments),
+          phone: merged.phone,
+          ...(state.memberRole === 'owner' ? { departments: JSON.stringify(merged.departments) } : {}),
         })
       });
     } catch (err) {
@@ -401,9 +476,9 @@ export function renderUserAvatarHtml(sizeClass = 'w-5 h-5 text-[10px]', override
     inner = `<div class="w-3/5 h-3/5 ${colorObj.text} flex items-center justify-center">${USER_AVATAR_ICONS[profile.avatarIcon].svg}</div>`;
   } else {
     // Modo Iniciales
-    const sourceName = (profile.shortName || profile.fullName || 'AJ').trim();
+    const sourceName = (profile.shortName || profile.fullName || 'US').trim();
     const parts = sourceName.split(/\s+/).filter(Boolean);
-    let initials = 'AJ';
+    let initials = 'US';
     if (parts.length >= 2) {
       initials = (parts[0][0] + parts[1][0]).toUpperCase();
     } else if (parts.length === 1) {
@@ -419,33 +494,62 @@ export function renderUserAvatarHtml(sizeClass = 'w-5 h-5 text-[10px]', override
   `;
 }
 
-// Hidratación inicial síncrona desde localStorage para que las llamadas
-// inmediatas antes del bootstrap() asíncrono tengan datos consistentes
+// Hidratación diferida desde localStorage particionado (invocada tras bootstrap)
 function initLocalCache() {
-  ordersCache = readLocal(STORAGE_KEY, defaultOrders);
-  clientsCache = readLocal(CLIENTS_STORAGE_KEY, defaultClients);
+  ordersCache = readLocal(STORAGE_KEY, []);
+  clientsCache = readLocal(CLIENTS_STORAGE_KEY, []);
   statusesCache = readLocal(STATUSES_STORAGE_KEY, defaultStatuses);
   responsiblesCache = readLocal(RESPONSIBLES_STORAGE_KEY, defaultResponsibles);
   departmentsCache = readLocal(DEPARTMENTS_STORAGE_KEY, defaultDepartments);
   stripboardCache = readLocal(STRIPBOARD_STORAGE_KEY, {});
 
-  // Asegurar que el shortName del perfil y Andrés J. estén siempre presentes
+  // Asegurar que el shortName del perfil activo esté presente si es válido
   const activeShort = getActiveUserShortName();
-  if (!responsiblesCache.includes(activeShort)) {
+  if (activeShort && activeShort !== 'Usuario' && !responsiblesCache.includes(activeShort)) {
     responsiblesCache.unshift(activeShort);
   }
-  if (!responsiblesCache.includes("Andrés J.")) {
-    responsiblesCache.push("Andrés J.");
+  // Depurar residuos de "Andrés J." si el perfil actual no es Andrés
+  const profile = getUserProfile();
+  if (profile.fullName && !profile.fullName.toLowerCase().includes('andrés')) {
+    responsiblesCache = responsiblesCache.filter(r => r !== 'Andrés J.');
   }
   // Depurar roles genéricos legados
   responsiblesCache = responsiblesCache.filter(
     r => typeof r === 'string' && !legacyGenericRoles.includes(r.trim()) && r.trim().length > 0
   );
-  if (responsiblesCache.length === 0) {
-    responsiblesCache = [...defaultResponsibles];
+  if (responsiblesCache.length === 0 && activeShort && activeShort !== 'Usuario') {
+    responsiblesCache = [activeShort];
   }
 }
-initLocalCache();
+
+export async function handleUserSignOut() {
+  if (syncDebounceTimer) {
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = null;
+  }
+  clearScopedLocalCache();
+  currentUser = null;
+  currentOrganization = null;
+  state.currentUser = null;
+  state.organizationId = null;
+  state.memberRole = 'owner';
+  state.allowedClientId = '*';
+  state.isSuperAdmin = false;
+  ordersCache = [];
+  clientsCache = [];
+  stripboardCache = {};
+  try {
+    await fetch('/api/auth/sign-out', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({})
+    });
+  } catch (_) {}
+  if (typeof window !== 'undefined') {
+    window.location.reload();
+  }
+}
 
 // ============================================================================
 // SINCRONIZACIÓN ASÍNCRONA HACIA HONO / SQLITE (CON DEBOUNCE)
@@ -472,12 +576,28 @@ export function scheduleSync() {
         return;
       }
 
-      const payload = {
-        clients: clientsCache,
-        statuses: statusesCache,
-        orders: ordersCache,
-        stripboard: stripboardCache
-      };
+      const stripboardWithUser = {};
+      const activeUserId = state.currentUser?.id || null;
+      for (const [dateStr, strips] of Object.entries(stripboardCache || {})) {
+        if (Array.isArray(strips)) {
+          stripboardWithUser[dateStr] = strips.map((st) => ({
+            ...st,
+            userId: st.userId || activeUserId
+          }));
+        }
+      }
+
+      const payload = state.memberRole === 'owner'
+        ? {
+            clients: clientsCache,
+            statuses: statusesCache,
+            orders: ordersCache,
+            stripboard: stripboardWithUser
+          }
+        : {
+            orders: ordersCache,
+            stripboard: stripboardWithUser
+          };
 
       const res = await fetch('/api/studio/sync', {
         method: 'POST',
@@ -488,6 +608,23 @@ export function scheduleSync() {
 
       if (res.ok) {
         emit('sync:status', { isSaving: false, text: 'SQLite Sincronizado' });
+      } else if (res.status === 402) {
+        const errJson = await res.json().catch(() => ({}));
+        emit('billing:trial-expired', errJson);
+        emit('sync:status', { isSaving: false, text: 'Prueba finalizada' });
+      } else if (res.status === 403) {
+        const errJson = await res.json().catch(() => ({}));
+        if (errJson && errJson.error === 'license_suspended') {
+          emit('license:suspended', errJson);
+          emit('sync:status', { isSaving: false, text: 'Suscripción suspendida' });
+          return;
+        }
+        if (errJson && errJson.error === 'account_deactivated') {
+          emit('auth:account-deactivated', errJson);
+          emit('sync:status', { isSaving: false, text: 'Cuenta desactivada' });
+          return;
+        }
+        emit('sync:status', { isSaving: false, text: 'Sin permisos (Local)' });
       } else {
         emit('sync:status', { isSaving: false, text: 'Sin conexión (Local)' });
       }
@@ -515,6 +652,7 @@ export async function bootstrap() {
     const res = await fetch('/api/studio/bootstrap', { credentials: 'include' });
 
     if (res.status === 401) {
+      clearScopedLocalCache();
       const statusRes = await fetch('/api/status', { credentials: 'include' }).catch(() => null);
       const statusData = statusRes && statusRes.ok ? await statusRes.json() : { hasUsers: true };
       emit('auth:required', { hasUsers: statusData.hasUsers });
@@ -523,35 +661,77 @@ export async function bootstrap() {
       return { ok: false, status: 401, authRequired: true };
     }
 
+    if (res.status === 403) {
+      const errData = await res.json().catch(() => ({}));
+      if (errData && errData.error === 'license_suspended') {
+        clearScopedLocalCache();
+        emit('license:suspended', errData);
+        emit('sync:status', { isSaving: false, text: 'Suscripción suspendida' });
+        return { ok: false, status: 403, error: 'license_suspended' };
+      }
+      if (errData && errData.error === 'account_deactivated') {
+        clearScopedLocalCache();
+        emit('auth:account-deactivated', errData);
+        emit('sync:status', { isSaving: false, text: 'Cuenta desactivada' });
+        return { ok: false, status: 403, error: 'account_deactivated' };
+      }
+      if (errData && errData.error === 'no_organization') {
+        currentUser = errData.user || null;
+        state.currentUser = currentUser;
+        state.organizationId = null;
+        emit('auth:no-organization', { user: currentUser });
+        emit('sync:status', { isSaving: false, text: 'Estudio requerido' });
+        return { ok: false, status: 403, error: 'no_organization', user: currentUser };
+      }
+    }
+
     if (res.ok) {
       const data = await res.json();
       if (data && data.ok) {
         currentUser = data.user || null;
         currentOrganization = data.organization || null;
 
-        // Poblar catálogo de Responsables / Firmas con los miembros reales de la organización
+        state.currentUser = currentUser;
+        state.organizationId = currentOrganization?.id || null;
+        state.memberRole = data.memberRole || 'owner';
+        state.allowedClientId = data.allowedClientId || '*';
+        state.isSuperAdmin = currentUser?.role === 'super_admin';
+
+        initLocalCache();
+
+        // Poblar catálogo de Responsables / Firmas solo con miembros activos de la organización
         if (Array.isArray(data.members) && data.members.length > 0) {
+          const activeShorts = [];
+          const inactiveShorts = [];
           data.members.forEach((m) => {
             const mUser = m.user;
             if (mUser) {
               const memberShort = (mUser.shortName || mUser.name || '').trim();
-              if (memberShort && !responsiblesCache.includes(memberShort)) {
-                responsiblesCache.push(memberShort);
+              if (!memberShort) return;
+              if (m.status === 'deactivated') {
+                if (!inactiveShorts.includes(memberShort)) inactiveShorts.push(memberShort);
+              } else {
+                if (!activeShorts.includes(memberShort)) activeShorts.push(memberShort);
               }
             }
+          });
+          inactiveResponsiblesCache = inactiveShorts;
+          responsiblesCache = responsiblesCache.filter((r) => !inactiveShorts.includes(r));
+          activeShorts.forEach((s) => {
+            if (!responsiblesCache.includes(s)) responsiblesCache.push(s);
           });
           writeLocal(RESPONSIBLES_STORAGE_KEY, responsiblesCache);
         }
 
-        if (Array.isArray(data.clients) && data.clients.length > 0) {
+        if (Array.isArray(data.clients)) {
           clientsCache = data.clients;
           writeLocal(CLIENTS_STORAGE_KEY, clientsCache);
         }
-        if (Array.isArray(data.statuses) && data.statuses.length > 0) {
+        if (Array.isArray(data.statuses)) {
           statusesCache = data.statuses;
           writeLocal(STATUSES_STORAGE_KEY, statusesCache);
         }
-        if (Array.isArray(data.orders) && data.orders.length > 0) {
+        if (Array.isArray(data.orders)) {
           ordersCache = data.orders;
           writeLocal(STORAGE_KEY, ordersCache);
         }
@@ -591,6 +771,14 @@ export function getCurrentOrganization() {
 export async function fetchFullOrganization() {
   if (typeof fetch === 'undefined') return currentOrganization;
   try {
+    const bootRes = await fetch('/api/studio/bootstrap', { credentials: 'include' });
+    if (bootRes.ok) {
+      const bootData = await bootRes.json();
+      if (bootData && bootData.ok && bootData.organization) {
+        currentOrganization = bootData.organization;
+        return currentOrganization;
+      }
+    }
     const res = await fetch('/api/auth/organization/get-full-organization', {
       credentials: 'include'
     });
@@ -647,6 +835,56 @@ export async function uploadOtFiles(otId, fileList) {
   return uploadedItems;
 }
 
+export async function shareMediaForReview(otId, mediaFileId) {
+  if (!otId || !mediaFileId) return null;
+  const res = await fetch('/api/studio/reviews/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ otId, mediaFileId }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || 'No se pudo generar el enlace de revisión.');
+  }
+  const ot = getOrderById(otId);
+  if (ot && Array.isArray(ot.mediaFiles)) {
+    const target = ot.mediaFiles.find((m) => m.id === mediaFileId);
+    if (target && data.mediaFile) {
+      target.versionGroupId = data.mediaFile.versionGroupId;
+      target.reviewStatus = data.mediaFile.reviewStatus;
+    }
+  }
+  return data;
+}
+
+export async function uploadMediaVersion(otId, parentMediaId, file) {
+  if (!otId || !parentMediaId || !file) return null;
+  const formData = new FormData();
+  formData.append('ot_id', otId);
+  formData.append('parent_media_id', parentMediaId);
+  formData.append('file', file);
+
+  emit('sync:status', { isSaving: true, text: 'Subiendo nueva versión...' });
+  const res = await fetch('/api/studio/reviews/version', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.ok || !data.mediaItem) {
+    emit('sync:status', { isSaving: false, text: 'Error al subir versión' });
+    throw new Error(data?.error || 'No se pudo subir la nueva versión.');
+  }
+  const ot = getOrderById(otId);
+  if (ot) {
+    if (!ot.mediaFiles) ot.mediaFiles = [];
+    ot.mediaFiles.push(data.mediaItem);
+  }
+  emit('sync:status', { isSaving: false, text: 'SQLite Sincronizado' });
+  return data.mediaItem;
+}
+
 // ============================================================================
 // CATÁLOGO: RESPONSABLES
 // ============================================================================
@@ -667,10 +905,14 @@ export function addResponsible(name) {
 
 export function getResponsibleOptionsHtml(selectedVal = '') {
   const responsibles = getResponsibles();
+  let extraInactiveOption = '';
+  if (selectedVal && !responsibles.includes(selectedVal)) {
+    extraInactiveOption = `<option value="${escapeHtml(selectedVal)}" selected>${escapeHtml(selectedVal)} (Inactivo)</option>`;
+  }
   const options = responsibles
     .map(r => `<option value="${escapeHtml(r)}" ${r === selectedVal ? 'selected' : ''}>${escapeHtml(r)}</option>`)
     .join('');
-  return `${options}
+  return `${extraInactiveOption}${options}
     <option disabled>──────────</option>
     <option value="__NEW_RESPONSIBLE__">+ Nuevo</option>
   `;
@@ -695,10 +937,14 @@ export function addDepartment(name) {
 
 export function getDepartmentOptionsHtml(selectedVal = '') {
   const depts = getDepartments();
+  const hasSelected = Boolean(selectedVal && depts.some(d => d === selectedVal));
+  const extraOption = (selectedVal && !hasSelected && selectedVal !== '__NEW_DEPT__')
+    ? `<option value="${escapeHtml(selectedVal)}" selected>${escapeHtml(selectedVal)}</option>`
+    : '';
   const options = depts
     .map(d => `<option value="${escapeHtml(d)}" ${d === selectedVal ? 'selected' : ''}>${escapeHtml(d)}</option>`)
     .join('');
-  return `${options}
+  return `${extraOption}${options}
     <option disabled>──────────</option>
     <option value="__NEW_DEPT__">+ Nuevo</option>
   `;
@@ -735,10 +981,14 @@ export function getStatusBadgeClass(statusName) {
 
 export function getStatusOptionsHtml(selectedVal = '') {
   const statuses = getStatuses();
+  const hasSelected = Boolean(selectedVal && statuses.some(st => st.name === selectedVal));
+  const extraOption = (selectedVal && !hasSelected && selectedVal !== '__NEW__')
+    ? `<option value="${escapeHtml(selectedVal)}" selected>${escapeHtml(selectedVal)}</option>`
+    : '';
   const options = statuses
     .map(st => `<option value="${escapeHtml(st.name)}" title="${escapeHtml(statusDescriptions[st.name] || '')}" ${st.name === selectedVal ? 'selected' : ''}>${escapeHtml(st.name)}</option>`)
     .join('');
-  return `${options}
+  return `${extraOption}${options}
     <option disabled>──────────</option>
     <option value="__NEW__">+ Nuevo</option>
   `;
@@ -792,13 +1042,14 @@ export function saveOrders(orders) {
 export function getActiveRoute(ot) {
   if (!ot) return null;
   if (!ot.routes || ot.routes.length === 0) {
+    const fallbackResp = getActiveUserShortName() || 'Usuario';
     ot.routes = [{
       from: 'Tráfico',
-      to: ot.responsible || 'Andrés J.',
+      to: ot.responsible || fallbackResp,
       task: ot.title || ot.description || '',
       entryDate: ot.createdAt || getNowFormatted(),
       deliveryDate: '',
-      sign: ot.responsible || 'Andrés J.',
+      sign: ot.responsible || fallbackResp,
       notes: '',
       stamp: null,
       completed: false
@@ -809,6 +1060,22 @@ export function getActiveRoute(ot) {
   return pending || ot.routes[ot.routes.length - 1];
 }
 
+export function syncOtStatusAndRoute(otId, newStatus, { syncLatestRouteTo = true } = {}) {
+  if (!otId || !newStatus) return null;
+  const ot = ordersCache.find(o => o.id === otId);
+  if (!ot) return null;
+
+  ot.status = newStatus;
+  if (syncLatestRouteTo && Array.isArray(ot.routes) && ot.routes.length > 0) {
+    const activeRoute = ot.routes.find(r => !r.completed) || ot.routes[ot.routes.length - 1];
+    if (activeRoute) {
+      activeRoute.to = newStatus;
+    }
+  }
+  saveOrders(ordersCache);
+  return ot;
+}
+
 export function updateOtField(otId, field, value) {
   const ot = getOrderById(otId);
   if (!ot) return;
@@ -816,24 +1083,42 @@ export function updateOtField(otId, field, value) {
   saveOrders(ordersCache);
 }
 
-export function deleteOt(otId) {
-  ordersCache = ordersCache.filter(o => o.id !== otId);
-  // Eliminar referencias del Stripboard
+export async function deleteOt(otId) {
+  if (syncDebounceTimer) {
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = null;
+  }
+  ordersCache = ordersCache.filter(o => o.id !== otId && o.parentOtId !== otId);
   Object.keys(stripboardCache).forEach(dateKey => {
-    stripboardCache[dateKey] = (stripboardCache[dateKey] || []).filter(s => s.otId !== otId);
+    stripboardCache[dateKey] = (stripboardCache[dateKey] || []).filter(
+      s => s.otId !== otId && !(s.otId && String(s.otId).startsWith(`${otId}-`))
+    );
   });
-  saveOrders(ordersCache);
+  writeLocal(STORAGE_KEY, ordersCache);
+  writeLocal(STRIPBOARD_STORAGE_KEY, stripboardCache);
+  emit('data:changed', { timestamp: Date.now() });
+
+  if (typeof fetch !== 'undefined') {
+    try {
+      await fetch(`/api/studio/orders/${encodeURIComponent(otId)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn('[DataBridge] Error eliminando OT en servidor:', err);
+    }
+  }
 }
 
-export function createOt(otData) {
+export async function createOt(otData = {}) {
   const profile = getUserProfile();
   const activeShort = getActiveUserShortName();
   const defaultDept = (profile.departments && profile.departments.length > 0) ? profile.departments[0] : 'Tráfico';
 
-  const newOt = {
-    id: otData.id || `OT-26-${String(ordersCache.length + 1).padStart(3, '0')}`,
+  const requestBody = {
+    parentOtId: otData.parentOtId || null,
     ref: otData.ref || '',
-    createdAt: otData.createdAt || getNowFormatted(),
+    discipline: otData.discipline || 'advertising',
     client: otData.client || 'Interno',
     brand: otData.brand || '',
     product: otData.product || '',
@@ -841,18 +1126,18 @@ export function createOt(otData) {
     media: otData.media || 'Digital',
     urgent: !!otData.urgent,
     status: otData.status || 'Tráfico',
-    responsible: otData.responsible || activeShort || 'Andrés J.',
+    responsible: otData.responsible || activeShort || 'Usuario',
     brief: otData.brief || '',
     legalText: otData.legalText || '',
-    mediaFiles: otData.mediaFiles || [],
+    deliveryDate: otData.deliveryDate || '',
     routes: otData.routes && otData.routes.length > 0 ? otData.routes : [
       {
         from: otData.from || defaultDept || 'Cliente',
         to: 'Tráfico',
         task: otData.title || otData.description || 'Recepción inicial de OT',
         entryDate: getNowFormatted(),
-        deliveryDate: '',
-        sign: otData.responsible || activeShort || 'Andrés J.',
+        deliveryDate: otData.deliveryDate || '',
+        sign: otData.responsible || activeShort || 'Usuario',
         notes: '',
         stamp: 'RECIBIDO',
         completed: false
@@ -860,9 +1145,24 @@ export function createOt(otData) {
     ]
   };
 
-  ordersCache.unshift(newOt);
-  saveOrders(ordersCache);
-  return newOt;
+  if (typeof fetch !== 'undefined') {
+    const res = await fetch('/api/studio/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(requestBody)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok || !data.order) {
+      throw new Error(data.message || 'No se pudo crear la OT en el servidor.');
+    }
+    ordersCache.unshift(data.order);
+    writeLocal(STORAGE_KEY, ordersCache);
+    emit('data:changed', { timestamp: Date.now() });
+    return data.order;
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -894,9 +1194,25 @@ export function addClient(name, brands = [], color = 'emerald') {
   return client;
 }
 
-export function deleteClient(clientId) {
+export async function deleteClient(clientId) {
+  if (syncDebounceTimer) {
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = null;
+  }
   clientsCache = clientsCache.filter(c => c.id !== clientId);
-  saveClients(clientsCache);
+  writeLocal(CLIENTS_STORAGE_KEY, clientsCache);
+  emit('data:changed', { timestamp: Date.now() });
+
+  if (typeof fetch !== 'undefined') {
+    try {
+      await fetch(`/api/studio/clients/${encodeURIComponent(clientId)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn('[DataBridge] Error eliminando cliente en servidor:', err);
+    }
+  }
 }
 
 export function addBrand(clientName, brandName) {
@@ -949,11 +1265,28 @@ export function moveStrip(dateStr, index, direction) {
   saveDayStrips(dateStr, strips);
 }
 
-export function removeStrip(dateStr, index) {
+export async function removeStrip(dateStr, index) {
   const strips = getDayStrips(dateStr);
   if (index >= 0 && index < strips.length) {
-    strips.splice(index, 1);
-    saveDayStrips(dateStr, strips);
+    const [removed] = strips.splice(index, 1);
+    if (syncDebounceTimer) {
+      clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = null;
+    }
+    stripboardCache[dateStr] = [...strips];
+    writeLocal(STRIPBOARD_STORAGE_KEY, stripboardCache);
+    emit('stripboard:updated', { dateStr });
+
+    if (removed?.id && typeof fetch !== 'undefined') {
+      try {
+        await fetch(`/api/studio/stripboard/${encodeURIComponent(removed.id)}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } catch (err) {
+        console.warn('[DataBridge] Error eliminando tira en servidor:', err);
+      }
+    }
   }
 }
 

@@ -12,7 +12,8 @@ import {
   resumeRowDrag,
   emit,
   on,
-  CLIENT_COLOR_PALETTE
+  CLIENT_COLOR_PALETTE,
+  isOtTerminal
 } from './core-state.js';
 
 export { CLIENT_COLOR_PALETTE };
@@ -20,6 +21,7 @@ export { CLIENT_COLOR_PALETTE };
 import {
   getOrders,
   saveOrders,
+  createOt,
   getOrderById,
   getClients,
   saveClients,
@@ -34,6 +36,7 @@ import {
   getResponsibleOptionsHtml,
   getDepartments,
   getActiveRoute,
+  syncOtStatusAndRoute,
   getDayStrips,
   saveDayStrips,
   escapeHtml,
@@ -136,7 +139,7 @@ export function collapseAllTableGroups() {
     } else if (state.currentTableGroup === 'status') {
       key = ot.status || 'Tráfico';
     } else if (state.currentTableGroup === 'responsible') {
-      key = ot.responsible || 'Andrés J.';
+      key = ot.responsible || 'Sin Asignar';
     } else if (state.currentTableGroup === 'department') {
       key = (route && route.to) ? route.to : 'Sin Departamento';
     }
@@ -413,7 +416,7 @@ export function handleUnifiedRowDrop(e, targetOtId, viewContext) {
   if (viewContext === 'stripboard' || state.currentMainView === 'stripboard') {
     let strips = getDayStrips(currentDate);
     if (!strips || strips.length === 0) {
-      strips = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').map(o => ({
+      strips = orders.filter(o => !isOtTerminal(o.status)).map(o => ({
         type: 'ot',
         otId: o.id,
         shiftStatus: 'En Mesa',
@@ -478,7 +481,7 @@ export function handleTableContainerDrop(e, viewContext) {
   if (viewContext === 'stripboard' || state.currentMainView === 'stripboard') {
     let strips = getDayStrips(currentDate);
     if (!strips || strips.length === 0) {
-      strips = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').map(o => ({
+      strips = orders.filter(o => !isOtTerminal(o.status)).map(o => ({
         type: 'ot',
         otId: o.id,
         shiftStatus: 'En Mesa',
@@ -587,17 +590,21 @@ export function handleGlobalStatusChange(val, otId = null, targetSelectId = 'mod
 }
 
 function applyOtStatusUpdate(otId, statusName) {
-  const orders = getOrders();
-  const ot = orders.find(o => o.id === otId);
+  const ot = syncOtStatusAndRoute(otId, statusName, { syncLatestRouteTo: true });
   if (ot) {
-    ot.status = statusName;
-    saveOrders(orders);
     renderStatusSelects();
     if (typeof document !== 'undefined') {
       const sel = document.getElementById('modal-ot-status');
-      if (sel && state.activeOtId === otId) sel.value = statusName;
+      if (sel && state.activeOtId === otId) {
+        sel.innerHTML = getStatusOptionsHtml(statusName);
+        sel.value = statusName;
+      }
+    }
+    if (typeof window !== 'undefined' && state.activeOtId === otId && typeof window.renderRouteSheetRows === 'function') {
+      window.renderRouteSheetRows(ot.routes || []);
     }
     refreshAllViews();
+    emit('route:change', { otId, routes: ot.routes });
   }
 }
 
@@ -621,7 +628,7 @@ export function handleGlobalResponsibleChange(val, otId = null, targetSelectId =
         const ot = getOrders().find(o => o.id === targetId);
         if (typeof document !== 'undefined') {
           const sel = document.getElementById(targetSelectId);
-          if (sel) sel.value = (ot && ot.responsible) || 'Andrés J.';
+          if (sel) sel.value = (ot && ot.responsible) || getActiveUserShortName() || 'Usuario';
         }
       }
     }
@@ -639,7 +646,7 @@ function applyOtResponsibleUpdate(otId, responsibleName) {
   if (ot) {
     ot.responsible = responsibleName;
     const activeRoute = getActiveRoute(ot);
-    if (!activeRoute.to || activeRoute.to === 'Andrés J.') {
+    if (!activeRoute.to) {
       activeRoute.to = responsibleName;
     }
     saveOrders(orders);
@@ -690,10 +697,11 @@ export function renderResponsibleSelects() {
   if (typeof document === 'undefined') return;
 
   // 1. Selector en Modal de Sobre OT
+  const defaultResp = getActiveUserShortName() || 'Usuario';
   const modalSelect = document.getElementById('modal-ot-responsible');
   if (modalSelect) {
     const prevVal = modalSelect.value;
-    modalSelect.innerHTML = getResponsibleOptionsHtml(prevVal || 'Andrés J.');
+    modalSelect.innerHTML = getResponsibleOptionsHtml(prevVal || defaultResp);
     if (prevVal && prevVal !== '__NEW_RESPONSIBLE__') {
       modalSelect.value = prevVal;
     }
@@ -702,9 +710,9 @@ export function renderResponsibleSelects() {
   // 2. Selector en Modal de Nueva OT
   const newSelect = document.getElementById('new-ot-responsible');
   if (newSelect) {
-    const prevVal = newSelect.value || 'Andrés J.';
-    newSelect.innerHTML = getResponsibleOptionsHtml(prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : 'Andrés J.');
-    newSelect.value = prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : 'Andrés J.';
+    const prevVal = newSelect.value || defaultResp;
+    newSelect.innerHTML = getResponsibleOptionsHtml(prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : defaultResp);
+    newSelect.value = prevVal !== '__NEW_RESPONSIBLE__' ? prevVal : defaultResp;
   }
 }
 
@@ -745,6 +753,11 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
   const rowCursorClass = isStripboard ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
   const isOdd = (rowIndex % 2 === 1);
   const zebraClass = isOdd ? 'bg-white/[0.025] stripboard-row-odd' : 'bg-transparent stripboard-row-even';
+  const isSubOt = Boolean(ot.parentOtId || /^OT-\d{2}-\d+-\d+$/.test(ot.id || ''));
+  const isDeliveryLocked = state.memberRole !== 'owner' && Boolean(routeDelivery && String(routeDelivery).trim());
+  const subOtBtnHtml = !isSubOt && !isStripboard
+    ? `<button type="button" onclick="event.stopPropagation(); createSubOtAction('${ot.id}')" title="Crear Sub-OT hija" class="px-1.5 py-0.5 rounded bg-white/[0.05] hover:bg-amber-500/20 text-zinc-400 hover:text-amber-300 border border-resolve-border hover:border-amber-500/40 text-[9px] font-semibold transition-colors shrink-0">+ Sub-OT</button>`
+    : '';
 
   return `
     <tr 
@@ -754,12 +767,14 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
     >
       <!-- 1. No. OT -->
       <td class="p-2 border-r border-resolve-border align-middle text-[11px]">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 ${isSubOt ? 'pl-3' : ''}">
           ${gripHtml}
+          ${isSubOt ? `<span class="text-amber-400/80 font-mono text-[11px] shrink-0" title="Sub-OT de ${escapeHtml(ot.parentOtId || '')}">↳</span>` : ''}
           <span class="font-mono font-bold text-white px-2 py-0.5 bg-black/50 rounded-md border border-resolve-border group-hover:border-amber-400/60 text-[11px] whitespace-nowrap">
             ${ot.id}
           </span>
           ${ot.urgent ? `<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Urgente"></span>` : ''}
+          ${subOtBtnHtml}
         </div>
       </td>
 
@@ -811,10 +826,9 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
         <input 
           type="datetime-local" 
           value="${toIsoDateTime(routeDelivery)}" 
-          onchange="handleTableOtDateChange('${ot.id}', 'deliveryDate', this.value)" 
-          onclick="try { this.showPicker(); } catch(e) {}"
+          ${isDeliveryLocked ? 'disabled title="Solo el Dueño puede modificar una fecha límite comprometida"' : `onchange="handleTableOtDateChange('${ot.id}', 'deliveryDate', this.value)" onclick="try { this.showPicker(); } catch(e) {}"`}
           style="color-scheme: dark;"
-          class="w-full bg-black/40 hover:bg-black/60 border border-resolve-border hover:border-amber-400/50 rounded px-1.5 py-0.5 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none cursor-pointer"
+          class="w-full bg-black/40 border border-resolve-border rounded px-1.5 py-0.5 text-[11px] text-zinc-200 font-mono focus:border-amber-500/60 focus:outline-none ${isDeliveryLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-black/60 hover:border-amber-400/50 cursor-pointer'}"
         />
       </td>
 
@@ -834,7 +848,7 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
           onchange="handleTableOtResponsibleChange('${ot.id}', this.value)" 
           class="w-full bg-black/50 border border-resolve-border hover:${respColor.border} rounded px-1.5 py-0.5 text-[11px] font-semibold ${respColor.text} focus:border-current focus:outline-none cursor-pointer"
         >
-          ${getResponsibleOptionsHtml(ot.responsible || 'Andrés J.')}
+          ${getResponsibleOptionsHtml(ot.responsible || getActiveUserShortName() || 'Usuario')}
         </select>
       </td>
 
@@ -856,6 +870,33 @@ export function renderUnifiedOtRow(ot, activeRoute, viewContext = 'trafico', row
 // RENDERIZADOR GENERAL DE TABLA (ORDENAMIENTO + CATEGORÍAS APPLE NUMBERS)
 // ============================================================================
 
+function groupSubOtsUnderParents(list) {
+  const byId = new Set(list.map(o => o.id));
+  const childrenMap = new Map();
+  const topLevel = [];
+
+  list.forEach(ot => {
+    const parentId = ot.parentOtId || (ot.id && /^OT-\d{2}-\d+-\d+$/.test(ot.id) ? ot.id.replace(/-\d+$/, '') : null);
+    if (parentId && byId.has(parentId) && parentId !== ot.id) {
+      if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+      childrenMap.get(parentId).push(ot);
+    } else {
+      topLevel.push(ot);
+    }
+  });
+
+  const result = [];
+  topLevel.forEach(parent => {
+    result.push(parent);
+    const kids = childrenMap.get(parent.id);
+    if (kids && kids.length > 0) {
+      kids.sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+      result.push(...kids);
+    }
+  });
+  return result;
+}
+
 export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
   if (!ordersList || ordersList.length === 0) {
     return `
@@ -867,7 +908,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
     `;
   }
 
-  const sorted = sortOrdersList(ordersList);
+  const sorted = groupSubOtsUnderParents(sortOrdersList(ordersList));
 
   if (state.currentTableGroup === 'none') {
     return sorted.map((ot, idx) => renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext, idx)).join('');
@@ -890,7 +931,7 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
     } else if (state.currentTableGroup === 'status') {
       key = ot.status || 'Tráfico';
     } else if (state.currentTableGroup === 'responsible') {
-      key = ot.responsible || 'Andrés J.';
+      key = ot.responsible || 'Sin Asignar';
     } else if (state.currentTableGroup === 'department') {
       key = (route && route.to) ? route.to : 'Sin Departamento';
     }
@@ -936,7 +977,8 @@ export function renderUnifiedTableRows(ordersList, viewContext = 'trafico') {
       </tr>
     `;
     if (!isCollapsed) {
-      html += items.map(ot => {
+      const groupedItems = groupSubOtsUnderParents(items);
+      html += groupedItems.map(ot => {
         const rowHtml = renderUnifiedOtRow(ot, getActiveRoute(ot), viewContext, globalRowIndex);
         globalRowIndex++;
         return rowHtml;
@@ -1185,10 +1227,26 @@ export function updateTreeToolbarState() {
       btn.classList.add('opacity-25', 'cursor-not-allowed', 'pointer-events-none');
     });
   }
+
+  if (state.memberRole !== 'owner') {
+    delBtn.disabled = true;
+    delBtn.classList.add('opacity-25', 'cursor-not-allowed', 'pointer-events-none', 'hidden');
+  } else {
+    delBtn.classList.remove('hidden');
+  }
+
+  if (state.memberRole === 'client' && filter.type === 'all') {
+    addBtn.disabled = true;
+    addBtn.classList.add('opacity-25', 'cursor-not-allowed', 'pointer-events-none', 'hidden');
+  } else {
+    addBtn.disabled = false;
+    addBtn.classList.remove('opacity-25', 'cursor-not-allowed', 'pointer-events-none', 'hidden');
+  }
 }
 
 export function handleTreeToolbarAdd() {
   const filter = state.selectedTreeFilter || { type: 'all' };
+  if (state.memberRole === 'client' && filter.type === 'all') return;
   if (filter.type === 'client' && filter.client) {
     emit('modal:open-brand', { clientName: filter.client });
   } else if (filter.type === 'brand' && filter.client) {
@@ -1221,6 +1279,7 @@ export function handleTreeToolbarDuplicate() {
 }
 
 export function handleTreeToolbarDelete() {
+  if (state.memberRole !== 'owner') return;
   const filter = state.selectedTreeFilter || { type: 'all' };
   if (filter.type === 'client' && filter.client) {
     const client = getClients().find(c => c.name.toLowerCase() === filter.client.toLowerCase());
@@ -1371,7 +1430,7 @@ export function renderTrafficDesk() {
   
   const footerCount = document.getElementById('footer-active-count');
   if (footerCount) {
-    footerCount.innerText = `${orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada').length} Activas en Tráfico`;
+    footerCount.innerText = `${orders.filter(o => !isOtTerminal(o.status)).length} Activas en Tráfico`;
   }
 
   // Control de visibilidad de acciones de grupo (Abrir todo / Cerrar todo)
@@ -1484,7 +1543,7 @@ export function renderTrafficDesk() {
             </h3>
             <div class="text-[11px] text-zinc-400 mt-1 flex items-center justify-between gap-1.5">
               <span class="truncate"><span class="text-zinc-500 font-medium">Medio:</span> <span class="text-zinc-300">${escapeHtml(ot.media || 'No especificado')}</span></span>
-              <span class="shrink-0"><span class="text-zinc-500 font-medium">Resp:</span> <span class="${getResponsibleColorClasses(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.')).text} font-semibold">${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Andrés J.'))}</span></span>
+              <span class="shrink-0"><span class="text-zinc-500 font-medium">Resp:</span> <span class="${getResponsibleColorClasses(ot.responsible || (lastRoute ? lastRoute.to : '')).text} font-semibold">${escapeHtml(ot.responsible || (lastRoute ? lastRoute.to : 'Sin Asignar'))}</span></span>
             </div>
 
             <!-- Último Relevo -->
@@ -1497,7 +1556,7 @@ export function renderTrafficDesk() {
                 <div class="font-semibold text-white text-[11px] flex items-center gap-1.5">
                   <span class="text-amber-300">${escapeHtml(lastRoute.from || 'Tráfico')}</span>
                   <span class="text-zinc-600">→</span>
-                  <span class="text-sky-300">${escapeHtml(lastRoute.to || 'Andrés J.')}</span>
+                  <span class="text-sky-300">${escapeHtml(lastRoute.to || 'Sin Asignar')}</span>
                 </div>
                 <p class="text-[11px] text-zinc-300 line-clamp-2 mt-0.5">
                   "${escapeHtml(lastRoute.task || '')}"
@@ -1670,7 +1729,32 @@ on('views:refresh', () => {
 // ============================================================================
 // EXPOSICIÓN GLOBAL EN WINDOW (PARA MANEJADORES INLINE DURANTE LA TRANSICIÓN)
 // ============================================================================
+export async function createSubOtAction(parentOtId) {
+  if (!parentOtId) return;
+  const parentOt = getOrderById(parentOtId);
+  if (!parentOt) return;
+  try {
+    const subTitle = typeof window !== 'undefined'
+      ? window.prompt(`Descripción de la Sub-OT para ${parentOt.id}:`, `Entregable de ${parentOt.title || parentOt.id}`)
+      : `Entregable de ${parentOt.id}`;
+    if (subTitle === null) return;
+    const created = await createOt({
+      parentOtId: parentOt.id,
+      title: subTitle.trim() || `Sub-OT de ${parentOt.id}`,
+      discipline: parentOt.discipline || 'advertising',
+      media: parentOt.media || 'Digital',
+    });
+    if (created) {
+      renderTrafficDesk();
+      emit('modal:open-envelope', { otId: created.id });
+    }
+  } catch (err) {
+    if (typeof window !== 'undefined') window.alert(err?.message || 'Error al crear la Sub-OT.');
+  }
+}
+
 if (typeof window !== 'undefined') {
+  window.createSubOtAction = createSubOtAction;
   window.setTableSort = setTableSort;
   window.toggleTableSortDirection = toggleTableSortDirection;
   window.setTableGroup = setTableGroup;

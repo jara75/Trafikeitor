@@ -11,7 +11,8 @@ import {
   pauseRowDrag,
   resumeRowDrag,
   emit,
-  on
+  on,
+  isOtTerminal
 } from './core-state.js';
 
 import {
@@ -27,7 +28,8 @@ import {
   addResponsible,
   getDepartments,
   formatDateKeyLocal,
-  escapeHtml
+  escapeHtml,
+  getActiveUserShortName
 } from './data-bridge.js';
 
 import {
@@ -226,6 +228,35 @@ export function getOtScheduledDays(otId) {
   return result;
 }
 
+function isOrderInUserTray(ot) {
+  if (!ot) return false;
+  if (state.memberRole === 'owner') return true;
+  if (state.memberRole === 'client') {
+    const clients = getClients();
+    const allowed = clients.find(c => c.id === state.allowedClientId || c.name?.toLowerCase() === String(state.allowedClientId || '').toLowerCase());
+    if (!allowed) return true; // ya filtrado por servidor en bootstrap
+    return (ot.client || '').toLowerCase() === allowed.name.toLowerCase();
+  }
+  if (state.allowedClientId === '*') return true;
+
+  const profile = getUserProfile();
+  const userDepts = (profile.departments || []).map(d => String(d).trim().toLowerCase()).filter(Boolean);
+  const shortLower = (getActiveUserShortName() || '').trim().toLowerCase();
+  const activeRoute = getActiveRoute(ot);
+  const toDept = (activeRoute?.to || '').trim().toLowerCase();
+  const fromDept = (activeRoute?.from || '').trim().toLowerCase();
+  const respLower = (ot.responsible || '').trim().toLowerCase();
+
+  if (toDept && userDepts.includes(toDept)) return true;
+  if (fromDept && userDepts.includes(fromDept)) return true;
+  if (shortLower && respLower === shortLower) return true;
+
+  const clients = getClients();
+  const allowed = clients.find(c => c.id === state.allowedClientId || c.name?.toLowerCase() === String(state.allowedClientId || '').toLowerCase());
+  if (allowed && (ot.client || '').toLowerCase() === allowed.name.toLowerCase()) return true;
+  return false;
+}
+
 export function renderStripboardPendingPool() {
   if (typeof document === 'undefined') return;
 
@@ -238,8 +269,8 @@ export function renderStripboardPendingPool() {
 
   if (!container) return;
 
-  // OTs activas no cerradas ni canceladas
-  const activeOrders = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada');
+  // OTs activas no cerradas ni canceladas, filtradas por bandeja/departamento/cuenta del usuario
+  const activeOrders = orders.filter(o => !isOtTerminal(o.status) && isOrderInUserTray(o));
   if (badge) badge.innerText = activeOrders.length;
 
   // Filtrado por texto y por estado de agendamiento
@@ -421,7 +452,7 @@ export function renderStripboard() {
     if (scheduledIds.length > 0) {
       stripboardOrders = scheduledIds.map(id => orders.find(o => o.id === id)).filter(Boolean);
     } else {
-      stripboardOrders = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada');
+      stripboardOrders = orders.filter(o => !isOtTerminal(o.status));
     }
     if (stripboardOrders.length === 0) {
       stripboardOrders = orders;
@@ -609,7 +640,7 @@ export function renderStripboard() {
               onmousedown="pauseRowDrag(this)"
               onmouseup="resumeRowDrag(this)"
               onblur="resumeRowDrag(this)"
-              value="${escapeHtml(strip.assignee || 'Andrés J.')}" 
+              value="${escapeHtml(strip.assignee || getActiveUserShortName() || 'Usuario')}" 
               onchange="addResponsible(this.value); updateStripField(${idx}, 'assignee', this.value)" 
               placeholder="Responsable" 
               class="w-full bg-black/30 border border-resolve-border rounded-lg px-1.5 py-1 text-cyan-300 font-semibold text-[11px] focus:border-amber-500/60 focus:outline-none text-center cursor-text"
@@ -669,7 +700,7 @@ export function insertOtStripOnDate(otId, dateStr, positionIndex, customAssignee
     product: ot.product || '',
     timeSlot: nextSlot,
     task: lastRoute ? lastRoute.task : (ot.title || 'Desarrollo de piezas de campaña'),
-    assignee: customAssignee || ot.responsible || (lastRoute ? (lastRoute.to || 'Andrés J.') : 'Andrés J.'),
+    assignee: customAssignee || ot.responsible || (lastRoute ? (lastRoute.to || getActiveUserShortName() || 'Usuario') : (getActiveUserShortName() || 'Usuario')),
     shiftStatus: 'Por Iniciar'
   };
 
@@ -735,9 +766,9 @@ export function cycleStripStatusOnDate(dateStr, index) {
 
 export function autoPopulatePendingOts() {
   const orders = getOrders();
-  const activeOrders = orders.filter(o => o.status !== 'Cerrado' && o.status !== 'Cancelado' && o.status !== 'Archivada');
+  const activeOrders = orders.filter(o => !isOtTerminal(o.status) && isOrderInUserTray(o));
   if (activeOrders.length === 0) {
-    if (typeof window !== 'undefined') window.alert("No hay OTs activas para planificar.");
+    if (typeof window !== 'undefined') window.alert("No hay OTs activas en tu bandeja para planificar.");
     return;
   }
 
@@ -753,6 +784,7 @@ export function autoPopulatePendingOts() {
 
       strips.push({
         id: 'strip-' + Date.now() + Math.random().toString(36).substring(7),
+        userId: state.currentUser?.id || null,
         type: 'ot',
         otId: ot.id,
         client: ot.client,
@@ -760,7 +792,7 @@ export function autoPopulatePendingOts() {
         product: ot.product || '',
         timeSlot: assignedSlot,
         task: lastRoute ? lastRoute.task : (ot.title || 'Desarrollo'),
-        assignee: ot.responsible || (lastRoute ? (lastRoute.to || 'Andrés J.') : 'Andrés J.'),
+        assignee: ot.responsible || (lastRoute ? (lastRoute.to || getActiveUserShortName() || 'Usuario') : (getActiveUserShortName() || 'Usuario')),
         shiftStatus: 'Por Iniciar'
       });
     }
@@ -1829,7 +1861,7 @@ export function openCustomTaskModal(index, dateStr) {
     if (strip) {
       if (modalTitle) modalTitle.innerText = `Editar Tarea Libre (#${activeCustomTaskIndex + 1})`;
       if (titleInput) titleInput.value = strip.task || '';
-      if (assigneeInput) assigneeInput.value = strip.assignee || 'Andrés J.';
+      if (assigneeInput) assigneeInput.value = strip.assignee || getActiveUserShortName() || 'Usuario';
       if (timeSlotInput) timeSlotInput.value = strip.timeSlot || '08:30 - 09:30';
       if (statusInput) statusInput.value = strip.shiftStatus || 'Por Iniciar';
       if (clientInput) clientInput.value = strip.client || 'Interno';
@@ -1838,7 +1870,7 @@ export function openCustomTaskModal(index, dateStr) {
   } else {
     if (modalTitle) modalTitle.innerText = 'Nueva Tarea Libre';
     if (titleInput) titleInput.value = '';
-    if (assigneeInput) assigneeInput.value = 'Andrés J.';
+    if (assigneeInput) assigneeInput.value = getActiveUserShortName() || 'Usuario';
     if (timeSlotInput) timeSlotInput.value = '08:30 - 09:30';
     if (statusInput) statusInput.value = 'Por Iniciar';
     if (clientInput) clientInput.value = 'Interno';
@@ -1883,7 +1915,7 @@ export function saveCustomTaskModal(e) {
   const clientInput = document.getElementById('custom-task-client-input');
 
   const title = (titleInput ? titleInput.value : '').trim();
-  const rawAssignee = (assigneeInput ? assigneeInput.value : '').trim() || 'Andrés J.';
+  const rawAssignee = (assigneeInput ? assigneeInput.value : '').trim() || getActiveUserShortName() || 'Usuario';
   const timeSlot = (timeSlotInput ? timeSlotInput.value : '').trim() || '08:30 - 09:30';
   const shiftStatus = (statusInput ? statusInput.value : 'Por Iniciar');
   const client = (clientInput ? clientInput.value : 'Interno').trim() || 'Interno';
